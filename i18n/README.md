@@ -1,0 +1,77 @@
+# i18n · 双语口径
+
+<p><a href="README.en.md">English</a> | 简体中文</p>
+
+本目录管两件事：**文档层双语**（现在生效）与**产品字符串层双语**（`packages/` 有代码后生效）。
+口径来源：国际化 = 中国用户优先 + 英文产品名 + 具备海外发布能力，不是"把产品改成英文"。
+
+## 范围与两层结构
+
+| 层 | 内容 | 状态 | 强制方式 |
+|---|---|---|---|
+| 文档层 | 门面与接手必需的 `.md` 与其 `*.en.md` 译本 | 生效 | `node scripts/check-i18n.mjs` |
+| 产品字符串层 | 桌面 UI、CLI 人类可读输出、错误文案的 `zh-CN` / `en-US` 资源 | 未启用 | 同脚本扩展 + 批次归属清单 |
+
+字符串层落地时的形态（写在这里是为了现在别把目录设计成不支持它）：
+`packages/i18n/locales/{zh-CN,en-US}/*.json` 同键结构、带插值参数与富文本槽位，
+默认 `zh-CN`，英文入口不做机器翻译。
+
+## 成对规则（文档层）
+
+- 中文是**源**，英文是**译本**：文件名 `X.md` → 同目录 `X.en.md`，不建 `en/` 子目录。
+  同目录并排才能保证两份一起出现在同一次 diff 里，漏改看得见。
+- 需要成对的范围：**对外门面**（README、CONTRIBUTING、SECURITY、CODE_OF_CONDUCT、CHANGELOG）、
+  **接手索引**（AGENTS.md）、**面向使用者的文档**（`docs/guide`、`docs/architecture`、`docs/development`）、
+  **经验库**（`docs/knowledge`，它的价值就是给任何人接手）。
+- 不要求成对：`docs/research`、`docs/product`、`docs/engineering`、`docs/reviews`、`docs/drafts`、
+  `datasets`、`openspec/changes`。过程资产的价值在过程本身，硬翻只制造维护债。
+- 登记才算数：进入成对范围的文档必须写进 [`docs-manifest.json`](docs-manifest.json)。
+  **不登记 = 门禁不管 = 允许只存在中文**；登记了却没配对 = 判红。
+- 反向也算数：存在 `*.en.md` 却没登记 = `TWIN_UNREGISTERED` 判红，防止绕开门禁的单边副本。
+
+## 表单与模板：不做两份
+
+Issue 表单和 PR 模板翻成两份会让提交者不知道该填哪个，也让人没法比对两份是否同口径。做法是：
+
+- **GitHub Issue 表单**（`.github/ISSUE_TEMPLATE/*.yml`）：同一表单内并列 ——
+  `name: Bug report / Bug 报告`、`label: What happened / 遇到的问题`，
+  说明块里英文段落在前、中文段落在后。一份表单，两种语言都能填。
+- **PR 模板**（`.github/PULL_REQUEST_TEMPLATE.md`）：小标题用 `## Summary / 改动说明`，
+  填写指引以 `<!-- 英文 -->` 紧跟 `<!-- 中文 -->` 成对给出。
+- **Gitee 侧**（`.gitee/*.zh-CN.md`）：纯中文。面向大陆网络环境的贡献者不需要再看英文。
+- 三个位置的口径必须等价：改任一处，另外两处同轮跟上（人工核对，脚本不查 yml 与 md 的语义等价）。
+
+## 语言入口格式
+
+每份成对文档在一级标题**下一行**给出互链，中文指向英文、英文指回中文：
+
+```markdown
+<p><a href="README.en.md">English</a> | 简体中文</p>
+```
+
+缺失即 `NO_LANG_LINK` 判红。语言入口必须放在标题紧邻处，埋在正文里等于没有。
+
+## 翻译纪律
+
+- **同轮改动**：口径变更必须中文与英文一次提交内完成。分两次提交会让英文停在旧口径，
+  而读者以为它说的是当前事实——比没有英文版更糟。
+- **对齐结论，不对齐句子**：中文句子该拆就拆、该合并就合并，但段落顺序、小节数量、表格行数、
+  结论与警告必须一致。门禁按 `##` 小节数与代码块数比对，漂移即判红。
+- **原值不翻译**：代码标识、协议字段、错误码、文件名、CLI 参数、CSS 属性、单位、包名一律保留原样。
+  术语对应关系查 [`glossary.md`](glossary.md)。
+- **数字与判据不许顺手改**：门槛、计数、日期在两份里必须字面一致；改一处忘一处是典型的口径分叉源。
+- 英文版本由人写，不机器直出：术语表冻结后才开始批量翻译，否则同一概念三种译法。
+
+## 门禁
+
+```bash
+node scripts/check-i18n.mjs               # 检查登记表内全部成对文档
+node scripts/check-i18n.mjs --selftest    # 反证：缺对/断链/漂移必须判红
+```
+
+检查项：`TWIN_MISSING`（缺英文）· `ZH_MISSING`（登记了但原文不存在）· `NO_LANG_LINK`（语言入口）·
+`NO_TITLE` · `HEADING_DRIFT`（小节数漂移）· `CODE_BLOCK_DRIFT` · `THIN_TWIN`（英文体量异常）·
+`BROKEN_LINK`（相对链接解析不到文件）· `TWIN_UNREGISTERED`（孤儿英文）。
+
+`--selftest` 是门禁的自证：6 个反例 + 1 个正例。没有它，一条永不命中的规则会长期表现为"双语全绿"，
+而实际上一条都没检查。Workspace 落地后并入 `pnpm check:i18n`，进 `check:ci` 链与 CI。

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "convention": "同目录 *.en.md 成对；本表登记的文档由 scripts/check-i18n.mjs 强制配对与链接检查。",
+  "notRequired": [
+    "docs/research/**",
+    "docs/product/**",
+    "docs/engineering/**",
+    "docs/reviews/**",
+    "datasets/**",
+    "openspec/changes/**",
+    ".github/**",
+    ".gitee/**",
+    ".workflow/**"
+  ],
+  "docs": [
+    "README.md",
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md",
+    "docs/README.md",
+    "docs/knowledge/README.md",
+    "docs/knowledge/engineering.md",
+    "docs/knowledge/runtime-probe.md",
+    "docs/knowledge/invariants.md",
+    "docs/knowledge/decisions.md",
+    "docs/knowledge/debt.md",
+    "docs/development/workflow.md",
+    "i18n/README.md",
+    "i18n/glossary.md"
+  ]
+}
