@@ -46,9 +46,10 @@ An ideal report looks like this (**illustration, not a measurement**):
 ## 📌 Current status
 
 - **Unreleased**: no downloadable package, no npm package, no tag.
-- **Both remotes exist and are empty**: GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)
-  (primary) and Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) (mirror);
-  `git init` has not been run locally and neither remote holds any ref.
+- The repository is initialized and pushed to both remotes: GitHub
+  [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) (primary) and
+  [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) (mirror), `main` = `e02e703`;
+  still no tag and no downloadable package.
 - The repository holds the directory layout, the handoff index, the bilingual and hygiene gates, and the
   scoping survey.
 - The first validation plan (real-project dataset, control groups, continue/shrink thresholds) is written up

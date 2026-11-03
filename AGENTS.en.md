@@ -39,10 +39,10 @@ shipping reduced trigger conditions plus replayable evidence.
 
 | Field | Current value |
 |---|---|
-| Phase | Scoped and approved as a direction; first validation plan not approved |
+| Phase | Scoped; the first validation plan is written up as a **proposal awaiting approval** ([plan](docs/engineering/plans/2026-11-03-first-validation-plan.md)) |
 | Active change | None (`openspec/changes/` is empty) |
 | Code | None. The repository holds skeleton, index and gates only |
-| Release | None. Both remotes exist but are **empty** (nothing pushed), no tag, no npm package |
+| Release | None. Both remotes' `main` are pushed to `e02e703` (measured 2026-11-03 with `git ls-remote`, identical on both); no tag, no npm package |
 
 Where truth actually lives: progress ⇒ `git log --oneline` and `openspec/changes/archive/`;
 gate baseline ⇒ the printed output of `node scripts/check-hygiene.mjs --all`; repository size ⇒ `git count-objects -v`;
@@ -51,8 +51,9 @@ gate baseline ⇒ the printed output of `node scripts/check-hygiene.mjs --all`; 
 Repository and remotes: local `D:\Layress`; branch `main`;
 `github` = `https://github.com/pomelotea-yuzu/Layress.git` (primary) and
 `gitee` = `https://gitee.com/yuzu-tea-duck/layress.git` (mirror) — **there is no `origin`**.
-`git init` has not been run locally; creating repositories, tags and pushing are the owner's operations
-(measured 2026-11-03 with `git ls-remote`: neither remote has any ref).
+`git init` has been run locally (branch `main`, `core.hooksPath=.githooks`); creating repositories, tags and
+pushing remain the owner's operations — on 2026-11-03 the owner pushed `main` to both sides
+(6 commits, ending at `e02e703`).
 
 ## 3. Required reading (about 10 minutes)
 

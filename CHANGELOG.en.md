@@ -45,6 +45,25 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 - Not done code scaffolding (`package.json`, pnpm workspace, biome, test chain) — this round's scope is recorded in
   [`docs/knowledge/decisions.md`](docs/knowledge/decisions.md) D13; it is planned, not an oversight.
 
+### First validation plan proposal and repository go-live · 2026-11-03
+
+- Added [`docs/engineering/plans/2026-11-03-first-validation-plan.md`](docs/engineering/plans/2026-11-03-first-validation-plan.md):
+  survey §seven turned into something executable — S0 probe-channel comparison experiment, S1 dataset build,
+  S2 fair three-arm control (A/B/C), S3 metrics and human review, S4 go/shrink verdict; suggested timebox
+  6 weeks / ~90 hours (S1 takes 40% — cut features, never the sample size); plus "the six calls the owner must
+  make" and "what failure looks like" (shrink conditions pre-written so the outcome cannot be rationalised later).
+  **Status: proposal, not approved.**
+- Changed the probe-stack stance: **no preset conclusion** — it comes out of the S0 experiment
+  (R1 Playwright + system Chrome vs R2 raw CDP; 3 known-answer samples × 7 measurements × 6 repeats), with
+  "zero byte growth in the C-drive user profile" (invariant I12) listed as a hard criterion. The criteria are
+  written before the experiment, so results cannot be post-hoc justified.
+- Added repository go-live: `git init -b main`, `core.hooksPath=.githooks` active, dual remotes `github`
+  (primary) + `gitee` (mirror) with no `origin`; the skeleton landed in 6 staged commits and the owner pushed
+  `main` to both sides (last one `e02e703`, verified identical via `git ls-remote`).
+- Changed [`AGENTS.md`](AGENTS.md) status card, [`README.md`](README.md) current status and
+  [`docs/knowledge/debt.md`](docs/knowledge/debt.md) to reflect the real init/push state, and removed the
+  "first commit and pushing to the two remotes" row from the debt table — settled items do not stay in debt.
+
 ## Versioning and release conventions
 
 - Versioning starts at `0.1.0`; breaking changes are allowed during `0.x` but must state their impact here.

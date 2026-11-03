@@ -43,9 +43,9 @@ Layress 关注的不是"和上一版比哪里变了"，而是：
 ## 📌 当前状态
 
 - **未发布**：没有可下载的包，没有 npm 包，没有 tag。
-- **双远程已建、均为空仓**：GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)（主）
-  与 Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)（镜像）；
-  本地尚未 `git init`，两边都没有任何 ref。
+- 仓库已初始化并推到双远程：GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)（主）
+  与 Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)（镜像），`main` = `e02e703`；
+  仍然没有 tag、没有可下载包。
 - 仓库内容 = 目录结构 + 接手索引 + 双语与洁净度门禁 + 立项调研。
 - 首个验证方案（真实项目数据集、对照组、继续/收缩门槛）已写成建议，**尚未批准**。
 - 已知的欠账与未决口径集中在 [`docs/knowledge/debt.md`](docs/knowledge/debt.md)。

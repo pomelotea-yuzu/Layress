@@ -39,6 +39,20 @@
 - 未做 代码骨架（`package.json`、pnpm workspace、biome、测试链）——本轮口径见
   [`docs/knowledge/decisions.md`](docs/knowledge/decisions.md) D13，属计划而非遗漏。
 
+### 首个验证方案提案与仓库上线 · 2026-11-03
+
+- 新增 [`docs/engineering/plans/2026-11-03-first-validation-plan.md`](docs/engineering/plans/2026-11-03-first-validation-plan.md)：
+  把调研 §七 的建议做成可执行方案——S0 探针通道对照实验、S1 数据集建设、S2 A/B/C 三组公平对照、
+  S3 指标与人工复核、S4 go/shrink 判定；时间盒建议 6 周 / 约 90 小时（S1 占 40%，砍功能不砍样本量）；
+  另附"需要用户拍板的六件事"与"失败会是什么样"（预先写死收缩条件，避免事后合理化）。**状态：提案，未批准。**
+- 变更 探针选型口径：**不预设结论**，改由 S0 对照实验量出（R1 Playwright + 系统 Chrome vs R2 裸 CDP，
+  3 个已知答案样本 × 7 项测量 × 6 次重复），其中"C 盘用户目录零字节增量"（不变量 I12）列为硬判据；
+  判据写在实验之前，防止做完再找理由。
+- 新增 仓库上线：`git init -b main`、`core.hooksPath=.githooks` 生效、双远程 `github`（主）+ `gitee`（镜像）无 `origin`；
+  骨架按 6 笔分步提交入库，用户已把 `main` 推到两边（末笔 `e02e703`，`git ls-remote` 实测一致）。
+- 变更 [`AGENTS.md`](AGENTS.md) 状态卡、[`README.md`](README.md) 当前状态与 [`docs/knowledge/debt.md`](docs/knowledge/debt.md)
+  同步 init/push 实况，并销掉 debt 中"首次 commit 与双远程 push"一行——已定论的事不留在欠账表里。
+
 ## 版本与发布约定
 
 - 版本从 `0.1.0` 起算；`0.x` 阶段允许破坏性变更，但必须在 `CHANGELOG` 里写明影响。
