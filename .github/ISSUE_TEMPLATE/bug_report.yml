@@ -1,0 +1,98 @@
+name: Bug report / Bug 报告
+description: Report a wrong verdict, a crash, or a repro that will not replay / 报告误判、崩溃或无法回放的问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Redact sensitive content — the scanned page's text, screenshots and
+        paths are frequently the sensitive part, so keep only the shape you need to show.
+        Report credential leaks, outbound data or C-drive write problems privately per SECURITY.md; a
+        portable-build violation (writing to `%APPDATA%` / `%LOCALAPPDATA%` / registry) is treated as a bug
+        **and** a policy breach.
+
+        提交前请先搜索已有 issue。请先脱敏——被扫描页面的文本、截图与路径往往正是敏感的那部分，
+        只保留要说明问题的形态即可。
+        涉及凭据泄露、数据外发或写 C 盘的问题请按 SECURITY.md 私下报告；便携包违反"不碰 C 盘"
+        既是 bug，也是口径违规。
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened / 遇到的问题
+      description: One sentence, then details. Say which stage failed: scan / confirm / reduce / replay / report / 一句话说清现象，再补充细节。请指明失败环节：扫描 / 确认 / 缩减 / 回放 / 报告
+      placeholder: |
+        e.g. A button clipped at narrow width was reported as reachable (false green at the confirm stage)
+        例：窄窗口下被裁切的按钮被判为可点击（确认环节假绿）
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour / 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      description: The shortest path you actually ran / 你实际跑过的最少步骤
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: conditions
+    attributes:
+      label: Trigger conditions (all four are required) / 触发条件（四项都要）
+      description: >-
+        Invariant I3: a repro without size + UI state + font/scaling + locale is not replayable. Unknown is
+        fine — write "unknown", never guess it in.
+        不变量 I3：缺任一项都不算可回放。不知道就写"unknown"，不要猜着补全。
+      value: |
+        - 尺寸 Size (content width × height, CSS px):
+        - 界面状态 UI state (sidebar expanded / tab active / error toast shown):
+        - 字体与缩放 Font & scaling (system font, browser zoom, DPR):
+        - 语言 Locale:
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Scan target type / 被扫描对象类型
+      options:
+        - Web page in Chromium / Chromium 里的网页
+        - Electron app / Electron 应用
+        - Other / 其他
+  - type: textarea
+    id: env
+    attributes:
+      label: Version and environment / 版本与环境
+      value: |
+        - Layress version or commit / 版本或提交：
+        - OS (and language) / 操作系统与语言：
+        - Node / Electron version / Node 与 Electron 版本：
+        - Data directory used / 实际使用的数据目录：
+        - Product install location / 产品安装位置：
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshot (optional) / 日志或截图（可选）
+      description: >-
+        Attach only the redacted error shape or the minimal region. Do not upload the whole data directory,
+        the full page DOM or file attachment store.
+        只附脱敏后的报错形态或必要区域；不要上传整个数据目录、完整页面 DOM 或附件目录。
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmations / 确认项
+      options:
+        - label: Searched existing issues / 已搜索过已有 issue
+          required: true
+        - label: Redacted credentials and the scanned page's private content / 已对凭据与被扫描页面隐私内容脱敏
+          required: true
+        - label: This is a tool defect, not a disagreement about whether a layout looks good / 这是工具缺陷，不是"这个布局好不好看"的分歧
+          required: true

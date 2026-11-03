@@ -1,0 +1,81 @@
+name: Feature request / 功能建议
+description: Propose a capability, or a stress condition the tool should apply / 提议新能力或应施加的压力条件
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Layress has four deliberately separated jobs — visual regression, geometric anomaly detection,
+        active stress testing, defect confirmation and reduction — and it centers on the last two. Please say
+        which one your request belongs to: a proposal that silently turns the tool into a screenshot
+        differ or a layout beautifier will be declined on the boundary, not on effort.
+        Aesthetic scoring, auto-fix, all-platform matrices and minimal-HTML extraction are explicitly
+        deferred (survey §7.2) — asking again is fine, but expect the same answer until the first validation closes.
+
+        Layress 有意把四类工作分开：视觉回归、几何异常检测、主动压力测试、缺陷确认与缩减，重心在后两项。
+        请说明你的建议属于哪一类——把工具悄悄变成"截图比对器"或"布局审美评分器"的方案，会因为边界被拒，
+        而不是因为工作量。审美评分、自动修复、全平台矩阵、最小 HTML 抽取属于明确暂缓项（调研 §7.2），
+        可以再提，但首验收口前大概率是同一个答复。
+  - type: dropdown
+    id: category
+    attributes:
+      label: Which job does this serve? / 服务于哪类工作
+      options:
+        - Scan (collect candidates) / 扫描（采集候选）
+        - Confirm (reachability verdict) / 确认（可达性判定）
+        - Reduce (condition reduction) / 缩减（条件缩减）
+        - Replay (evidence playback) / 回放（证据回放）
+        - Reporting / export / 报告与导出
+        - Integration (CLI, CI, MCP, editor) / 集成（CLI、CI、MCP、编辑器）
+        - Dataset (new stress condition or case type) / 数据集（新压力条件或样本类型）
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve / 要解决的问题
+      description: What can you not do today, and what did you do instead? / 今天做不到什么、你用什么绕过去了
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour / 建议的做法
+      description: Inputs, outputs, and the verdict the tool should produce / 输入、输出，以及应产出什么判定
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / 考虑过的替代方案
+  - type: dropdown
+    id: invariants
+    attributes:
+      label: Does it touch an invariant? / 是否触碰某条不变量
+      description: >-
+        See docs/knowledge/invariants.md (I1–I13). "A candidate is not a defect", "a machine PASS is not human
+        approval" and "never touch the C drive" are the three most commonly bumped.
+        见 docs/knowledge/invariants.md（I1–I13）。最常被撞到的是"候选不等于缺陷""机器 PASS 不等于人工通过""不碰 C 盘"。
+      options:
+        - 'No / 不涉及'
+        - 'Yes — I will explain below / 是，我在下面说明'
+        - Not sure / 不确定
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Cost and scope / 代价与范围
+      description: >-
+        Which platforms does it need? Does it require network or a remote model? Does it write outside the
+        data root? Any of these changes the product promise, so say so plainly.
+        需要哪些平台？是否要联网或远程模型？是否会写到数据根之外？这三条都会改变产品承诺，请直说。
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmations / 确认项
+      options:
+        - label: Read the positioning and four-boundary section in README / 已读 README 的定位与四类边界
+          required: true
+        - label: Searched existing issues and discussions / 已搜索过已有 issue 与讨论
+          required: true

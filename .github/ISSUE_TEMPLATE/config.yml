@@ -1,0 +1,26 @@
+# GitHub Issue 表单的入口配置。
+#
+# 表单本身用**同一份表单内并列双语**（`name: Bug report / Bug 报告`），不做中英两份文件：
+# 两份表单提交者不知道该填哪个，也无处比对口径是否等价（见 i18n/README.md「表单与模板」）。
+blank_issues_enabled: false
+
+contact_links:
+  - name: Gitee mirror / Gitee 镜像仓库
+    url: https://gitee.com/yuzu-tea-duck/layress/issues
+    about: >-
+      Mainland China networks can open issues on Gitee (Chinese-only template) /
+      大陆网络环境可到 Gitee 侧提 issue（纯中文模板，口径与本页等价）
+
+  - name: Documentation / 使用文档
+    url: https://github.com/pomelotea-yuzu/Layress#readme
+    about: Current status, planned capabilities and known limitations / 当前状态、计划中的能力与已知限制
+
+  - name: Handoff index / 接手索引
+    url: https://github.com/pomelotea-yuzu/Layress/blob/main/AGENTS.md
+    about: Single entry point for developers and agents / 开发者与智能体的唯一入口（状态卡、门禁、红线）
+
+  - name: Report a vulnerability / 私密安全报告
+    url: https://github.com/pomelotea-yuzu/Layress/security/advisories/new
+    about: >-
+      Never file credentials, data-flow or C-drive write issues publicly /
+      凭据泄露、数据外发、写 C 盘等问题请走私密渠道，不要开公开 issue
