@@ -35,7 +35,7 @@
 | 阶段 | 立项完成；首个验证方案已成文为**提案，待批准**（[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)） |
 | 活动 change | 无（`openspec/changes/` 为空） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
-| 发行 | 无。双远程 `main` 均已 push 至 `e02e703`（2026-11-03 `git ls-remote` 实测两边一致），未打 tag、未发 npm 包 |
+| 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-hygiene.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
@@ -45,7 +45,7 @@
 `github` = `https://github.com/pomelotea-yuzu/Layress.git`（主仓库）、
 `gitee` = `https://gitee.com/yuzu-tea-duck/layress.git`（镜像），**没有 `origin`**。
 本地已 `git init`（分支 `main`、`core.hooksPath=.githooks`）；建仓、tag 与 push 归用户操作，
-2026-11-03 用户已把 `main` 推到两边（6 笔提交，末笔 `e02e703`）。
+2026-11-03 用户已建双远程并推过 `main`。**是否还有未推提交按上一行的命令查，别信任何文字记载。**
 
 ## 三、必读顺序（约 10 分钟）
 

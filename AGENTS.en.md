@@ -42,7 +42,7 @@ shipping reduced trigger conditions plus replayable evidence.
 | Phase | Scoped; the first validation plan is written up as a **proposal awaiting approval** ([plan](docs/engineering/plans/2026-11-03-first-validation-plan.md)) |
 | Active change | None (`openspec/changes/` is empty) |
 | Code | None. The repository holds skeleton, index and gates only |
-| Release | None. Both remotes' `main` are pushed to `e02e703` (measured 2026-11-03 with `git ls-remote`, identical on both); no tag, no npm package |
+| Release | No tag, no npm package. Ahead/behind status is **queried, not recorded** (this card does not pin a hash — one commit makes it stale): `git fetch github && git log --oneline github/main..main` |
 
 Where truth actually lives: progress ⇒ `git log --oneline` and `openspec/changes/archive/`;
 gate baseline ⇒ the printed output of `node scripts/check-hygiene.mjs --all`; repository size ⇒ `git count-objects -v`;
@@ -52,8 +52,8 @@ Repository and remotes: local `D:\Layress`; branch `main`;
 `github` = `https://github.com/pomelotea-yuzu/Layress.git` (primary) and
 `gitee` = `https://gitee.com/yuzu-tea-duck/layress.git` (mirror) — **there is no `origin`**.
 `git init` has been run locally (branch `main`, `core.hooksPath=.githooks`); creating repositories, tags and
-pushing remain the owner's operations — on 2026-11-03 the owner pushed `main` to both sides
-(6 commits, ending at `e02e703`).
+pushing remain the owner's operations — on 2026-11-03 the owner created both remotes and pushed `main`.
+**Whether anything is still unpushed is answered by the command on the row above, never by written records.**
 
 ## 3. Required reading (about 10 minutes)
 

@@ -48,8 +48,8 @@ An ideal report looks like this (**illustration, not a measurement**):
 - **Unreleased**: no downloadable package, no npm package, no tag.
 - The repository is initialized and pushed to both remotes: GitHub
   [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) (primary) and
-  [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) (mirror), `main` = `e02e703`;
-  still no tag and no downloadable package.
+  [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) (mirror); still no tag, no downloadable package.
+  To see whether anything is unpushed: `git fetch github && git log --oneline github/main..main`.
 - The repository holds the directory layout, the handoff index, the bilingual and hygiene gates, and the
   scoping survey.
 - The first validation plan (real-project dataset, control groups, continue/shrink thresholds) is written up
