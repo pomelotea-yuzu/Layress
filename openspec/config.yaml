@@ -1,0 +1,67 @@
+schema: spec-driven
+
+context: |
+  项目：Layress — 界面压力测试工具（本地优先、便携优先；首版形态为 CLI + 可读报告 + 结构化结果）
+
+  定位句：在明确的界面状态下主动施压，确认关键操作发生了什么损坏，并把触发条件缩减成可重复回放的证据。
+  无需人工"正确截图基线"，但仍需开发者声明关键操作、准备步骤、可接受滚动与排除范围。
+
+  目标用户：需要确认界面在窄窗、长文本、多语言、字体变化下是否还能正常操作的开发者，中文用户为主。
+  分发建议 scoped 包 @layress/*；与 npm 上的 layrr／layerr 与组件库 layui 无关，README 需显式区分。
+
+  仓库与远程：本地 D:\Layress；分支 main；
+  github = https://github.com/pomelotea-yuzu/Layress.git（主仓库）
+  gitee  = https://gitee.com/yuzu-tea-duck/layress.git（镜像）；**没有 origin**。
+  建仓、tag 与 push 归用户；判 push 状态只认 git ls-remote，不认文档记载。
+
+  四条工作边界（不可混为一谈）：
+  - 视觉回归 = 与已认可版本比差异；本产品不做这一类
+  - 几何异常检测 = 产出**候选**，不等于缺陷
+  - 主动压力测试 = 改变条件以扩大覆盖
+  - 缺陷确认与复现缩减 = 本产品重心，输出可回放证据
+
+  技术栈（以源码与依赖清单为准；当前尚未建代码骨架）：
+  - TypeScript strict + pnpm workspaces；packages/{core,confirm,reduce,replay,cli} + apps/desktop
+  - 探针通道候选：Playwright / CDP 直连 / Electron 远程调试（未选型，见 docs/knowledge/debt.md）
+  - 首版平台：Windows + Chromium，另验证一个 Electron 适配；macOS/Linux 未承诺
+  - 质量：Biome + vitest + TypeScript + OpenSpec；实机判定另附人工复核记录
+  - 双语：文档层同目录 *.en.md 成对并由 check-i18n 强制；产品字符串层 zh-CN 默认、en-US 待建
+  - 许可：MIT
+
+  关键不变量（所有 spec 必须遵守；细节与后果见 docs/knowledge/invariants.md）：
+  - I1 候选不等于缺陷：几何异常只进候选层，确认层产出 confirmed / not-a-defect / inconclusive 三态
+  - I2 可达性判定必须以真实命中测试为准；程序化点击只能用于准备状态
+  - I3 触发条件四元组完整：尺寸（宽×高）+ 界面状态 + 字体/缩放 + 语言，缺一即标记不可回放
+  - I4 来源缺失、损坏或未知状态不得被 UI 猜测补造为可信事实
+  - I5 回放不新增真实外部副作用；重跑必须显式授权并说明副作用与费用
+  - I6 无需基线不等于无需规约：关键操作、准备步骤、可接受滚动、排除范围必须由开发者声明
+  - I7 数据集物理分离：调规则子集与最终评估子集不重叠
+  - I8 本地优先：页面内容、截图、结果默认不出本机；远程模型必须声明数据流与成本，禁止静默降级
+  - I9 缩减只有在保持失败的前提下才算完成
+  - I10 扫描 / 确认 / 缩减 / 回放四模块可独立使用，核心检测与报告完整开源
+  - I11 机器 PASS 不等于人工通过；未执行的复核单列
+  - I12 不碰 C 盘：数据、日志、缓存、临时文件写在产品自身目录或用户显式指定目录；不得默认写入
+    %APPDATA% / %LOCALAPPDATA% / C:\Users\… / 注册表 / ~/Library/Application Support；
+    安装位置由用户选择，安装器不提权、不改系统 PATH；目标目录不可写时报错并要求指定，禁止静默回落
+  - I13 数据目录解析口径唯一且可见：--data-dir / LAYRESS_DATA_DIR 优先，其次产品目录下的数据根；
+    解析结果与可写性必须出现在启动输出、日志与报告头部
+
+  存储与产物边界：
+  - 默认数据根与日志根 = 产品目录下 .layress/（或用户指定）；便携包业务数据落 data/
+  - Chromium/Electron 的 userData 与 sessionData 必须显式覆盖到数据根之下，不得用系统默认
+  - 一次性产物只去 artifacts/；两者均不入库（见 .gitignore 与 check-hygiene.mjs）
+  - 仓库与产物内一律相对数据根的路径 + posix 分隔符；导出给用户时才物化为绝对路径
+
+  首版范围与暂缓项以 docs/research/ 的调研 §7.2 为准，不在 spec 里另行扩大。
+
+conventions:
+  language: 中文为源；进入双语范围的文档必须同目录同轮补 *.en.md 并登记 i18n/docs-manifest.json
+  naming:
+    specs: openspec/specs/<capability>/spec.md
+    changes: openspec/changes/<verb-led-kebab-name>/
+    archive: openspec/changes/archive/<YYYY-MM-DD>-<change-name>/
+    docs: 会话产物带 YYYY-MM-DD- 前缀，长期文档不带
+  evidence:
+    live-probes: 实机判据记在 change 的 evidence-index.md；截图默认留本地（docs/reviews/**/*.png 不入库）
+    honesty: 未执行项单列"未执行"，禁止把机器判据通过写成人工验收通过
+  authority: 源码 > changes/archive/ > specs/ > docs/ > AGENTS.md

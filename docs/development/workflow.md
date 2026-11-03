@@ -1,0 +1,100 @@
+# 开发工作流
+
+<p><a href="workflow.en.md">English</a> | 简体中文</p>
+
+本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件（中英两份一起）。
+
+## 环境与日常命令
+
+- Node ≥ 20；包管理器 pnpm（workspace 建立后在根 `package.json` 固定 `packageManager` 字段）。
+- 每个克隆一次：`git config core.hooksPath .githooks`。不挂 hook，洁净度问题会推迟到 CI 才暴露。
+
+```bash
+# 现阶段真实可跑
+node scripts/check-hygiene.mjs --staged
+node scripts/check-hygiene.mjs --all
+node scripts/check-i18n.mjs
+node scripts/check-i18n.mjs --selftest
+
+# workspace 落地后的目标命令链（尚未建立，见 docs/knowledge/debt.md）
+# pnpm check:build && pnpm check:typecheck && pnpm check:test \
+#   && pnpm check:lint && pnpm check:i18n && pnpm check:spec && pnpm check:hygiene
+```
+
+## 质量门禁
+
+| 门禁 | 命令 | 拦什么 | 状态 |
+|---|---|---|---|
+| 洁净度 | `check-hygiene.mjs` | 体积、二进制后缀、垃圾场路径、凭据形态、忽略泄露 | 生效 |
+| 双语成对 | `check-i18n.mjs` | 缺英文、断链、小节漂移、孤儿英文 | 生效 |
+| 构建 / 类型 / 测试 / lint | `pnpm check:*` | 代码质量与回归 | 待建 |
+| spec 一致性 | `pnpm check:spec` | 主 spec 与归档 change 的差集 | 待建 |
+
+两条硬约定：
+
+- **本地与云端跑同一条链**。CI（`.github/workflows/ci.yml` 与 `.workflow/ci.yml`）必须调用与 pre-commit 相同的命令，
+  否则"本地绿云端红"会吃掉整晚排查。
+- **机器 PASS ≠ 验收**。视觉与交互判定归人工复核；未执行的复核在项目状态里单列"未执行"。
+
+## 仓库洁净度操作
+
+被拦下后的标准动作，按顺序判断：
+
+1. 这东西能被脚本重新生成吗？⇒ 留在 `artifacts/` 或 `.layress/`，**不需要**入库也不需要豁免。
+2. 它是有价值的手写内容吗？⇒ 移到正确位置：结论进 `docs/` 对应子目录，样本进 `datasets/`。
+3. 它确实必须作为二进制入库吗？⇒ 在 [`.git-hygiene-allowlist`](../../.git-hygiene-allowlist) 加一行
+   `glob  #  理由`（必要时 `size=NNNK/M`），再 `git add -f`。无理由的豁免判红。
+4. 报"忽略却已跟踪"？⇒ `git rm --cached <path>` 后重新提交，别改 `.gitignore` 迁就历史。
+
+`.gitignore` 的维护纪律：每新增一段，必须写清**这是什么**与**有价值的东西该去哪**；
+只写路径不写理由的忽略规则，三个月后没人敢删。
+
+## 双语操作
+
+新增或修改成对文档的流程：
+
+1. 判断范围：门面 / 接手索引 / 面向使用者 / 经验库 ⇒ 需要成对；过程资产 ⇒ 不需要（见 [`/i18n/README.md`](../../i18n/README.md)）。
+2. 写中文（源），同轮写英文 `X.en.md`，一级标题下互放语言入口。
+3. 新文档登记进 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json)；不登记的门禁不管，
+   但存在英文而不登记 ⇒ `TWIN_UNREGISTERED` 判红。
+4. 新术语先进 [`/i18n/glossary.md`](../../i18n/glossary.md) 及其英文版，再落到文档。
+5. 本地跑 `node scripts/check-i18n.mjs` 确认全绿再提。
+
+Issue/PR 表单**不做两份**：GitHub 侧在同一个 yml 字段里并列 `English / 中文`，Gitee 侧纯中文。
+改任一处要同轮对齐另外两处——脚本查不了语义等价，这条靠人。
+
+## OpenSpec 流程
+
+```
+openspec/
+├─ config.yaml        项目圣经：定位、技术栈、架构不变量、执行边界
+├─ specs/             主 spec（能力口径，合入后长期有效）
+└─ changes/           活动 change
+   └─ archive/        已归档 change（决策与证据的权威落点）
+```
+
+一个 change 的生命周期：
+
+1. `openspec/changes/<name>/tasks.md` 拆步骤；`design.md` 写方案、取舍与被否路线。
+2. 按任务实施，每步留判据；实机证据记在 `evidence-index.md`（截图默认留本地，见洁净度）。
+3. 收口后归档 `openspec/changes/archive/<YYYY-MM-DD>-<name>/`，delta 合入 `specs/`。
+4. **权威性排序**：源码 > `changes/archive/` > `specs/` > `docs/` > `AGENTS.md`。
+   判断进度只认前两者，文档一律可能是旧的。
+
+纯文档修订、错别字、链接修复不必立项。
+
+## 文档与命名
+
+- 会话产物带 `YYYY-MM-DD-` 前缀；长期文档不带。
+- 新目录要同时在 [`/docs/README.md`](../README.md) 地图和该目录 `README.md` 登记归属；没登记 = 归属未定，先别建。
+- 每次整理留「路径变更记录」（`docs/README.md` 末尾），否则三个月后没人知道文件搬去哪了。
+- 经验条目按格式写进 [`docs/knowledge/`](../knowledge/README.md)，不要写进 `AGENTS.md` 正文——它有体积预算。
+
+## Commit 与 push
+
+- 一次 commit 做一件事；标题 `<type>(<scope>): <一句话改动>`，正文中文写"为什么"。
+- **每完成一个有价值步骤就 commit**，不要攒一大坨；但**不 push**。
+- push、打 tag、双远程同步归维护者。幂等复跑形如 `git push github main && git push gitee main`；
+  tag 单独推，**不要移动或强推已发布的 tag**。
+- push 计数只认 `git ls-remote` 的回显，不认文档里写的"已推"。
+- 禁止 `--no-verify` 绕过洁净度门禁。真要绕过，说明门禁写错了，去修脚本而不是每次手工放行。
