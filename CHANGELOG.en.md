@@ -1,6 +1,6 @@
 # Changelog
 
-<p>简体中文 | <a href="CHANGELOG.md">English</a></p>
+<p><a href="CHANGELOG.md">简体中文</a> | English</p>
 
 This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/). Change types are `Added / Fixed / Changed / Removed / Deprecated`.

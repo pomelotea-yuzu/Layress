@@ -32,13 +32,13 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 立项完成；命名、内部中文与对外双语范围、Agent 友好接口约束已定；首个验证方案仍为**提案，待批准**（[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)） |
+| 阶段 | 立项完成；文件管理门禁已统一，命名、双语范围与 Agent 接口约束已定；首个验证方案仍为**提案，待批准**（[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)） |
 | 活动 change | 无（`openspec/changes/` 为空） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
 | 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
-门禁基线 ⇒ 实跑 `node scripts/check-hygiene.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
+门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
 **push 状态 ⇒ 只认 `git ls-remote` 的回显，不认本文件写了什么**。
 
 仓库与远程：本地 `D:\Layress`；分支 `main`；
@@ -60,13 +60,16 @@
 
 ## 四、怎么跑起来
 
-**尚未建立 pnpm workspace**（本轮口径：结构 + 索引 + 门禁 + i18n）。当前只有三条命令是真能跑的：
+**尚未建立 pnpm workspace**（本轮口径：结构 + 索引 + 门禁 + i18n）。当前公共门禁入口：
 
 ```bash
-node scripts/check-hygiene.mjs --all      # 全仓洁净度体检
-node scripts/check-hygiene.mjs --staged   # 暂存区体检（pre-commit 用的就是这条）
-node scripts/check-i18n.mjs               # 双语成对体检（--selftest 反证门禁本身不假绿）
+node scripts/check-repo.mjs --all       # 洁净度 + 全库链接 + 双语配对 + 两类自测
+node scripts/check-repo.mjs --staged    # pre-commit：按实际索引快照跑同一条链
+node scripts/check-i18n.mjs --links     # 单查全库 Markdown 本地目标路径
 ```
+
+洁净度的正文、体积与豁免配置均读索引；单项自测与提交快照仅写入 `artifacts/` 并自动清理。
+工作区排查用 `--all`；部分暂存的提交以 `--staged` 为准。
 
 每个克隆做一次（不做就等于没有门禁）：
 
@@ -74,9 +77,8 @@ node scripts/check-i18n.mjs               # 双语成对体检（--selftest 反�
 git config core.hooksPath .githooks
 ```
 
-Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:ci`，并把
-`check:ci`、`check-hygiene --all`、`check-i18n` 同时接进 pre-commit 与 CI ——
-**云端和本地必须跑同一条命令链**，否则本地绿云端红的排查会吃掉整晚。
+Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:ci`，并接入现有
+`check-repo.mjs` 公共入口，让 pre-commit 与 CI 一起继承新增检查；**云端和本地必须跑同一条命令链**。
 
 ## 五、仓库洁净度红线
 
@@ -161,7 +163,7 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
         接手   AGENTS.md（唯一入口，默认中文）
         i18n   i18n/README 口径 · i18n/glossary 术语表 · i18n/docs-manifest 成对登记
         工程   packages/<core|confirm|reduce|replay|cli> apps/desktop
-               scripts/check-hygiene.mjs · scripts/check-i18n.mjs
+               scripts/check-repo.mjs 公共入口 · check-hygiene.mjs · check-i18n.mjs
         知识   docs/README 文档地图
               docs/guide architecture development        指南与工程说明（默认中文）
               docs/knowledge                             ★ 经验库（默认中文），见 §六

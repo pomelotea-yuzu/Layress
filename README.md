@@ -68,11 +68,11 @@ Layress 关注的不是"和上一版比哪里变了"，而是：
 
 ## ⌨️ 快速开始
 
-现在仓库里能跑的只有两条门禁命令：
+现在仓库的公共门禁入口如下，包含洁净度、全库文档链接、对外双语配对及门禁自测：
 
 ```bash
-node scripts/check-hygiene.mjs --all    # 仓库洁净度体检
-node scripts/check-i18n.mjs             # 双语成对体检（--selftest 反证门禁本身）
+node scripts/check-repo.mjs --all      # 本地排查与 CI
+node scripts/check-repo.mjs --staged   # 按待提交索引快照检查（pre-commit 同此）
 ```
 
 想参与开发，按顺序读 [`AGENTS.md`](AGENTS.md) → [`docs/development/workflow.md`](docs/development/workflow.md)
@@ -91,7 +91,7 @@ Layress/
 ├─ datasets/              正负例数据集
 ├─ openspec/              config.yaml · specs/ · changes/{,archive/}
 ├─ packages/  apps/       代码（骨架已定，尚未实现）
-└─ scripts/               check-hygiene · check-i18n
+└─ scripts/               check-repo 公共入口 · check-hygiene · check-i18n
 ```
 
 不入库的本地产物只去两个地方：`artifacts/`（可重跑产物）与 `.layress/`（运行时数据与日志）。

@@ -2,7 +2,7 @@
 
 > 状态：**提案**。批准后才开第一个 change；批准前本文件描述的是打算怎么做，不是已经做到的事。
 > 来源：调研 §七 把核心问题、首版范围、数据集建议、对照设计、指标与门槛都定义好了
-> （[`../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)），
+> （[`../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)），
 > 本文件不另造口径，只做**可执行化**：排阶段、给数字、写死判据、列出需要你拍板的取舍。
 > 日期 2026-11-03（过程资产，不要求中英成对）。
 

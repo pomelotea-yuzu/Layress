@@ -2,7 +2,7 @@
 
 # 🧪 Layress
 
-<p>简体中文 | <a href="README.md">English</a></p>
+<p><a href="README.md">简体中文</a> | English</p>
 
 **UI Stress Testing Tool · 界面压力测试工具**
 
@@ -75,11 +75,11 @@ auto-fix, full platform matrix, minimal-HTML extraction) are defined in survey �
 
 ## ⌨️ Quick start
 
-Only two commands run against this repository today:
+The shared repository gate includes hygiene, links across all Markdown documents, public bilingual pairing and gate self-tests:
 
 ```bash
-node scripts/check-hygiene.mjs --all    # repository hygiene check
-node scripts/check-i18n.mjs             # bilingual pairing check (--selftest counter-proofs the gate)
+node scripts/check-repo.mjs --all      # local checks and CI
+node scripts/check-repo.mjs --staged   # check the staged index snapshot, as pre-commit does
 ```
 
 To take part in development, read [`AGENTS.md`](AGENTS.md), then
@@ -99,7 +99,7 @@ Layress/
 ├─ datasets/              positive and negative case dataset
 ├─ openspec/              config.yaml · specs/ · changes/{,archive/}
 ├─ packages/  apps/       code (layout decided, not implemented)
-└─ scripts/               check-hygiene · check-i18n
+└─ scripts/               check-repo shared entry · check-hygiene · check-i18n
 ```
 
 Local output goes to exactly two places and is never committed: `artifacts/` (rerunnable output) and

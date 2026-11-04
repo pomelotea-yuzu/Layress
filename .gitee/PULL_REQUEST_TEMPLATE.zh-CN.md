@@ -21,7 +21,7 @@
 
 ## 仓库洁净度
 
-- [ ] `node scripts/check-hygiene.mjs --staged` 通过，且**没有**用 `--no-verify` 绕过
+- [ ] `node scripts/check-repo.mjs --staged` 按索引快照检查通过，且**没有**用 `--no-verify` 绕过
 - [ ] 没有把手写内容落在 `artifacts/` 或 `.layress/`；结论已进 `docs/` 正确子目录
 - [ ] 新增的 `.git-hygiene-allowlist` 豁免都带一句理由（无理由会判红）
 - [ ] 未提交二进制、凭据、机器绝对路径或真实被扫描页面内容

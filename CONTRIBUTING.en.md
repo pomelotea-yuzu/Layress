@@ -1,9 +1,8 @@
 # Contributing Guide
 
-<p>简体中文 | <a href="CONTRIBUTING.md">English</a></p>
+<p><a href="CONTRIBUTING.md">简体中文</a> | English</p>
 
-Thanks for taking part. This repository enforces two hard gates — **repository hygiene** and
-**bilingual pairing**. Read those two sections before your first PR.
+Thanks for taking part. This repository enforces **repository hygiene, documentation links and public bilingual pairing**. Read the relevant rules before your first PR.
 
 ## What to read first
 
@@ -22,9 +21,8 @@ needs alignment first (see invariants I1 and I6).
 # Required once per clone: without the hook, the hygiene gate degrades into a late CI failure
 git config core.hooksPath .githooks
 
-node scripts/check-hygiene.mjs --staged   # staged-area check
-node scripts/check-i18n.mjs               # bilingual pairing check
-node scripts/check-i18n.mjs --selftest    # run this whenever you doubt the gate itself
+node scripts/check-repo.mjs --all      # hygiene, all Markdown links, bilingual pairing and self-tests
+node scripts/check-repo.mjs --staged   # check the staged snapshot, as pre-commit does
 ```
 
 Node ≥ 20. The pnpm workspace and `pnpm check:ci` do not exist yet (see

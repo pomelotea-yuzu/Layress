@@ -1,6 +1,6 @@
 # Contributor Covenant Code of Conduct
 
-<p>简体中文 | <a href="CODE_OF_CONDUCT.md">English</a></p>
+<p><a href="CODE_OF_CONDUCT.md">简体中文</a> | English</p>
 
 ## Our commitment
 

@@ -57,6 +57,8 @@ SECURITY、CODE_OF_CONDUCT、CHANGELOG。接手索引、经验库、方案、指
 以后确有对外阅读需求再逐篇登记进 [`/i18n/docs-manifest.json`](../i18n/docs-manifest.json)，由
 `node scripts/check-i18n.mjs` 检查；已停止维护的内部英文版归档在本地 `docs/drafts/`，不入库。
 
+全库文件链接由 `node scripts/check-i18n.mjs --links` 独立检查，不以双语清单为范围；统一门禁入口是 [`scripts/check-repo.mjs`](../scripts/check-repo.mjs)，由本地提交与两侧 CI 共用。
+
 ## 命名约定
 
 - **稳定主题名 `<english-kebab-case>.md`**：已批准并作为当前依据的方案、现行规则、已核实且持续引用的事实与机制说明；英文小写单词用 `-` 连接，不加日期，例如 `probe-channel-selection.md`、`agent-interface-contract.md`。单词本身完整时可用 `workflow.md`、`invariants.md`，不为凑短横线增加词语。
@@ -69,7 +71,7 @@ SECURITY、CODE_OF_CONDUCT、CHANGELOG。接手索引、经验库、方案、指
 - 一个目录只有 README 占位时，说明其归属与进入门槛，不写内容。
 
 ```bash
-node scripts/check-i18n.mjs   # 地图里写的链接断了会在这里红
+node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地目标路径，与双语登记无关
 ```
 
 ## 路径变更记录

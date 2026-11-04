@@ -2,7 +2,7 @@
 
 <p><a href="CONTRIBUTING.en.md">English</a> | 简体中文</p>
 
-感谢参与。本仓对**仓库洁净度**和**双语成对**有硬性门禁，请先看完这两节再提第一个 PR。
+感谢参与。本仓对**仓库洁净度、文档链接和对外双语成对**有硬性门禁，请先阅读相关规则再提第一个 PR。
 
 ## 先读什么
 
@@ -20,9 +20,8 @@
 # 每个克隆必须做一次：不挂 hook，洁净度门禁就只是 CI 里的一次事后报错
 git config core.hooksPath .githooks
 
-node scripts/check-hygiene.mjs --staged   # 暂存区体检
-node scripts/check-i18n.mjs               # 双语成对体检
-node scripts/check-i18n.mjs --selftest    # 怀疑门禁本身时先跑这条
+node scripts/check-repo.mjs --all      # 洁净度、全库链接、双语及门禁自测
+node scripts/check-repo.mjs --staged   # 暂存后检查实际提交快照，pre-commit 同此
 ```
 
 Node ≥ 20。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/development/workflow.md`](docs/development/workflow.md)），

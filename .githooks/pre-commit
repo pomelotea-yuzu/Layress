@@ -1,19 +1,2 @@
 #!/bin/sh
-# Layress · pre-commit
-#
-# 启用（每个克隆做一次，写进 CONTRIBUTING 与 AGENTS.md）：
-#   git config core.hooksPath .githooks
-#
-# 这里只跑洁净度门禁，不跑代码质量检查：等 pnpm workspace 骨架落地后，
-# 再把 `pnpm check:ci` 接进来，避免现在挂一个还不存在的命令让每次提交都红。
-
-node scripts/check-hygiene.mjs --staged
-status=$?
-
-if [ $status -ne 0 ]; then
-  echo ""
-  echo "提交已拦下。理由见上表；口径在 AGENTS.md §五「仓库洁净度红线」。"
-  echo "确需入库请先在 .git-hygiene-allowlist 登记 glob + 理由，再 git add -f。"
-fi
-
-exit $status
+exec node scripts/check-repo.mjs --staged

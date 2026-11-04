@@ -1,6 +1,6 @@
 # Security Policy
 
-<p>简体中文 | <a href="SECURITY.md">English</a></p>
+<p><a href="SECURITY.md">简体中文</a> | English</p>
 
 **Please do not file security problems publicly.** Anything involving the scanned application's page
 content, credentials, or outbound data is treated as high severity and fixed first.

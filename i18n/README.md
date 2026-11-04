@@ -49,7 +49,7 @@ Issue 表单和 PR 模板翻成两份会让提交者不知道该填哪个，也�
 <p><a href="README.en.md">English</a> | 简体中文</p>
 ```
 
-缺失即 `NO_LANG_LINK` 判红。语言入口必须放在标题紧邻处，埋在正文里等于没有。
+英文页写为 `<p><a href="README.md">简体中文</a> | English</p>`；链接标签必须是目标语言，标反即 `LANG_LABEL` 判红。缺入口即 `NO_LANG_LINK` 判红，目标路径必须解析到实际配对文件。入口放在标题紧邻处；脚本不检查排版位置。
 
 ## 翻译纪律
 
@@ -65,13 +65,17 @@ Issue 表单和 PR 模板翻成两份会让提交者不知道该填哪个，也�
 ## 门禁
 
 ```bash
-node scripts/check-i18n.mjs               # 检查登记表内全部成对文档
-node scripts/check-i18n.mjs --selftest    # 反证：缺对/断链/漂移必须判红
+node scripts/check-repo.mjs --all        # 本地与 CI 的公共门禁入口
+node scripts/check-i18n.mjs --links      # 全部已跟踪 Markdown 的本地链接，与双语范围无关
+node scripts/check-i18n.mjs              # 仅登记表内的成对文档
+node scripts/check-i18n.mjs --selftest    # 反证：缺对/断链/漂移/语言标签必须判红
 ```
 
 检查项：`TWIN_MISSING`（缺英文）· `ZH_MISSING`（登记了但原文不存在）· `NO_LANG_LINK`（语言入口）·
-`NO_TITLE` · `HEADING_DRIFT`（小节数漂移）· `CODE_BLOCK_DRIFT` · `THIN_TWIN`（英文体量异常）·
-`BROKEN_LINK`（相对链接解析不到文件）· `TWIN_UNREGISTERED`（孤儿英文）。
+`NO_TITLE` · `LANG_LABEL`（语言标签标反）· `HEADING_DRIFT`（小节数漂移）· `CODE_BLOCK_DRIFT` · `THIN_TWIN`（英文体量异常）·
+`BROKEN_LINK`（本地目标路径不存在）· `INVALID_LINK`（路径编码无效）· `TWIN_UNREGISTERED`（孤儿英文）。
 
-`--selftest` 是门禁的自证：6 个反例 + 1 个正例，正例同时覆盖内部中文文档免配对与本地归档不参与检查。没有它，一条永不命中的规则会长期表现为"双语全绿"，
+`--links` 独立检查全部已跟踪 Markdown 的文件目标，包括内部中文文档、仓库根路径、Markdown 引用式链接与 HTML 链接；不联网验证外链，也不检查标题锚点。代码示例与本地归档不参与检查。
+
+`--selftest` 是门禁的自证：10 个反例 + 1 个正例，覆盖语言标签、内部中文断链、根路径与引用式链接，正例同时覆盖内部中文免配对、编码路径和本地归档排除。临时夹具只写入 `artifacts/` 并自动清理。没有它，一条永不命中的规则会长期表现为"双语全绿"，
 而实际上一条都没检查。Workspace 落地后并入 `pnpm check:i18n`，进 `check:ci` 链与 CI。

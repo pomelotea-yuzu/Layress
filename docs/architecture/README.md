@@ -12,5 +12,5 @@
 ## 进入门槛
 
 - 一篇架构文档只描述**已实现**的东西；未实现的写进 `openspec/changes/<name>/design.md`，不放这里。
-- 默认只写中文；某篇确有对外阅读需求时，再提供同目录 `*.en.md` 并逐篇登记 manifest。
+- 默认只写中文；某篇确有对外阅读需求时，再提供同目录 `*.en.md` 并逐篇登记 [`双语清单`](../../i18n/docs-manifest.json)。
 - 权威性低于源码与 `openspec/changes/archive/`（见 [`../README.md`](../README.md)）。

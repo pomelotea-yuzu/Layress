@@ -31,8 +31,8 @@
 
 ## Repository hygiene / 仓库洁净度
 
-- [ ] `node scripts/check-hygiene.mjs --staged` green **without** `--no-verify`
-      本地跑通洁净度门禁，**没有**用 `--no-verify` 绕过
+- [ ] `node scripts/check-repo.mjs --staged` green **without** `--no-verify`
+      本地按索引快照跑通公共门禁，**没有**用 `--no-verify` 绕过
 - [ ] No new file lands in `artifacts/` / `.layress/`; hand-written conclusions went to the right `docs/` subdirectory
       没有把手写内容落在垃圾场；结论已进 `docs/` 正确子目录
 - [ ] Any exemption added to `.git-hygiene-allowlist` carries a one-line reason (reasonless exemptions fail)

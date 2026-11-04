@@ -3,15 +3,19 @@
 //
 // 用法：
 //   node scripts/check-hygiene.mjs            # 检查全部已跟踪文件（CI 用）
-//   node scripts/check-hygiene.mjs --staged   # 只检查暂存区（pre-commit 用）
+//   node scripts/check-hygiene.mjs --staged   # 单查暂存区有改动的文件
 //   node scripts/check-hygiene.mjs --strict   # 把警告也判为失败
+//   node scripts/check-hygiene.mjs --selftest # 隔离 Git 仓库反证测试
+//
+// --all 与 --staged 的正文、体积和豁免配置均以索引为准。
 //
 // 存在理由：.gitignore 是默认放行的，一个 `git add -f` 就能把 300MB 安装包写进历史，
 // 而历史里的 blob 删不掉。所以拒绝必须由**脚本**执行，并且 pre-commit 与 CI 跑同一条。
 
-import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, writeFileSync, unlinkSync, rmSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 const MODE = args.includes('--staged') ? 'staged' : 'all';
@@ -82,11 +86,17 @@ function globToRe(glob) {
   return new RegExp(`^${re}$`);
 }
 
-function loadAllowlist(root) {
-  const file = path.join(root, '.git-hygiene-allowlist');
-  if (!existsSync(file)) return [];
+function readIndexBlob(sha) {
+  return git(['cat-file', 'blob', sha], { encoding: 'buffer', stdio: ['pipe', 'pipe', 'pipe'] });
+}
+
+function loadAllowlist() {
+  const row = git(['ls-files', '-s', '-z', '--', '.git-hygiene-allowlist'])
+    .split('\0').filter(Boolean).find((line) => line.split('\t')[0].endsWith(' 0'));
+  if (!row) return [];
+  const sha = row.split('\t')[0].split(' ')[1];
   const out = [];
-  for (const raw of readFileSync(file, 'utf8').split(/\r?\n/)) {
+  for (const raw of readIndexBlob(sha).toString('utf8').split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
     const hash = line.indexOf('#');
@@ -145,11 +155,12 @@ function main() {
     process.exit(1);
   }
 
-  const allow = loadAllowlist(root);
+  process.chdir(root);
+  const allow = loadAllowlist();
   const rows = collectFiles(root);
   const sizes = sizesOf(rows);
 
-  for (const { file } of rows) {
+  for (const { file, sha } of rows) {
     const ex = findExemption(allow, file);
     if (ex) ex.used = true;
     const base = path.posix.basename(file);
@@ -172,10 +183,7 @@ function main() {
     if (bytes === 0) add(warns, '空文件', file, '空占位请改用目录内一份说明性 README');
 
     if (ex || file.includes('/fixtures/')) continue;
-    const abs = path.join(root, file);
-    if (!existsSync(abs)) continue;
-    let buf;
-    try { buf = readFileSync(abs); } catch { continue; }
+    const buf = readIndexBlob(sha);
     if (buf.length > 2 << 20 || looksBinary(buf)) continue;
     const text = buf.toString('utf8');
     const isDoc = file.endsWith('.md');
@@ -183,8 +191,7 @@ function main() {
 
     // 凭据形态连文档一起查：README 里贴一个真 key 和历史里埋一个同样删不掉
     for (const [name, re] of SECRET_RULES) {
-      const m = re.exec(text);
-      if (m) add(fails, '凭据形态', `${file}: ${name} → ${m[0].slice(0, 24)}…`, '移除真实凭据；密钥只由用户在应用内填写，仓库里留占位符');
+      if (re.test(text)) add(fails, '凭据形态', `${file}: ${name}`, '移除真实凭据；密钥只由用户在应用内填写，仓库里留占位符');
     }
     if (isDoc) continue; // 文档里写 `C:\Users\…` 是正当讨论，路径类检查不看文档
 
@@ -252,4 +259,108 @@ function main() {
   process.exit(failed ? 1 : 0);
 }
 
-main();
+function selftest() {
+  const script = fileURLToPath(import.meta.url);
+  const root = git(['rev-parse', '--show-toplevel'], { cwd: path.dirname(script) }).trim();
+  const artifacts = path.join(root, 'artifacts');
+  mkdirSync(artifacts, { recursive: true });
+  const sandbox = mkdtempSync(path.join(artifacts, 'hygiene-selftest-'));
+  // 隔离调用方的索引、工作树与 Git 配置环境；所有临时写入留在 artifacts。
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)));
+  Object.assign(env, {
+    TMP: sandbox, TEMP: sandbox, TMPDIR: sandbox,
+    GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(sandbox, 'no-global-config'),
+  });
+  const privateHeader = ['-----BEGIN ', 'PRIVATE', ' KEY-----'].join('');
+  const synthetic = `${privateHeader}\nsynthetic-only\n`;
+  const safe = 'safe fixture\n';
+  const cases = [
+    { name: '暂存凭据后清理工作区', file: 'sample.txt', rule: '凭据形态',
+      setup: ({ stage, write }) => { stage('sample.txt', synthetic); write('sample.txt', safe); } },
+    { name: '暂存凭据后删除工作区', file: 'sample.txt', rule: '凭据形态',
+      setup: ({ stage, remove }) => { stage('sample.txt', synthetic); remove('sample.txt'); } },
+    { name: '索引安全而工作区含凭据',
+      setup: ({ stage, write }) => { stage('sample.txt', safe); write('sample.txt', synthetic); } },
+    { name: '未暂存的新豁免不能放行', file: 'output/sample.txt', rule: '垃圾场路径',
+      setup: ({ stage, write }) => {
+        stage('output/sample.txt', safe);
+        write('.git-hygiene-allowlist', 'output/** # 合成夹具豁免\n');
+      } },
+    { name: '未暂存的豁免修改不能放行', file: 'output/sample.txt', rule: '垃圾场路径',
+      setup: ({ stage, write }) => {
+        stage('.git-hygiene-allowlist', '# 索引中没有豁免\n');
+        stage('output/sample.txt', safe);
+        write('.git-hygiene-allowlist', 'output/** # 合成夹具豁免\n');
+      } },
+    { name: '已暂存的豁免不受工作区删除影响',
+      setup: ({ stage, remove }) => {
+        stage('.git-hygiene-allowlist', 'output/** # 合成夹具豁免\n');
+        stage('output/sample.txt', safe);
+        remove('.git-hygiene-allowlist');
+      } },
+    { name: '垃圾场路径反例', file: 'output/sample.txt', rule: '垃圾场路径',
+      setup: ({ stage }) => stage('output/sample.txt', safe) },
+    { name: '归档后缀反例', file: 'sample.zip', rule: '二进制/归档后缀',
+      setup: ({ stage }) => stage('sample.zip', safe) },
+    { name: '索引体积反例', file: 'large.txt', rule: '体积超限',
+      setup: ({ stage, write }) => { stage('large.txt', 'x'.repeat(MAX_BYTES + 1)); write('large.txt', safe); } },
+    { name: '工作区体积不影响安全索引',
+      setup: ({ stage, write }) => { stage('sample.txt', safe); write('sample.txt', 'x'.repeat(MAX_BYTES + 1)); } },
+    { name: '忽略却已跟踪反例', file: 'ignored.txt', rule: '忽略却已跟踪',
+      setup: ({ stage }) => { stage('.gitignore', 'ignored.txt\n'); stage('ignored.txt', safe); } },
+    { name: '索引中豁免无理由反例', file: '.git-hygiene-allowlist', rule: '豁免无理由',
+      setup: ({ stage, write }) => {
+        stage('.git-hygiene-allowlist', 'sample.txt\n');
+        stage('sample.txt', safe);
+        write('.git-hygiene-allowlist', 'sample.txt # 工作区补理由无效\n');
+      } },
+  ];
+  let passed = 0;
+  try {
+    for (const [i, test] of cases.entries()) {
+      const cwd = path.join(sandbox, `case-${i}`);
+      mkdirSync(cwd);
+      const fixtureGit = (gitArgs) => git(gitArgs, { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
+      fixtureGit(['init', '--quiet', '--template=']);
+      const write = (file, text) => {
+        const target = path.join(cwd, file);
+        mkdirSync(path.dirname(target), { recursive: true });
+        writeFileSync(target, text);
+      };
+      test.setup({
+        write,
+        stage: (file, text) => { write(file, text); fixtureGit(['add', '-f', '--', file]); },
+        remove: (file) => unlinkSync(path.join(cwd, file)),
+      });
+      for (const mode of ['--all', '--staged']) {
+        const result = spawnSync(process.execPath, [script, mode], {
+          cwd, env, encoding: 'utf8', maxBuffer: 4 << 20,
+        });
+        const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+        const expected = test.rule ? 1 : 0;
+        if (result.error || result.signal || result.status !== expected
+          || (test.rule && (!output.includes(`【${test.rule}】`) || !output.includes(test.file)))
+          || output.includes(privateHeader.slice(0, 16)) || output.includes('synthetic-only')) {
+          // 不转印子进程输出，避免测试失败时泄漏命中的正文。
+          throw new Error(`${test.name} ${mode} 未通过（退出码 ${result.status}，预期 ${expected}）`);
+        }
+        passed += 1;
+      }
+      console.log(`自测通过：${test.name}（--all / --staged）`);
+    }
+    console.log(`洁净度门禁自测通过：${passed} 项（真实 Git 子进程）`);
+  } finally {
+    rmSync(sandbox, { recursive: true, force: true });
+  }
+}
+
+try {
+  if (args.includes('--selftest')) selftest();
+  else main();
+} catch (error) {
+  // Git 读取失败必须拒绝；普通检查不输出子进程可能携带的正文。
+  console.error(args.includes('--selftest')
+    ? `洁净度门禁自测失败：${error.message}`
+    : '洁净度门禁执行失败：无法读取索引或 Git 数据，不放行。');
+  process.exitCode = 1;
+}

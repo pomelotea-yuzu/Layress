@@ -1,7 +1,7 @@
 name: CI
 
 # 校验逻辑的唯一事实源是仓库脚本，本流水线只做"装 Node + 调用脚本"，不另写一套判据。
-# 与 .workflow/ci.yml（Gitee Go）跑同样的两条门禁，避免一侧本地绿另一侧红。
+# 与 pre-commit 和 .workflow/ci.yml 共用 scripts/check-repo.mjs 的门禁链。
 #
 # pnpm workspace 骨架落地后，在 Run gates 之前插入依赖安装步骤，并把 commands 换成：
 #   pnpm install --frozen-lockfile
@@ -35,11 +35,5 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Repository hygiene (size / suffix / scratch path / credentials / ignore leakage)
-        run: node scripts/check-hygiene.mjs --all
-
-      - name: Bilingual pairing — counter-proof that the gate itself is not false green
-        run: node scripts/check-i18n.mjs --selftest
-
-      - name: Bilingual pairing — all registered documents
-        run: node scripts/check-i18n.mjs
+      - name: Repository gates (hygiene / links / bilingual / selftests)
+        run: node scripts/check-repo.mjs --all
