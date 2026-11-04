@@ -59,7 +59,7 @@
   并把自写等待层的范围**明确限制在遮挡与可达性判定所需的最小集合**，不扩。
 - 任一路线第 3 项一致率 **< 6/6 且原因未定位** ⇒ **不许进 S1**：底层通道不稳定时，后面所有指标都是噪声。
 
-产出：`openspec/changes/…/design.md` + `evidence-index.md`；一条探针决策进 `docs/knowledge/decisions.md` 中英两份；
+产出：`openspec/changes/…/design.md` + `evidence-index.md`；一条探针决策进 `docs/knowledge/decisions.md`（中文）；
 `runtime-probe.md` 里标注"未在 Layress 复核"的条目按实测改标为**已复核**或**已推翻**。
 
 ### S1 · 数据集建设（本方案最慢也最值钱的一段）
@@ -141,7 +141,7 @@ S0 10%、S1 40%、S2 30%、S3 15%、S4 5%。
 ## 六、批准后立刻发生的事
 
 1. 立项 `openspec/changes/spike-probe-channel-comparison/`（S0），`tasks.md` 按 §二 S0 的七项测量拆。
-2. S0 收口后归档，探针决策进 `docs/knowledge/decisions.md`（中英两份），
+2. S0 收口后归档，探针决策进 `docs/knowledge/decisions.md`（中文），
    `runtime-probe.md` 相应条目改标已复核。
 3. 数据集 change 立项 `build-stress-dataset`，含授权核查清单与 `tuning`/`eval` 切分。
 4. `AGENTS.md` 状态卡的"阶段"与"活动 change"随之更新，`docs/knowledge/debt.md` 销账对应行。

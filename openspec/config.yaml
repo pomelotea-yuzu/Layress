@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  项目：Layress — 界面压力测试工具（本地优先、便携优先；首版形态为 CLI + 可读报告 + 结构化结果）
+  项目：Layress — 界面压力测试工具（本地优先、便携优先、Agent 友好；首版形态为 CLI + 可读报告 + 结构化结果）
 
   定位句：在明确的界面状态下主动施压，确认关键操作发生了什么损坏，并把触发条件缩减成可重复回放的证据。
   无需人工"正确截图基线"，但仍需开发者声明关键操作、准备步骤、可接受滚动与排除范围。
@@ -25,7 +25,10 @@ context: |
   - 探针通道候选：Playwright / CDP 直连 / Electron 远程调试（未选型，见 docs/knowledge/debt.md）
   - 首版平台：Windows + Chromium，另验证一个 Electron 适配；macOS/Linux 未承诺
   - 质量：Biome + vitest + TypeScript + OpenSpec；实机判定另附人工复核记录
-  - 双语：文档层同目录 *.en.md 成对并由 check-i18n 强制；产品字符串层 zh-CN 默认、en-US 待建
+  - 语言：文档默认中文；仅逐篇登记的对外文档同目录 *.en.md 成对并由 check-i18n 强制，
+    当前为根目录 README / CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / CHANGELOG；
+    AGENTS.md、docs/ 与 i18n/ 维护说明无需翻译，旧内部英文版移入 docs/drafts/ 本地归档，不入库。
+    产品字符串层 zh-CN 默认、en-US 待建，不因文档范围收窄而取消。
   - 许可：MIT
 
   关键不变量（所有 spec 必须遵守；细节与后果见 docs/knowledge/invariants.md）：
@@ -45,6 +48,22 @@ context: |
     安装位置由用户选择，安装器不提权、不改系统 PATH；目标目录不可写时报错并要求指定，禁止静默回落
   - I13 数据目录解析口径唯一且可见：--data-dir / LAYRESS_DATA_DIR 优先，其次产品目录下的数据根；
     解析结果与可写性必须出现在启动输出、日志与报告头部
+  - I14 Agent 友好：扫描 / 确认 / 缩减 / 回放必须可发现、可非交互调用、可解析且可追溯；
+    CLI 与未来 MCP / Skill 复用核心能力，桌面 UI 不得成为执行必需入口。
+
+  Agent 接口约定（目标要求，尚未实现；具体命令、字段与码值在实现 change 中定稿）：
+  - 能力发现：提供命令帮助、参数说明及可机读的输入输出 schema，声明环境要求与能力限制。
+  - 显式输入：关键操作、准备状态、压力条件、预算与数据目录可通过参数或结构化配置传入；
+    非交互模式不得弹窗或等待 stdin 提示，缺参时返回可解析错误与缺失项，退出而非悬挂。
+  - 机器输出：提供有 schema 版本的 JSON 结果；机器模式 stdout 只承载结果，进度与诊断走 stderr；
+    字段、状态与错误码不随语言改变，可读报告与机器结果来自同一份事实。
+  - 状态分层：运行成功 / 失败与缺陷判定分开；定义稳定退出码与错误码，不把 inconclusive、
+    超时、环境阻塞或未执行的人工复核归为通过；失败或中断时标明已完成范围与可用证据。
+  - 证据衔接：结果引用运行标识、完整触发条件、证据清单与回放入口，供 Agent 继续确认或缩减；
+    支持显式超时 / 预算与取消，取消后释放本次持有的资源。
+  - 授权边界：Agent 调用同样遵守 I5 / I8 / I12；授权经显式输入传递，非交互不等于自动授权。
+  - 实现验收：覆盖无 TTY 调用、缺参、机器输出可解析、状态分层、超时 / 取消与证据引用；
+    MCP / Skill 的交付时点单独立项，Agent 友好不要求内置模型或扩大首验检测范围。
 
   存储与产物边界：
   - 默认数据根与日志根 = 产品目录下 .layress/（或用户指定）；便携包业务数据落 data/
@@ -55,12 +74,12 @@ context: |
   首版范围与暂缓项以 docs/research/ 的调研 §7.2 为准，不在 spec 里另行扩大。
 
 conventions:
-  language: 中文为源；进入双语范围的文档必须同目录同轮补 *.en.md 并登记 i18n/docs-manifest.json
+  language: 文档默认中文；仅逐篇登记的对外文档同目录同轮维护 *.en.md，范围见 i18n/docs-manifest.json 的 docs；内部文档无需翻译，旧内部英文版在 docs/drafts/ 本地归档，不入库
   naming:
     specs: openspec/specs/<capability>/spec.md
     changes: openspec/changes/<verb-led-kebab-name>/
     archive: openspec/changes/archive/<YYYY-MM-DD>-<change-name>/
-    docs: 会话产物带 YYYY-MM-DD- 前缀，长期文档不带
+    docs: docs/ 中作为当前依据的已批准方案、现行规则与已核实事实用 english-kebab-case.md；探讨、调研、待批提案及当次记录用 YYYY-MM-DD-english-kebab-case.md；README.md 与 *.en.md 保留惯例，晋升与迁移细则见 docs/README.md
   evidence:
     live-probes: 实机判据记在 change 的 evidence-index.md；截图默认留本地（docs/reviews/**/*.png 不入库）
     honesty: 未执行项单列"未执行"，禁止把机器判据通过写成人工验收通过

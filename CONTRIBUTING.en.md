@@ -65,13 +65,10 @@ exemption for evidence directories you genuinely intend to publish.
 
 ## Bilingual documentation
 
-- The paired scope is defined in [`i18n/README.md`](i18n/README.md); **a Chinese edit and its English
-  edit land in the same round**.
-- When you add an outward-facing document, register it in [`i18n/docs-manifest.json`](i18n/docs-manifest.json).
-- An unregistered `*.en.md` fails the gate, which closes the one-sided-copy loophole.
-- Process assets (research / product / engineering / reviews / drafts) are not translated.
-- New or changed terminology: edit [`i18n/glossary.md`](i18n/glossary.md) and its English twin first,
-  then sweep the documents.
+- Documentation defaults to Chinese. Maintained bilingual versions currently cover only the root README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT and CHANGELOG; **edit both languages in the same round for these registered files**.
+- `AGENTS.md`, `docs/`, the knowledge base, plans and `i18n/` maintenance notes need only Chinese. Add English for individual documents with a public readership and register them in [`i18n/docs-manifest.json`](i18n/docs-manifest.json).
+- New unregistered English versions fail the gate. Retired internal translations are archived locally under `docs/drafts/`, are not committed and need no synchronization.
+- For terminology changes, edit [`i18n/glossary.md`](i18n/glossary.md) first, then update the public bilingual documents using those terms. The glossary itself needs no English copy.
 - Issue and PR forms are **not duplicated**: GitHub carries both languages inside one form, Gitee ships
   Chinese-only templates.
 

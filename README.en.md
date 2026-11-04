@@ -90,7 +90,7 @@ in that order. Once the CLI is installable, this section becomes real installati
 
 ```
 Layress/
-├─ AGENTS.md              handoff index (single entry point, always paired)
+├─ AGENTS.md              handoff index (single entry point, Chinese by default)
 ├─ i18n/                  bilingual policy · glossary · pairing manifest
 ├─ docs/
 │  ├─ guide/ architecture/ development/     user-facing

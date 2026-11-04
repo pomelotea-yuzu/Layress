@@ -1,6 +1,6 @@
 # engineering.md · 工程与门禁的坑
 
-<p><a href="engineering.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
 > 条目格式与升级规则见 [`README.md`](README.md)。**未经 Layress 实测的条目一律标注来源，不当作本仓已验证事实。**
 

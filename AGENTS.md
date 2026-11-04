@@ -1,6 +1,6 @@
 # Layress · 接手索引（AGENTS.md）
 
-<p><a href="AGENTS.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
 > **这是唯一入口。** 任何开发者、任何智能体，读完本文件就该能动手。
 > 各工具的本机记忆文件（`CLAUDE.md`、`.cursor/`、`.trae/` 等）一律不入库；若你的工具只认它们，
@@ -32,7 +32,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 立项完成；首个验证方案已成文为**提案，待批准**（[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)） |
+| 阶段 | 立项完成；命名、内部中文与对外双语范围、Agent 友好接口约束已定；首个验证方案仍为**提案，待批准**（[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)） |
 | 活动 change | 无（`openspec/changes/` 为空） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
 | 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
@@ -140,31 +140,32 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
     `sessionData` **默认都在 C 盘用户目录**，只改"数据目录"不够 ⇒ 详见
     [`docs/knowledge/engineering.md`](docs/knowledge/engineering.md) 与不变量 I12–I13。
   - 数据目录的解析结果必须在报告、日志与 UI 里**显示出来**，否则用户无法验证这条承诺。
-- **双语是结构层，不是后补翻译**（详见 [`i18n/README.md`](i18n/README.md)）：
-  - 凡属于「对外门面」或「接手必需」的 `.md`，必须与**同目录 `*.en.md`** 成对，**同轮**提交，
-    并登记进 [`i18n/docs-manifest.json`](i18n/docs-manifest.json)。只写中文不登记 = 允许；
-    登记了却没配对 = `check:i18n` 判红。
+- **文档默认中文，对外门面按需双语**（详见 [`i18n/README.md`](i18n/README.md)）：
+  - 当前维护中英双版本的文件仅为根目录 `README.md`、`CONTRIBUTING.md`、`SECURITY.md`、
+    `CODE_OF_CONDUCT.md`、`CHANGELOG.md`；同目录 `*.en.md` 同轮修改，并登记进 [`i18n/docs-manifest.json`](i18n/docs-manifest.json)。
+  - 本文件、`docs/` 全部文档、经验库、方案、调研与 `i18n/` 维护说明**默认只写中文**；
+    以后确有对外阅读需求的文档再逐篇登记，不按目录一律翻译。已有内部英文版移入 `docs/drafts/` 本地归档，不入库。
   - 表单类（GitHub Issue 表单、PR 模板）**不做两份**：同一表单内并列
     `label: English / 中文`，Gitee 侧另给纯中文模板（`.gitee/*.zh-CN.md`）。
-  - 过程资产（`docs/research`、`product`、`engineering`、`reviews`、`drafts`）**不要求成对**，
-    它们的价值在过程本身，硬翻只会制造维护债。
-  - 中英用词以 [`i18n/glossary.md`](i18n/glossary.md) 为准；**代码标识、协议字段、错误码原值不翻译**。
+  - 中英用词查 [`i18n/glossary.md`](i18n/glossary.md)；术语表本身只维护中文说明，**代码标识、协议字段、错误码原值不翻译**。
 - **国际化 = 中国用户优先 + 英文产品名 + 具备海外发布能力**，不等于"把产品改成英文"。
-- **命名**：会话产物带 `YYYY-MM-DD-` 前缀，长期有效文档不带。细则见 [`docs/README.md`](docs/README.md)。
+- **命名**：`docs/` 内已批准且作为当前依据的方案、现行规则、已核实事实用 `<english-kebab-case>.md`；探讨、调研、待批提案与当次记录用 `YYYY-MM-DD-<english-kebab-case>.md`。正文标注状态与证据，`README.md` 与 `*.en.md` 保留惯例；晋升与改名细则见 [`docs/README.md`](docs/README.md)。
+- **Agent 友好**：产品能力必须可由 Agent 发现、非交互调用并取得有版本的结构化结果；机器输出与日志分离，明确退出码与错误码，保留判定层级、证据引用和未执行项。CLI 是首版入口，MCP / Skill 复用核心能力；具体约束见 [`openspec/config.yaml`](openspec/config.yaml) I14，尚未实现。
 - **本地优先**：扫描数据、页面内容、截图默认不出本机。用远程视觉模型必须显式标明数据流与成本。
 - **候选不等于缺陷、可点击不等于业务成功**：这两条是产品口径，不是措辞问题（见 §一 四条边界与不变量）。
 
 ## 八、目录地图
 
 ```
-入库 ── 门面   README CONTRIBUTING SECURITY CODE_OF_CONDUCT CHANGELOG LICENSE AGENTS.md（每份都有 *.en.md）
+入库 ── 门面   README CONTRIBUTING SECURITY CODE_OF_CONDUCT CHANGELOG（中英成对）· LICENSE（原文）
+        接手   AGENTS.md（唯一入口，默认中文）
         i18n   i18n/README 口径 · i18n/glossary 术语表 · i18n/docs-manifest 成对登记
         工程   packages/<core|confirm|reduce|replay|cli> apps/desktop
                scripts/check-hygiene.mjs · scripts/check-i18n.mjs
         知识   docs/README 文档地图
-              docs/guide architecture development        面向使用者（中英同目录 *.en.md）
-              docs/knowledge                             ★ 经验库，见 §六
-              docs/research product engineering/* reviews 过程资产（不要求成对）
+              docs/guide architecture development        指南与工程说明（默认中文）
+              docs/knowledge                             ★ 经验库（默认中文），见 §六
+              docs/research product engineering/* reviews 过程资产（默认中文）
               datasets/                                 正负例数据集（最有积累价值的资产）
               openspec/  config.yaml + specs/ + changes/{,archive/}
         接入   .github/{workflows,ISSUE_TEMPLATE}（表单内双语）· .gitee（纯中文）· .workflow .githooks
@@ -174,8 +175,8 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
 ## 九、本文件的维护规则
 
 - 状态卡（§二）每次接手更新；其余段落**只在口径变了**时改，改不动就说明该改代码或该改门禁。
-- **成对文档不许单边改动**：本文件与门面各文档都有 `*.en.md`，改中文必须**同一轮**改英文。
-  分两次提交会让英文版本停在旧口径上，而读者以为它说的是当前事实——比没有英文更糟。
+- **仅对登记的对外中英文档要求同轮同步**：范围以 `i18n/docs-manifest.json` 的 `docs` 为准；
+  本文件与其他内部文档默认中文；停止维护的内部译本只在 `docs/drafts/` 本地归档，不再同步。
 - 新增目录必须同时在 `docs/README.md` 地图与本仓对应 `README.md` 登记归属；
   没登记 = 归属未定，先别建。
 - 每次整理文档要留「路径变更记录」（见 `docs/README.md` 末尾），否则三个月后没人知道东西搬去哪了。

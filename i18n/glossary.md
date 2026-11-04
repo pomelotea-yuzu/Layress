@@ -1,8 +1,8 @@
 # 软件双语术语表
 
-<p><a href="glossary.en.md">English</a> | 简体中文</p>
+> 本表以中文说明维护，保留中英术语对照，无需英文说明副本。
 
-版本：1（2026-11-03 冻结）。适用范围：仓库门面与 `docs/` 双语版本、未来桌面 UI 与 CLI 人类可读输出、
+版本：2（2026-11-04 补充 Agent 友好术语）。适用范围：仓库门面与 `docs/` 双语版本、未来桌面 UI 与 CLI 人类可读输出、
 错误文案的 `zh-CN` / `en-US` 资源。**代码标识、协议字段、错误码、CLI 参数、文件名原值不翻译。**
 
 用词依据：调研原文 [`docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)
@@ -20,6 +20,7 @@
 | 缺陷确认与缩减 | 缺陷确认与复现缩减 | defect confirmation and reduction | 本产品重心；"缩减"不要写成"简化" |
 | 人工正确截图基线 | 正确截图基线 | golden screenshot baseline | 本产品明确**不需要**，表述时保留否定式 |
 | 本地优先 | 本地优先 | local-first | 数据默认不出本机；用远程模型必须另写数据流与成本 |
+| Agent 友好 | Agent 友好 | agent-friendly | Agent 可发现能力、非交互调用并解析结构化结果；不要求产品内置模型 |
 
 ## 2. 压力条件
 

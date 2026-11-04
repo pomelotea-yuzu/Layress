@@ -1,6 +1,6 @@
 # i18n · 双语口径
 
-<p><a href="README.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
 本目录管两件事：**文档层双语**（现在生效）与**产品字符串层双语**（`packages/` 有代码后生效）。
 口径来源：国际化 = 中国用户优先 + 英文产品名 + 具备海外发布能力，不是"把产品改成英文"。
@@ -9,7 +9,7 @@
 
 | 层 | 内容 | 状态 | 强制方式 |
 |---|---|---|---|
-| 文档层 | 门面与接手必需的 `.md` 与其 `*.en.md` 译本 | 生效 | `node scripts/check-i18n.mjs` |
+| 文档层 | 默认中文；逐篇登记的对外文件维护同目录 `*.en.md` | 生效 | `node scripts/check-i18n.mjs` |
 | 产品字符串层 | 桌面 UI、CLI 人类可读输出、错误文案的 `zh-CN` / `en-US` 资源 | 未启用 | 同脚本扩展 + 批次归属清单 |
 
 字符串层落地时的形态（写在这里是为了现在别把目录设计成不支持它）：
@@ -18,16 +18,16 @@
 
 ## 成对规则（文档层）
 
-- 中文是**源**，英文是**译本**：文件名 `X.md` → 同目录 `X.en.md`，不建 `en/` 子目录。
-  同目录并排才能保证两份一起出现在同一次 diff 里，漏改看得见。
-- 需要成对的范围：**对外门面**（README、CONTRIBUTING、SECURITY、CODE_OF_CONDUCT、CHANGELOG）、
-  **接手索引**（AGENTS.md）、**面向使用者的文档**（`docs/guide`、`docs/architecture`、`docs/development`）、
-  **经验库**（`docs/knowledge`，它的价值就是给任何人接手）。
-- 不要求成对：`docs/research`、`docs/product`、`docs/engineering`、`docs/reviews`、`docs/drafts`、
-  `datasets`、`openspec/changes`。过程资产的价值在过程本身，硬翻只制造维护债。
-- 登记才算数：进入成对范围的文档必须写进 [`docs-manifest.json`](docs-manifest.json)。
-  **不登记 = 门禁不管 = 允许只存在中文**；登记了却没配对 = 判红。
-- 反向也算数：存在 `*.en.md` 却没登记 = `TWIN_UNREGISTERED` 判红，防止绕开门禁的单边副本。
+- **文档默认中文**。当前维护中英双版本的对外文件仅为根目录 `README.md`、`CONTRIBUTING.md`、
+  `SECURITY.md`、`CODE_OF_CONDUCT.md`、`CHANGELOG.md`。
+- `AGENTS.md`、`docs/` 全部文档（含指南、架构、工作流、经验库、方案、调研）、`i18n/` 维护说明、
+  数据集与 OpenSpec 文档无需翻译。仓库公开可见不等于每篇文档都有中英双语维护义务。
+- 以后某篇文档确有对外阅读需求，再逐篇提供英文并加入 [`docs-manifest.json`](docs-manifest.json) 的 `docs`；
+  不按目录整批翻译。中文是源，英文用同目录 `X.en.md`，不建 `en/` 子目录，登记后两份同轮修改。
+- 已有内部英文版移入 `docs/drafts/YYYY-MM-DD-internal-translations/` **本地归档**，附原路径索引；
+  该目录已忽略且洁净度门禁禁止入库。中文页移除旧语言入口，当前规则以中文为准；历史原文也可从 Git 查找。
+- 只写中文且未登记无需配对；登记为对外文件却缺译本仍判红。当前目录中的新 `*.en.md` 未登记时，
+  以 `TWIN_UNREGISTERED` 判红；已忽略的本地归档不参与检查。
 
 ## 表单与模板：不做两份
 
@@ -53,7 +53,7 @@ Issue 表单和 PR 模板翻成两份会让提交者不知道该填哪个，也�
 
 ## 翻译纪律
 
-- **同轮改动**：口径变更必须中文与英文一次提交内完成。分两次提交会让英文停在旧口径，
+- **同轮改动（仅登记的对外文件）**：口径变更必须中文与英文一次提交内完成。内部文档只维护中文；分两次提交会让对外英文停在旧口径，
   而读者以为它说的是当前事实——比没有英文版更糟。
 - **对齐结论，不对齐句子**：中文句子该拆就拆、该合并就合并，但段落顺序、小节数量、表格行数、
   结论与警告必须一致。门禁按 `##` 小节数与代码块数比对，漂移即判红。
@@ -73,5 +73,5 @@ node scripts/check-i18n.mjs --selftest    # 反证：缺对/断链/漂移必须�
 `NO_TITLE` · `HEADING_DRIFT`（小节数漂移）· `CODE_BLOCK_DRIFT` · `THIN_TWIN`（英文体量异常）·
 `BROKEN_LINK`（相对链接解析不到文件）· `TWIN_UNREGISTERED`（孤儿英文）。
 
-`--selftest` 是门禁的自证：6 个反例 + 1 个正例。没有它，一条永不命中的规则会长期表现为"双语全绿"，
+`--selftest` 是门禁的自证：6 个反例 + 1 个正例，正例同时覆盖内部中文文档免配对与本地归档不参与检查。没有它，一条永不命中的规则会长期表现为"双语全绿"，
 而实际上一条都没检查。Workspace 落地后并入 `pnpm check:i18n`，进 `check:ci` 链与 CI。

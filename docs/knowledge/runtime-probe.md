@@ -1,6 +1,6 @@
 # runtime-probe.md · 实机探针硬事实
 
-<p><a href="runtime-probe.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
 > 条目格式见 [`README.md`](README.md)。**标注"来源：前置项目"的条目未在 Layress 复核**，
 > 按现象假设处理可以，当成本仓已验证事实不行——Layress 的探针栈还没选。

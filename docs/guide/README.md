@@ -12,5 +12,5 @@
 ## 进入门槛
 
 - 首个可安装的候选版本出现时才动笔；文中每条命令必须实跑过。
-- 属于双语范围：每份指南同目录配 `*.en.md`，并登记进 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json)。
+- 默认只写中文；某篇确有对外阅读需求时，再提供同目录 `*.en.md` 并逐篇登记进 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json)。
 - 中英用词查 [`/i18n/glossary.md`](../../i18n/glossary.md)。

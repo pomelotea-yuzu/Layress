@@ -1,8 +1,8 @@
 # 开发工作流
 
-<p><a href="workflow.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
-本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件（中英两份一起）。
+本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
 ## 环境与日常命令
 
@@ -36,6 +36,8 @@ node scripts/check-i18n.mjs --selftest
   否则"本地绿云端红"会吃掉整晚排查。
 - **机器 PASS ≠ 验收**。视觉与交互判定归人工复核；未执行的复核在项目状态里单列"未执行"。
 
+实现 Agent 接口时，change 必须定义输入输出 schema、退出码与错误码，并验证无 TTY 调用、缺参、机器输出解析、状态分层、超时 / 取消和证据引用；验收口径见 [`openspec/config.yaml`](../../openspec/config.yaml) I14 与 Agent 接口约定。此项为待实现要求，不计作当前门禁已覆盖。
+
 ## 仓库洁净度操作
 
 被拦下后的标准动作，按顺序判断：
@@ -53,12 +55,11 @@ node scripts/check-i18n.mjs --selftest
 
 新增或修改成对文档的流程：
 
-1. 判断范围：门面 / 接手索引 / 面向使用者 / 经验库 ⇒ 需要成对；过程资产 ⇒ 不需要（见 [`/i18n/README.md`](../../i18n/README.md)）。
-2. 写中文（源），同轮写英文 `X.en.md`，一级标题下互放语言入口。
-3. 新文档登记进 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json)；不登记的门禁不管，
-   但存在英文而不登记 ⇒ `TWIN_UNREGISTERED` 判红。
-4. 新术语先进 [`/i18n/glossary.md`](../../i18n/glossary.md) 及其英文版，再落到文档。
-5. 本地跑 `node scripts/check-i18n.mjs` 确认全绿再提。
+1. 文档默认中文。仅 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json) 的 `docs` 中登记的对外文件要求成对；当前为根目录 README、CONTRIBUTING、SECURITY、CODE_OF_CONDUCT、CHANGELOG。
+2. 内部文档（含本页、接手索引、经验库与方案）只需中文；以后逐篇确认对外阅读需求后才加英文并登记。
+3. 登记文件以中文为源，同轮更新同目录 `X.en.md`，一级标题下互放语言入口。未登记的新增英文版判 `TWIN_UNREGISTERED`。
+4. 已停止维护的内部译本移入 `docs/drafts/YYYY-MM-DD-internal-translations/` 本地归档，附原路径索引，不入库、不要求同步；中文页移除旧语言入口。新术语只需先维护 [`/i18n/glossary.md`](../../i18n/glossary.md) 中的中英对照。
+5. 本地跑 `node scripts/check-i18n.mjs` 确认对外配对检查全绿再提。
 
 Issue/PR 表单**不做两份**：GitHub 侧在同一个 yml 字段里并列 `English / 中文`，Gitee 侧纯中文。
 改任一处要同轮对齐另外两处——脚本查不了语义等价，这条靠人。
@@ -85,7 +86,8 @@ openspec/
 
 ## 文档与命名
 
-- 会话产物带 `YYYY-MM-DD-` 前缀；长期文档不带。
+- `docs/` 内已批准且作为当前依据的方案、现行规则与已核实事实用 `<english-kebab-case>.md`；日常探讨、调研、待批提案与当次记录用 `YYYY-MM-DD-<english-kebab-case>.md`。`README.md` 与英文 `*.en.md` 保留惯例，细则见 [`/docs/README.md`](../README.md)。
+- 提案获批或结论晋升时，正文记录状态、日期、范围与证据；同步修复引用、双语登记与路径变更记录。历史过程记录保留，避免两份现行口径。
 - 新目录要同时在 [`/docs/README.md`](../README.md) 地图和该目录 `README.md` 登记归属；没登记 = 归属未定，先别建。
 - 每次整理留「路径变更记录」（`docs/README.md` 末尾），否则三个月后没人知道文件搬去哪了。
 - 经验条目按格式写进 [`docs/knowledge/`](../knowledge/README.md)，不要写进 `AGENTS.md` 正文——它有体积预算。

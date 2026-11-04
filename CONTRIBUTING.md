@@ -60,11 +60,10 @@ Node ≥ 20。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/devel
 
 ## 双语与文档
 
-- 需要成对的文档范围见 [`i18n/README.md`](i18n/README.md)；**改中文必须同一轮改英文**。
-- 新增对外文档时，同时把它登记进 [`i18n/docs-manifest.json`](i18n/docs-manifest.json)。
-- 有 `*.en.md` 却没登记 = 判红，防止绕开门禁的单边副本。
-- 过程资产（research / product / engineering / reviews / drafts）不需要翻译。
-- 术语新增或变更：先改 [`i18n/glossary.md`](i18n/glossary.md) 并同步英文版，再批量改文档。
+- 文档默认中文；当前中英双版本仅覆盖根目录 README、CONTRIBUTING、SECURITY、CODE_OF_CONDUCT、CHANGELOG，**这些登记文件改中文时同轮改英文**。
+- `AGENTS.md`、`docs/`、经验库、方案与 `i18n/` 维护说明只需中文；确有对外阅读需求时再逐篇提供英文并登记进 [`i18n/docs-manifest.json`](i18n/docs-manifest.json)。
+- 新英文版未登记会判红；已停止维护的内部译本只在 `docs/drafts/` 本地归档，不入库，也不要求同步。
+- 术语新增或变更：先改 [`i18n/glossary.md`](i18n/glossary.md)，再更新使用该术语的对外中英文件；术语表本身无需英文副本。
 - Issue 与 PR 表单**不做两份**：GitHub 侧同一表单内并列双语，Gitee 侧纯中文模板。
 
 ## Commit 与 PR 约定

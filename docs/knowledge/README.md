@@ -1,6 +1,6 @@
 # docs/knowledge/ · 经验库
 
-<p><a href="README.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
 > 本目录是 Layress 的**可提交经验库**：开发中踩的坑、硬事实、不许重开的决定。
 > 它存在的理由：前置项目把同类的东西放在本机记忆目录（`.workbuddy/memory/`）里，被 `.gitignore`

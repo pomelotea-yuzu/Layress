@@ -42,12 +42,12 @@
 
 ## Bilingual docs / 双语文档
 
-- [ ] Every edited paired document got its `*.en.md` change **in this same PR**
-      改动的成对文档，英文版本在**本 PR 内**同步修改
-- [ ] New outward-facing document registered in `i18n/docs-manifest.json`
-      新增对外文档已登记进 `i18n/docs-manifest.json`
-- [ ] New or changed terminology entered in `i18n/glossary.md` and its English twin first
-      术语新增/变更已先写进术语表中英两份
+- [ ] Edited public documents listed in the manifest's `docs` have both languages updated **in this same PR**; internal documents need only Chinese
+      清单 `docs` 中的对外文件已在**本 PR 内**同步中英；内部文档只需中文
+- [ ] Any newly provided public English version is registered in `i18n/docs-manifest.json`
+      本次新增的对外英文版已登记进 `i18n/docs-manifest.json`
+- [ ] New or changed terminology entered in `i18n/glossary.md`; no English copy of the glossary required
+      术语新增/变更已写进 `i18n/glossary.md`，术语表本身无需英文副本
 - [ ] `node scripts/check-i18n.mjs` green / 双语门禁本地通过
 
 ## Verification record / 验证记录

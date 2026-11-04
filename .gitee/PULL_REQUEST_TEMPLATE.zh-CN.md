@@ -28,9 +28,9 @@
 
 ## 双语文档
 
-- [ ] 改动的成对文档，英文 `*.en.md` 在**本 PR 内**同步修改
-- [ ] 新增对外文档已登记进 `i18n/docs-manifest.json`
-- [ ] 术语新增/变更已先写进 `i18n/glossary.md` 中英两份
+- [ ] 清单 `docs` 中的对外文件已在**本 PR 内**同步中英；内部文档只需中文
+- [ ] 本次新增的对外英文版已登记进 `i18n/docs-manifest.json`
+- [ ] 术语新增/变更已写进 `i18n/glossary.md`，术语表本身无需英文副本
 - [ ] `node scripts/check-i18n.mjs` 本地通过
 
 ## 验证记录

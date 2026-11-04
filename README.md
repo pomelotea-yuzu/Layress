@@ -82,7 +82,7 @@ node scripts/check-i18n.mjs             # 双语成对体检（--selftest 反证
 
 ```
 Layress/
-├─ AGENTS.md              接手索引（唯一入口，中英成对）
+├─ AGENTS.md              接手索引（唯一入口，默认中文）
 ├─ i18n/                  双语口径 · 术语表 · 成对登记
 ├─ docs/
 │  ├─ guide/ architecture/ development/     面向使用者

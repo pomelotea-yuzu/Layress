@@ -6,7 +6,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| [`workflow.md`](workflow.md) | 日常命令、质量门禁链、洁净度与双语操作、openspec 流程、commit 与 push（[English](workflow.en.md)） |
+| [`workflow.md`](workflow.md) | 日常命令、质量门禁链、洁净度与双语操作、openspec 流程、commit 与 push（默认中文） |
 
 ## 这里放什么（尚未成文）
 
@@ -18,4 +18,4 @@
 ## 进入门槛
 
 - 发布/合规类文档在**首个候选版本**前必须成文；没有做到的事写进"尚未落实"，不许写成已完成。
-- 属于双语范围：同目录配 `*.en.md` 并登记 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json)。
+- 默认只写中文；某篇确有对外阅读需求时，再提供同目录 `*.en.md` 并逐篇登记 [`/i18n/docs-manifest.json`](../../i18n/docs-manifest.json)。

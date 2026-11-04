@@ -58,24 +58,27 @@ const isExternal = (href) => /^(?:https?:|mailto:|#|data:)/.test(href) || href.s
  * 仓库尚未 `git init` 时退化成文件系统扫描，同样跳过垃圾场。
  */
 function listFiles(root, predicate) {
-  try {
-    return execFileSync('git', ['ls-files', '-z'], {
-      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
-    })
-      .split('\0').filter(Boolean).map((p) => p.replace(/\\/g, '/')).filter(predicate);
-  } catch {
-    const skip = new Set(['.git', 'node_modules', 'artifacts', 'output', '.layress', '.pnpm-store', 'dist']);
-    const out = [];
-    const walk = (rel) => {
-      for (const entry of readDirSafe(path.join(root, rel))) {
-        const p = rel ? `${rel}/${entry.name}` : entry.name;
-        if (entry.isDirectory()) { if (!skip.has(entry.name) && !entry.name.startsWith('.')) walk(p); }
-        else if (predicate(p)) out.push(p);
-      }
-    };
-    walk('');
-    return out;
+  if (existsSync(path.join(root, '.git'))) {
+    try {
+      return execFileSync('git', ['ls-files', '-z'], {
+        cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+      })
+        .split('\0').filter(Boolean).map((p) => p.replace(/\\/g, '/'))
+        .filter((p) => existsSync(path.join(root, p)) && predicate(p));
+    } catch {}
   }
+  const skip = new Set(['.git', 'node_modules', 'artifacts', 'output', '.layress', '.pnpm-store', 'dist']);
+  const out = [];
+  const walk = (rel) => {
+    for (const entry of readDirSafe(path.join(root, rel))) {
+      const p = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (!skip.has(entry.name) && !entry.name.startsWith('.') && p !== 'docs/drafts') walk(p);
+      } else if (predicate(p)) out.push(p);
+    }
+  };
+  walk('');
+  return out;
 }
 
 function readDirSafe(abs) {
@@ -134,10 +137,9 @@ export function validateDocs(root, docs) {
     }
   }
 
-  // 孤儿英文：有 .en.md 却没登记，等于绕开门禁
   for (const en of listFiles(root, (p) => p.endsWith('.en.md'))) {
     if (!registered.has(zhOf(en))) {
-      add('TWIN_UNREGISTERED', en, '有英文版本但未登记进 docs-manifest.json，单边改动不会触发门禁');
+      add('TWIN_UNREGISTERED', en, '当前英文版本未登记进 docs-manifest.json；内部旧译本应移到本地归档');
     }
   }
 
@@ -183,6 +185,8 @@ function selftest() {
   const clean = mkdtempSync(path.join(tmpdir(), 'layress-i18n-ok-'));
   writeFixture(clean, 'a.md', '# 标题 A\n\n[English](a.en.md)\n\n## 一\n\n内容\n');
   writeFixture(clean, 'a.en.md', '# Title A\n\n[简体中文](a.md)\n\n## One\n\nContent long enough to look proportionate.\n');
+  writeFixture(clean, 'internal.md', '# Internal document\n\nNo translation required.\n');
+  writeFixture(clean, 'docs/drafts/archive/old.en.md', '# Archived translation\n');
   const okClean = validateDocs(clean, ['a.md']);
   if (ok.length && !ok.every((e) => e.code === 'TWIN_UNREGISTERED')) {
     failures.push(`正例被误判：a.md ⇒ ${ok.map((e) => `${e.code}:${e.where}`).join(', ')}`);
@@ -211,7 +215,7 @@ function main() {
   const docs = (manifest.docs ?? []).map((d) => (typeof d === 'string' ? d : d.zh));
   const errors = validateDocs(ROOT, docs);
 
-  console.log(`Layress 双语门禁 · 登记 ${docs.length} 篇成对文档`);
+  console.log(`Layress 双语门禁 · 登记 ${docs.length} 篇对外成对文档`);
   for (const code of [...new Set(errors.map((e) => e.code))]) {
     console.log(`\n✗ 【${code}】`);
     for (const e of errors.filter((x) => x.code === code)) console.log(`  - ${e.where}\n    ↳ ${e.message}`);

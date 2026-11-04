@@ -27,6 +27,6 @@ archive/
 
 1. 目录整体移入 `archive/`，加日期前缀。
 2. delta 合入 [`../../specs/`](../../specs/README.md)，并核对既有场景没有丢失（只增不改是常见但危险的做法）。
-3. 若引入了新的长期口径 → 同步更新 `docs/knowledge/{invariants,decisions}.md` 中英两份。
-4. 若踩了新的坑 → 按条目格式写进 `docs/knowledge/{engineering,runtime-probe}.md` 中英两份。
+3. 若引入了新的长期口径 → 更新 `docs/knowledge/{invariants,decisions}.md`（默认中文）。
+4. 若踩了新的坑 → 按条目格式写进 `docs/knowledge/{engineering,runtime-probe}.md`（默认中文）。
 5. `CHANGELOG.md` 加一条，`AGENTS.md` 状态卡改"活动 change / 最新归档"。

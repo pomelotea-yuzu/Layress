@@ -64,7 +64,8 @@ Thumbs.db
 desktop.ini
 
 # ── 文档过程资产（有价值的必须先归档再排除）────────────────────
-# 草稿 = 个人工作过程，不外露；定稿后手写进 docs/product/ 或 docs/engineering/。
+# 草稿 = 个人工作过程，不外露；也收停止维护的内部译本本地归档，不作为当前依据。
+# 有效结论写进 docs/product/、docs/engineering/ 或 docs/knowledge/；旧版原文可从 Git 历史查。
 docs/drafts/
 # 实机截图默认留本地；验收证据确需对外展示时按第 3 条口径 add -f。
 docs/reviews/**/*.png

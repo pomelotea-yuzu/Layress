@@ -1,6 +1,6 @@
 # debt.md · 未决口径与欠账
 
-<p><a href="debt.en.md">English</a> | 简体中文</p>
+> 本文默认以中文维护。
 
 > 这里只放**还没有结论**的事。已有结论的进 [`decisions.md`](decisions.md)，已知的坑进
 > [`engineering.md`](engineering.md) / [`runtime-probe.md`](runtime-probe.md)。

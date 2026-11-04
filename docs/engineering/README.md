@@ -8,12 +8,13 @@
 
 | 目录 | 收什么 | 命名 |
 |---|---|---|
-| `plans/` | 执行方案与拆分计划（会逐版修订） | `YYYY-MM-DD-<slug>.md` |
-| `reports/` | 交付报告、构建记录、发布说明、验收清单 | `YYYY-MM-DD-<slug>.md` |
-| `notes/` | 单个功能/机制说明与工作流约定 | `YYYY-MM-DD-<slug>.md` 或长名不带日期（长期有效） |
+| `plans/` | 执行方案与拆分计划（会逐版修订） | 待批提案 `YYYY-MM-DD-<english-kebab-case>.md`；已批准且作为当前依据的方案 `<english-kebab-case>.md` |
+| `reports/` | 交付报告、构建记录、发布说明、验收清单 | 当次记录 `YYYY-MM-DD-<english-kebab-case>.md`；持续引用的已核实结论提炼为稳定主题文档 |
+| `notes/` | 单个功能/机制说明与工作流约定 | 探讨 `YYYY-MM-DD-<english-kebab-case>.md`；现行约定与已核实说明 `<english-kebab-case>.md` |
 
 ## 纪律
 
+- 命名以 [`../README.md`](../README.md) 为准：稳定主题使用英文小写短横线名，正文注明状态、日期、范围与证据；提案获批后的晋升须修复引用，原始过程记录不冒充当前依据。
 - **子目录随首份文档创建**：`plans/` `reports/` `notes/` 现在只有本地存在，git 不跟踪空目录。
   第一份对应文档写进来时目录自然入库——不要放 `.gitkeep` 占位（洁净度门禁会把零字节文件报成警告）。
 - **不写运行时临时产物**：脚本输出、探针中间件进 `artifacts/`（不入库）。这里只放手写文档。
