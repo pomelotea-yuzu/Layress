@@ -32,8 +32,8 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 立项完成；文件管理门禁已统一，命名、双语范围与 Agent 接口约束已定；首个验证方案仍为**提案，待批准**（[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)） |
-| 活动 change | 无（`openspec/changes/` 为空） |
+| 阶段 | 需求与社区调研阶段；优先候选准备核查已完成、尚未复现，按[简短路线图](docs/product/roadmap.md)与[准备记录及下次接续](docs/research/2026-11-04-vscode-candidate-readiness.md)接手；首验[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)仍为**提案，待调研后修订与批准** |
+| 活动 change | 无（尚未确定首个执行范围） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
 | 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
 

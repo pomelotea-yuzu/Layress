@@ -49,6 +49,9 @@
 | [`reviews/`](reviews/README.md) | 实机验收与审阅证据；**过程截图默认不入库** | 不需要 |
 | `drafts/` | 个人工作草稿与停止维护的内部译本本地归档，**整目录不入库**；归档子目录自带来源索引 | — |
 
+当前规划入口：[简短路线图](product/roadmap.md)——先补需求与社区证据，再修订验证方案并决定首个 change。
+当前调研接续：[优先候选准备核查与下次停点](research/2026-11-04-vscode-candidate-readiness.md)——已核对历史版本取得方式和准备成本，先补触发输入；样本回放、竞品实跑与访谈未执行。
+
 ## 双语范围
 
 成对规则、表单类的例外与门禁检查项，全部写在 [`/i18n/README.md`](../i18n/README.md)。
@@ -76,6 +79,10 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-04 优先候选准备核查**：新增 [`research/2026-11-04-vscode-candidate-readiness.md`](research/2026-11-04-vscode-candidate-readiness.md)，记录触发输入、版本可用性、准备成本与下次接续，同步调研索引、前轮提示、路线图和状态卡；无既有路径迁移。
+- **2026-11-04 第二轮 GitHub 证据**：新增 [`research/2026-11-04-github-evidence-round-two.md`](research/2026-11-04-github-evidence-round-two.md)，接续授权后的竞品与真实缺陷核查，同步调研索引、路线图、前轮接续提示及状态卡；无既有路径迁移。
+- **2026-11-04 首轮社区证据**：新增 [`research/2026-11-04-community-evidence-round-one.md`](research/2026-11-04-community-evidence-round-one.md)，登记来源、反证、真实缺陷适用范围与未执行项，同步调研入口、路线图和状态卡；无既有路径迁移。
+- **2026-11-04 简短路线图**：新增 [`product/roadmap.md`](product/roadmap.md)，登记调研优先的阶段顺序与证据门槛，同步产品目录入口、接手状态卡与首验提案状态；无既有路径迁移。
 - **2026-11-04 内部译本本地归档**：根目录 `AGENTS.en.md`、本地图与 `docs/knowledge/` 的 7 份英文版、`docs/development/workflow.en.md`、`i18n/` 的 2 份英文版，共 11 份移入 `docs/drafts/2026-11-04-internal-translations/`，原路径索引见归档目录的 `README.md`。该目录不入库；原文另可从 Git 历史查找。现行中英双版本仅保留根目录 5 类对外门面。
 - **2026-11-04 命名规则细化**：明确稳定主题名与带日期过程记录的边界及晋升规则；本轮无路径迁移，首个验证方案仍待批准，保留日期前缀。
 - **2026-11-03 建仓骨架**：确立 guide / architecture / development / knowledge / research /

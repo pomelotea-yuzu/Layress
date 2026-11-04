@@ -1,6 +1,7 @@
 # 首个验证方案（提案，待批准）
 
-> 状态：**提案**。批准后才开第一个 change；批准前本文件描述的是打算怎么做，不是已经做到的事。
+> 状态：**提案**。2026-11-04 讨论确定先补需求与社区调研，按[简短路线图](../../product/roadmap.md)推进；本方案待调研后修订与批准，现有阶段、样本量和预算均未批准执行。
+> 批准范围后再开对应 change；本文件描述的是打算怎么做，不是已经做到的事。
 > 来源：调研 §七 把核心问题、首版范围、数据集建议、对照设计、指标与门槛都定义好了
 > （[`../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)），
 > 本文件不另造口径，只做**可执行化**：排阶段、给数字、写死判据、列出需要你拍板的取舍。
