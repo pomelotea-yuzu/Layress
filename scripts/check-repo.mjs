@@ -17,8 +17,9 @@ try {
     const prefix = `${snapshot.replace(/\\/g, '/')}/`;
     execFileSync('git', ['checkout-index', '--all', `--prefix=${prefix}`], { cwd: ROOT, stdio: 'inherit' });
     const gitDir = execFileSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const index = execFileSync('git', ['rev-parse', '--git-path', 'index'], { cwd: ROOT, encoding: 'utf8' }).trim();
     checkRoot = snapshot;
-    env = { ...process.env, GIT_DIR: gitDir, GIT_WORK_TREE: snapshot };
+    env = { ...process.env, GIT_DIR: gitDir, GIT_WORK_TREE: snapshot, GIT_INDEX_FILE: path.resolve(ROOT, index) };
   }
   const checks = [
     ['check-hygiene.mjs', '--all'],
