@@ -1,7 +1,7 @@
 # VS Code 优先候选：准备条件、成本与下次接续
 
 > 核查日期：2026-11-04。接续[第二轮 GitHub 证据](2026-11-04-github-evidence-round-two.md)的 V1（[Issue #296538](https://github.com/microsoft/vscode/issues/296538)）。
-> 当前停点：**准备条件核查完成，候选尚未复现**。未下载应用 ZIP、安装依赖、启动旧版或安装扩展；未进入产品实现，也未批准首验提案。
+> 当前停点（2026-11-05 续查）：**原 profile 仍缺失；已找到同一修复对应的更简单公开触发线索，候选尚未复现**。本文前六节保留 2026-11-04 核查记录，最新结论与接续见第七节；未下载应用 ZIP、安装依赖、启动旧版或安装扩展，未进入产品实现，也未批准首验提案。
 
 ## 一、这一步得到的结论
 
@@ -68,4 +68,50 @@
 3. 输入准备路径确定后，再决定是否下载约 350 MiB 的两个 ZIP，完成来源与隔离核查后做最小现象复测；若需技术实验或实现，按流程确定范围和 change，不自动批准整份 6 周方案。
 4. 若能重现，再让朴素规则与直接竞品面对同一组好坏状态，记录接入、运行、复核成本；若仍无法建立输入与真值，继续标为候选，不进入冻结评估集。
 
-今天停在准备核查完成处。竞品实跑、历史版本构建 / 运行、原始缺陷回放、人工验收、用户访谈与产品实现均未执行；本轮没有创建 change、下载应用包或对外联系。
+2026-11-04 停在准备核查完成处。竞品实跑、历史版本构建 / 运行、原始缺陷回放、人工验收、用户访谈与产品实现均未执行；当轮没有创建 change、下载应用包或对外联系。
+
+## 七、2026-11-05 续查：输入缺口与更小的验证入口
+
+### 结论与取舍
+
+V1 继续保留为真实工作流候选，但公开材料仍不足以还原原 profile。新找到的 [Issue #114662](https://github.com/microsoft/vscode/issues/114662) 给出了更小的长文本弹窗触发方式，维护者后续明确将其与 V1 的同一修复关联；可以先评估它是否适合验证布局机制，再决定是否承担市场元数据准备成本。这是调研方向的成本排序，**不是决定开发该功能，也不是技术实验范围批准**。
+
+### 本轮补齐的公开事实
+
+| 来源 | 新核查结果 | 证据边界 |
+|---|---|---|
+| [V1 原帖](https://github.com/microsoft/vscode/issues/296538)、[评论 API](https://api.github.com/repos/microsoft/vscode/issues/296538/comments) | 正文仍只有步骤、环境与截图，评论数为 0，API 返回空数组；未找到 profile 附件 | 只说明所查原帖与关联材料没有提供原件，不宣称全网不存在 |
+| [原帖截图](https://github.com/user-attachments/assets/b8cb4483-d7e0-4284-bd44-78b1afe3d918) | 已下载并查看：英文信任提示含多条已验证发布者域名与一段未验证发布者列表，弹窗上下内容超出图像边界 | 发布者显示名无法唯一反推出扩展 ID / 版本；截图不能证明实际滚动、输入命中或精确 CSS 尺寸，本轮也未作人工交互验收 |
+| [V1 timeline](https://api.github.com/repos/microsoft/vscode/issues/296538/timeline) | 本轮读取成功，包含指向 PR #299048 的关联事件及随后关闭事件 | 未发现原报告者复测记录；关闭仍不等于本项目复现 |
+| [PR #299048](https://github.com/microsoft/vscode/pull/299048)、[变更文件](https://api.github.com/repos/microsoft/vscode/pulls/299048/files) | 已合并，只改通用 `dialog.css`；约束高度并调整 flex / 纵向滚动，不是只针对 profile 的特殊补丁 | 修复机制已知不代表每种布局均已验证 |
+| [PR 评审](https://github.com/microsoft/vscode/pull/299048#pullrequestreview-3884784201) | Copilot 自动评审提出盒模型和 footer 收缩 / 滚动疑问，另有[人工批准](https://github.com/microsoft/vscode/pull/299048#pullrequestreview-3885100042) | 自动意见不是已确认的新缺陷，人工批准也不是本项目好样本真值；极端高度及 footer 仍需按实际可达性判定 |
+
+### profile 能固定什么，不能固定什么
+
+本轮检查了固定父提交的导入、信任提示与 gallery 查询源码。原发行版 tag `1.109.5` 与父提交的 `extensionsResource.ts` blob 均为 `c06b870aea9b5e7db639a2e97ec5634d55bf6301`，`extensionManagementService.ts` blob 均为 `ea7f36418535b2879ef8d512143bc1600a355f87`；因此这两个文件的逻辑可用于分析原报告版本，但不据此推断所有依赖、服务配置和运行行为相同。
+
+- **输入格式已查清，尚未制作可用样本**：profile 外层有 `name`，`extensions` 为数组序列化后的字符串；扩展项含 `identifier`，可含 `version`、`preRelease`、`disabled` 等。依据：[模板类型 L53](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/userDataProfile/common/userDataProfile.ts#L53)、[扩展项 L24](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/userDataProfile/browser/extensionsResource.ts#L24)。格式可写不等于所选扩展可查询、可安装或一定出现目标提示。
+- **版本字段参与查询，但不是完整冻结**：[导入 L148](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/userDataProfile/browser/extensionsResource.ts#L148)将 ID、版本与渠道交给 gallery；[查询 L697](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/platform/extensionManagement/common/extensionGalleryService.ts#L697)处理指定版本，但发布者名称、域名和验证状态仍来自市场响应。不能只存一份带版本的 profile 就宣称回放稳定。
+- **不是随便堆扩展就能触发**：[信任检查 L820](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/extensionManagement/common/extensionManagementService.ts#L820)排除私有或已信任项，并按发布者去重；[正文 L906](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/extensionManagement/common/extensionManagementService.ts#L906)逐条展开已验证域名，而全为多个未验证发布者时可能只显示概括语句。发布者构成、文本长度和实际顺序都会影响高度。
+- **可在安装前观察，但准备并非零副作用**：[信任请求 L808](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/extensionManagement/common/extensionManagementService.ts#L808)先取 manifest，再等待提示；[导入 L173](https://github.com/microsoft/vscode/blob/37645e695f1d0e93cf1bb17a550a9e1fdf9d4867/src/vs/workbench/services/userDataProfile/browser/extensionsResource.ts#L173)在该请求返回后才逐个安装。之前仍可能创建 profile、写设置或改启用状态；确认按钮会记录信任，取消会抛取消异常。必须隔离数据，不能把日常 profile 作为试验场。
+
+若继续真实导入路线，至少还需准备：扩展 ID / UUID、版本与渠道、目标平台、gallery 原始响应和 manifest，以及发布者 ID / 显示名 / 域名 / 验证状态、实际展示顺序、已安装集与应用级信任记录。**本轮没有采集这些市场快照，也没有验证保存、使用或重放响应的条件。** profile 本身没有注入完整市场元数据的入口；离线服务替换或重定向属于另行评估的技术实验，不能当作已准备好的零成本手段。
+
+### 新线索：同一修复的通用长文本弹窗
+
+[Issue #114662](https://github.com/microsoft/vscode/issues/114662) 于 2021-01-20 报告自绘模态对话框缺少高度限制；原帖给出设置 `window.dialogStyle = custom`，并通过扩展 API 调用 `vscode.window.showInformationMessage('aaaaa\n'.repeat(100), { modal: true })` 的触发思路。
+
+2026-07-28，项目成员在[评论](https://github.com/microsoft/vscode/issues/114662#issuecomment-5107806069)中明确指出，该问题由 `d481546f4c48b6592932b8e5808a4eed42d8823b` 解决并随 1.111.0 发行。本轮核对评论身份为 `MEMBER`；这是上游说明，不是本项目运行结果，也不宣称已确定最早修复版本。
+
+另有 [Issue #125866](https://github.com/microsoft/vscode/issues/125866)：调试失败弹窗在 `window.zoomLevel: 2` 下不易关闭，维护者[标为 #114662 的重复](https://github.com/microsoft/vscode/issues/125866#issuecomment-947199020)。这提供了真实工作流与缩放条件的旁证，仍缺完整环境和本地复测。
+
+这些材料支持“长内容与缩放导致操作区越界”不只出现在 profile 导入；它们来自同一项目、同一类组件，**不能当成多个独立产品的需求验证**。原帖 API 片段也不是可直接加载的完整扩展：若要试跑，仍需准备受控的最小测试扩展、隔离的历史应用与环境记录，并验证取消及滚动后的可达性。不得因此安装不明第三方扩展。
+
+### 下次优先回答的问题与停止条件
+
+1. **先比较验证成本**：评估 #114662 的受控扩展入口能否在历史 Windows 版中触发同一布局机制；若可行，再确定一个有限的技术实验范围。它可以减少 profile / 市场依赖，但不能冒充 V1 原件或原操作链复现。
+2. **保留 V1 真实工作流价值**：仅当需要验证真实导入流程、且输入可追溯时继续准备；若市场快照或隔离成本过高，保持候选状态，不为凑数据集无限投入。
+3. **先建立好坏状态再谈工具差异**：原帖代码、合并修复与评审批准均不自动成为真值；仍须记录内容区、文本、语言、字体 / 缩放、允许滚动与关键按钮命中。现有 Playwright / CDP 加人工检查能做到多少，也要计入对照成本。
+4. **需求判断继续开放**：本轮支持这类故障确实存在，也提供了较小的验证入口；没有证明发生频率、现有检查的不足、使用者愿意接入或付费，以及自动缩减的收益。独立工具、插件、贡献上游或停止投入仍是开放选项。
+
+检索边界：通过 GitHub CLI 只读查看原 Issue、评论、timeline、修复 PR / 文件 / 评审，并使用 `repo:microsoft/vscode "296538"`、`"trust publisher" "scroll"` 与标题中的 `dialog scroll` / `dialog height` 定向查询；查询均有返回数量限制，不代表全面覆盖。下载的截图与源码只留本地 `artifacts/`，不复制入评估集或 Git 历史。本轮未运行目标应用 / 竞品、未构建、未安装扩展、未作人工验收、未联系任何人，也未批准开发方向。

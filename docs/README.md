@@ -50,7 +50,7 @@
 | `drafts/` | 个人工作草稿与停止维护的内部译本本地归档，**整目录不入库**；归档子目录自带来源索引 | — |
 
 当前规划入口：[简短路线图](product/roadmap.md)——先补需求与社区证据，再修订验证方案并决定首个 change。
-当前调研接续：[优先候选准备核查与下次停点](research/2026-11-04-vscode-candidate-readiness.md)——已核对历史版本取得方式和准备成本，先补触发输入；样本回放、竞品实跑与访谈未执行。
+当前调研接续：[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)（接手先读第十节的 2026-11-05 停点）——整合基础任务与历史证据，以当前 Agent 为比较起点，分别核查应用入口与跨 Agent 增强价值；[社区原始记录](research/2026-11-04-community-evidence-round-one.md)与[VS Code 候选](research/2026-11-04-vscode-candidate-readiness.md)保留，实跑、访谈与跨 Agent 验证未执行，开发方向仍开放。
 
 ## 双语范围
 
@@ -79,6 +79,10 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-05 自有应用只读核查与收工接续**：在[综合调研](research/2026-11-05-user-needs-and-agent-augmentation-research.md)补充第一手任务、已有自动化与跨客户端结果消费边界，第十节登记停点、下次第一步和未执行项；具体项目与证据仅留本地草稿，未启动或修改被查项目；无新增入库文档或路径迁移。
+- **2026-11-05 综合调研入口**：新增[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)，整合历史证据与本轮讨论，明确应用入口、跨 Agent 调用及当前 Agent 对照的待验证问题，同步索引、路线图和状态卡；旧记录保留，无路径迁移。
+- **2026-11-05 基础需求续查**：在既有[社区证据记录](research/2026-11-04-community-evidence-round-one.md)追加第七节，补充日常任务、用户证据、现有解法和待验证的最低完成标准，调整路线图与接续入口为基础需求优先；无新增文档或路径迁移。
+- **2026-11-05 候选输入续查**：在既有[准备核查记录](research/2026-11-04-vscode-candidate-readiness.md)追加第七节，补充原 profile 缺口、固定源码核查与同修复的较小触发线索，同步接续入口与状态卡；无新增文档或路径迁移。
 - **2026-11-04 优先候选准备核查**：新增 [`research/2026-11-04-vscode-candidate-readiness.md`](research/2026-11-04-vscode-candidate-readiness.md)，记录触发输入、版本可用性、准备成本与下次接续，同步调研索引、前轮提示、路线图和状态卡；无既有路径迁移。
 - **2026-11-04 第二轮 GitHub 证据**：新增 [`research/2026-11-04-github-evidence-round-two.md`](research/2026-11-04-github-evidence-round-two.md)，接续授权后的竞品与真实缺陷核查，同步调研索引、路线图、前轮接续提示及状态卡；无既有路径迁移。
 - **2026-11-04 首轮社区证据**：新增 [`research/2026-11-04-community-evidence-round-one.md`](research/2026-11-04-community-evidence-round-one.md)，登记来源、反证、真实缺陷适用范围与未执行项，同步调研入口、路线图和状态卡；无既有路径迁移。

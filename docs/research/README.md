@@ -7,10 +7,11 @@
 
 | 文件 | 说明 |
 |---|---|
+| [`2026-11-05-user-needs-and-agent-augmentation-research.md`](2026-11-05-user-needs-and-agent-augmentation-research.md) | 当前综合入口：基础需求、当前 Agent 比较、自有任务匿名归纳与跨 Agent 增强评价；第十节记录 2026-11-05 停点、阅读顺序与下次第一步，具体素材仅留本地，运行与收益未验证 |
 | [`2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md) | 立项调研：方向边界、竞品与替代、相关研究、市场与定价锚点、开源前景、技术坑、首个验证方案与继续/收缩门槛、命名核查 |
-| [`2026-11-04-community-evidence-round-one.md`](2026-11-04-community-evidence-round-one.md) | 首轮社区证据（部分完成）：7 条讨论、1 条跨范围真实缺陷线索、4 份官方资料；GitHub 取证后续见第二轮，实跑与访谈未执行 |
+| [`2026-11-04-community-evidence-round-one.md`](2026-11-04-community-evidence-round-one.md) | 首轮社区证据及 2026-11-05 基础需求续查：新增 10 条用户记录与 7 份官方资料，归纳日常检查任务、最低完成标准与已有解法；实跑与访谈未执行 |
 | [`2026-11-04-github-evidence-round-two.md`](2026-11-04-github-evidence-round-two.md) | 第二轮 GitHub 证据：3 个竞品、Joplin Web 与 3 条 VS Code 修复候选链、维护者取舍；候选尚未回放，实跑与访谈未执行 |
-| [`2026-11-04-vscode-candidate-readiness.md`](2026-11-04-vscode-candidate-readiness.md) | 优先候选准备核查与今日停点：原 profile 缺口、两个历史 ZIP 可用性、源码与发行版成本、下次先补触发输入；尚未下载或回放 |
+| [`2026-11-04-vscode-candidate-readiness.md`](2026-11-04-vscode-candidate-readiness.md) | 优先候选准备与 2026-11-05 续查：原 profile 仍缺失、版本冻结边界、同修复的较小触发线索与验证成本取舍；应用尚未下载或回放，开发方向未定 |
 
 ## 这里放什么
 
