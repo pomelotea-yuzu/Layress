@@ -32,7 +32,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 需求与社区调研阶段；2026-11-05 停点与下次第一步见[综合调研 §十](docs/research/2026-11-05-user-needs-and-agent-augmentation-research.md)，先整理语言切换后编辑与取消的本地任务卡，私有明细仅留草稿；收益待验证，[V1 候选](docs/research/2026-11-04-vscode-candidate-readiness.md)未复现，首验[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)仍待修订与批准。2026-11-06 已锁三端打包承诺（D15，Win x64 / Ubuntu 24 x64 / mac arm64），验证仍分阶段，见[三端打包规划](docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md)。2026-11-07 起草[Agent 原生证据闸门](docs/engineering/plans/2026-11-07-agent-native-evidence-gate.md)作首验前端，以自有已打包冻结的 Electron 应用作基线（对象细节留本地草稿），两段闸门取证"要不要开发"，未实跑、未立 change |
+| 阶段 | 需求与社区调研阶段；2026-11-05 停点与下次第一步见[综合调研 §十](docs/research/2026-11-05-user-needs-and-agent-augmentation-research.md)，先整理语言切换后编辑与取消的本地任务卡，私有明细仅留草稿；收益待验证，[V1 候选](docs/research/2026-11-04-vscode-candidate-readiness.md)未复现，首验[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)仍待修订与批准。2026-11-06 已锁三端打包承诺（D15，Win x64 / Ubuntu 24 x64 / mac arm64），验证仍分阶段，见[三端打包规划](docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md)。2026-11-07 起草[Agent 原生证据闸门](docs/engineering/plans/2026-11-07-agent-native-evidence-gate.md)作首验前端，以自有已打包冻结的 Electron 应用作基线（对象细节留本地草稿）；同日一次基线试用（641 CSS 宽 + en-US + 默认标签）：目标取消按钮经真实坐标命中为真绿，目标上 0 次假绿、假绿门槛 0/1 未达；预注册长标签坏样本未触发，真正待测的 top-layer 假绿面是弹窗背后的同名控件，试用未踩中；视觉待复核；暂不 GO，下次先补该最小对照；证据留本地草稿与 `artifacts/`（不入库）。未立 change |
 | 活动 change | 无（尚未确定首个执行范围） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
 | 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
