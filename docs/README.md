@@ -79,6 +79,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-07 Agent 原生证据闸门**：新增 [`engineering/plans/2026-11-07-agent-native-evidence-gate.md`](engineering/plans/2026-11-07-agent-native-evidence-gate.md)，作为首验提案的精简前端（两段闸门取证"要不要开发"），首验提案加衔接注记、路线图与状态卡同步；实验对象具体项目/路径/证据按隐私口径仅留本地草稿，不入库；无既有路径迁移。
+
 - **2026-11-06 三端打包规划**：新增 [`engineering/plans/2026-11-06-tri-platform-packaging-plan.md`](engineering/plans/2026-11-06-tri-platform-packaging-plan.md)，登记 Windows x64 / Linux Ubuntu 24 x64 / macOS arm64 三端打包承诺与分阶段验证；同步 config 平台口径、决策 D15、debt 五项未决与路线图；无既有路径迁移。
 
 - **2026-11-05 自有应用只读核查与收工接续**：在[综合调研](research/2026-11-05-user-needs-and-agent-augmentation-research.md)补充第一手任务、已有自动化与跨客户端结果消费边界，第十节登记停点、下次第一步和未执行项；具体项目与证据仅留本地草稿，未启动或修改被查项目；无新增入库文档或路径迁移。

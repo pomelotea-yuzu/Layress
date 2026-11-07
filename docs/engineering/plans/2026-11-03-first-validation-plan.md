@@ -2,6 +2,9 @@
 
 > 状态：**提案**。2026-11-04 讨论确定先补需求与社区调研，按[简短路线图](../../product/roadmap.md)推进；本方案待调研后修订与批准，现有阶段、样本量和预算均未批准执行。
 > 批准范围后再开对应 change；本文件描述的是打算怎么做，不是已经做到的事。
+> **2026-11-07 衔接**：新增[Agent 原生证据闸门](2026-11-07-agent-native-evidence-gate.md)作为本方案的精简前端——
+> 先以两段闸门取证"要不要开发"（第一段≈当前 Agent 对照，第二段≈ S0 测量项 2 的最小版），GO 后再正式立项 S0；
+> 闸门停则本方案不进入执行。两者均待批准，不并行竞争。
 > 来源：调研 §七 把核心问题、首版范围、数据集建议、对照设计、指标与门槛都定义好了
 > （[`../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)），
 > 本文件不另造口径，只做**可执行化**：排阶段、给数字、写死判据、列出需要你拍板的取舍。
