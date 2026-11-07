@@ -23,7 +23,9 @@ context: |
   技术栈（以源码与依赖清单为准；当前尚未建代码骨架）：
   - TypeScript strict + pnpm workspaces；packages/{core,confirm,reduce,replay,cli} + apps/desktop
   - 探针通道候选：Playwright / CDP 直连 / Electron 远程调试（未选型，见 docs/knowledge/debt.md）
-  - 首版平台：Windows + Chromium，另验证一个 Electron 适配；macOS/Linux 未承诺
+  - 打包承诺三端（2026-11-06，D15）：Windows x64 + Linux Ubuntu 24 x64 + macOS arm64；
+    架构与 CI 从第一天按三端设计。验证仍分阶段：首验对照实验先在 Windows + Chromium 跑（另验证一个 Electron 适配），
+    Linux/mac 实机验证列为后续里程碑，未验证端单列不勾完成。规划见 docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md
   - 质量：Biome + vitest + TypeScript + OpenSpec；实机判定另附人工复核记录
   - 语言：文档默认中文；仅逐篇登记的对外文档同目录 *.en.md 成对并由 check-i18n 强制，
     当前为根目录 README / CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / CHANGELOG；

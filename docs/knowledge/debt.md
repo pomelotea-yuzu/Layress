@@ -18,6 +18,11 @@
 | npm org `@layress` | 需要 npm organization；与 `layrr`/`layerr`/`layui` 的区分说明要写进 README | 用户 | 首次发包之前 |
 | `docs/guide/` 内容 | 快速开始指南要等 CLI 真能跑才写，否则 README 里只能写"尚未发布"（这是欠账，不是目标形态） | 首个可交付版本 | 首个 tag 之前 |
 | 第三方声明与依赖许可核查 | 前置项目用 `docs/development/third-party-notices.md` + 许可证清单脚本；Layress 引入依赖后需要同等流程 | 首个发行轮 | 首次发行之前 |
+| 桌面壳选型（D15） | Electron / Tauri **未选**；[三端打包规划](../engineering/plans/2026-11-06-tri-platform-packaging-plan.md) §四只锁三端包格式矩阵（Win 便携 zip、Linux AppImage、mac arm64 dmg/zip），壳选型留接口 | `apps/desktop` 首个 change 的 design | 写桌面代码之前 |
+| macOS 签名 / 公证（D15） | 先不买 Apple Developer；mac 包未签名 + 本地绕过步骤，CI 预留签名/公证位，证书密钥由用户配置仓库留占位 | 用户 | 公开分发 mac 包之前 |
+| Linux 数据目录落点（D15） | XDG 目录（`~/.config`/`~/.local/share`/`~/.cache`）按便携精神不默认写入；AppImage 只读挂载的数据落点、Playwright 缓存覆盖**未实测** | 发行轮 change design | M2 Linux 实机验证之前 |
+| 原生依赖三端 prebuild 覆盖（D15） | 未引入依赖；引入时逐个核 Win x64 / Linux x64 / mac arm64 的 prebuild，缺则 CI 需本地编译 | 引入该依赖的 change | 引入该依赖之前 |
+| Node LTS 基线（D15） | CI 现用 Node 20；三端统一基线待定（20 / 22），写进 `engines` 与 README | 发行轮 change | 首个 tag 之前 |
 
 ## 已知的"不打算现在做"
 

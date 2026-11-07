@@ -79,6 +79,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-06 三端打包规划**：新增 [`engineering/plans/2026-11-06-tri-platform-packaging-plan.md`](engineering/plans/2026-11-06-tri-platform-packaging-plan.md)，登记 Windows x64 / Linux Ubuntu 24 x64 / macOS arm64 三端打包承诺与分阶段验证；同步 config 平台口径、决策 D15、debt 五项未决与路线图；无既有路径迁移。
+
 - **2026-11-05 自有应用只读核查与收工接续**：在[综合调研](research/2026-11-05-user-needs-and-agent-augmentation-research.md)补充第一手任务、已有自动化与跨客户端结果消费边界，第十节登记停点、下次第一步和未执行项；具体项目与证据仅留本地草稿，未启动或修改被查项目；无新增入库文档或路径迁移。
 - **2026-11-05 综合调研入口**：新增[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)，整合历史证据与本轮讨论，明确应用入口、跨 Agent 调用及当前 Agent 对照的待验证问题，同步索引、路线图和状态卡；旧记录保留，无路径迁移。
 - **2026-11-05 基础需求续查**：在既有[社区证据记录](research/2026-11-04-community-evidence-round-one.md)追加第七节，补充日常任务、用户证据、现有解法和待验证的最低完成标准，调整路线图与接续入口为基础需求优先；无新增文档或路径迁移。
