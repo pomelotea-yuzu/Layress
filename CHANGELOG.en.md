@@ -48,6 +48,14 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
   see it, so writing there alone is the same as not writing at all. The rule now lives in `AGENTS.md` §six,
   the knowledge-base README and the commit checklist; this round's pitfalls (such as hard-coded remote
   names breaking a documented command) were backfilled as well.
+- Added a **blind mechanism check**: in an out-of-repo directory (`~/Developer/layress-blind-run/`), four
+  self-made fixtures were run through two channels × 3 repeats by an external model with no project context.
+  Mechanical comparison against the pre-registered criteria passed step 1 (under a modal overlay, a DOM
+  `click()` fires while a real pointer does not, stable 3/3; all three negative cases agree across channels).
+  Limits and the community case studies are in
+  [`docs/research/2026-11-08-blind-probe-result.md`](docs/research/2026-11-08-blind-probe-result.md);
+  this checks a mechanism, not the pain point from the 2026-11-07 gate. Human ground truth is still
+  pending (I11) and the first validation plan remains unapproved.
 
 ### Repository skeleton · 2026-11-03
 
