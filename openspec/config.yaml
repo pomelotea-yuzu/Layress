@@ -10,9 +10,10 @@ context: |
   分发建议 scoped 包 @layress/*；与 npm 上的 layrr／layerr 与组件库 layui 无关，README 需显式区分。
 
   仓库与远程：本地 ~/Developer/layress（macOS arm64 / zsh，2026-11-08 由 Windows 迁入）；分支 main；
-  github = https://github.com/pomelotea-yuzu/Layress.git（主仓库）
-  gitee  = https://gitee.com/yuzu-tea-duck/layress.git（镜像）；**没有 origin**。
-  建仓、tag 与 push 归用户；判 push 状态只认 git ls-remote，不认文档记载。
+  目标双远程 github = https://github.com/pomelotea-yuzu/Layress.git（主仓库）
+  gitee  = https://gitee.com/yuzu-tea-duck/layress.git（镜像）；
+  **实际远程名以 git remote -v 为准**——当前 Mac 克隆用单个 origin 聚合 Gitee fetch/push + GitHub push URL，
+  历史记载的「无 origin」只描述 2026-11-03 建仓当时。建仓、tag 与 push 归用户；判 push 状态只认 git ls-remote，不认文档记载。
 
   四条工作边界（不可混为一谈）：
   - 视觉回归 = 与已认可版本比差异；本产品不做这一类

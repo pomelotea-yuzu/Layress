@@ -36,6 +36,10 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
   hygiene chain never ran and only CI was left to catch problems. Changed to `100755`; `git hook run
   pre-commit` now passes. The gate also gained a "hook missing executable bit" assertion and a counter-example
   so this cannot recur.
+- Changed **remote naming**: checking unpushed commits no longer assumes a remote name — use
+  `git fetch --all && git log --oneline '@{u}'..main`. `AGENTS.md` and `openspec/config.yaml` now state that
+  remote names come from `git remote -v`: the current macOS clone uses a single `origin` aggregating Gitee
+  fetch/push and a GitHub push URL, while the historical "no origin" note only described the initial setup.
 
 ### Repository skeleton · 2026-11-03
 

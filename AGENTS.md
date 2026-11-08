@@ -35,17 +35,19 @@
 | 阶段 | 需求与社区调研阶段；2026-11-05 停点与下次第一步见[综合调研 §十](docs/research/2026-11-05-user-needs-and-agent-augmentation-research.md)，先整理语言切换后编辑与取消的本地任务卡，私有明细仅留草稿；收益待验证，[V1 候选](docs/research/2026-11-04-vscode-candidate-readiness.md)未复现，首验[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)仍待修订与批准。2026-11-06 已锁三端打包承诺（D15，Win x64 / Ubuntu 24 x64 / mac arm64），验证仍分阶段，见[三端打包规划](docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md)。2026-11-07 起草[Agent 原生证据闸门](docs/engineering/plans/2026-11-07-agent-native-evidence-gate.md)作首验前端，以自有已打包冻结的 Electron 应用作基线（对象细节留本地草稿）；同日一次基线试用（641 CSS 宽 + en-US + 默认标签）：目标取消按钮经真实坐标命中为真绿，目标上 0 次假绿、假绿门槛 0/1 未达；预注册长标签坏样本未触发，真正待测的 top-layer 假绿面是弹窗背后的同名控件，试用未踩中；视觉待复核；暂不 GO，下次先补该最小对照；证据留本地草稿与 `artifacts/`（不入库）。未立 change。2026-11-08 开发机由 Windows 迁入 macOS arm64（zsh），门禁、索引、工程文档与知识库的本机口径同步；存储纪律统一改称「便携优先 · 不写系统用户目录」（原称「不碰 C 盘」，承诺不变），门禁补齐 macOS / Linux 系统目录与 POSIX 绝对路径判据；原「首验先在 Windows 跑」随开发机迁移失效，首验实机平台待随首验方案修订重定并登记 debt；三端打包承诺（D15）与调研外部样本事实不变 |
 | 活动 change | 无（尚未确定首个执行范围） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
-| 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
+| 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch --all && git log --oneline '@{u}'..main`（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
 **push 状态 ⇒ 只认 `git ls-remote` 的回显，不认本文件写了什么**。
 
 仓库与远程：本地 `~/Developer/layress`（macOS arm64 / zsh，2026-11-08 由 Windows 迁入）；分支 `main`；
-`github` = `https://github.com/pomelotea-yuzu/Layress.git`（主仓库）、
-`gitee` = `https://gitee.com/yuzu-tea-duck/layress.git`（镜像），**没有 `origin`**。
+项目约定的双远程为 `github` = `https://github.com/pomelotea-yuzu/Layress.git`（主仓库）、
+`gitee` = `https://gitee.com/yuzu-tea-duck/layress.git`（镜像）。**远程名一律以 `git remote -v` 为准**：
+当前 Mac 克隆只用单个 `origin`（fetch/push 指向 Gitee，另挂 GitHub push URL），历史记载的「无 origin」
+仅描述 2026-11-03 建仓当时，不是跨克隆事实。
 本地已 `git init`（分支 `main`、`core.hooksPath=.githooks`）；建仓、tag 与 push 归用户操作，
-2026-11-03 用户已建双远程并推过 `main`。**是否还有未推提交按上一行的命令查，别信任何文字记载。**
+2026-11-03 用户已推过 `main`。**是否还有未推提交按上一行的命令查，别信任何文字记载。**
 
 ## 三、必读顺序（约 10 分钟）
 

@@ -26,6 +26,9 @@
 - 修复 **pre-commit hook 在 macOS 被忽略**：`.githooks/pre-commit` 历史 mode 为 `100644`，Windows 下不依赖执行位，
   迁到 Mac 后 Git 直接跳过该 hook，pre-commit 洁净度链形同未挂；改为 `100755`，`git hook run pre-commit` 实跑通过，
   并在门禁增加「hook 缺可执行位」断言与反证用例防复发。
+- 变更 **远程口径**：查未推提交的命令改为不依赖远程名的 `git fetch --all && git log --oneline '@{u}'..main`；
+  `AGENTS.md` 与 `openspec/config.yaml` 注明远程名以 `git remote -v` 为准——当前 Mac 克隆用单个 `origin`
+  聚合 Gitee fetch/push 与 GitHub push URL，历史「无 origin」只是建仓当时的状态。
 
 ### 仓库骨架 · 2026-11-03
 
