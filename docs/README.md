@@ -79,6 +79,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-08 CHANGELOG 回归版本定位**：`CHANGELOG.md`／`CHANGELOG.en.md`「未发布」下原有 2026-11-03～11-08 的仓库搭建与门禁过程条目，按主题回归既有落点（决策 `knowledge/decisions.md`、坑 `knowledge/engineering.md`、调研与实验 `research/`、状态 `AGENTS.md` §二、逐笔 `git log`），**不另建第三份流水账**；原文可从 `git log -- CHANGELOG.md` 查。文件口径改为「按版本记录面向使用者的变更」。无路径迁移。
+
 - **2026-11-07 Agent 原生证据闸门**：新增 [`engineering/plans/2026-11-07-agent-native-evidence-gate.md`](engineering/plans/2026-11-07-agent-native-evidence-gate.md)，作为首验提案的精简前端（两段闸门取证"要不要开发"），首验提案加衔接注记、路线图与状态卡同步；实验对象具体项目/路径/证据按隐私口径仅留本地草稿，不入库；无既有路径迁移。
 
 - **2026-11-06 三端打包规划**：新增 [`engineering/plans/2026-11-06-tri-platform-packaging-plan.md`](engineering/plans/2026-11-06-tri-platform-packaging-plan.md)，登记 Windows x64 / Linux Ubuntu 24 x64 / macOS arm64 三端打包承诺与分阶段验证；同步 config 平台口径、决策 D15、debt 五项未决与路线图；无既有路径迁移。
