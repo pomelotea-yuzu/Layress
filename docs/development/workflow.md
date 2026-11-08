@@ -107,7 +107,11 @@ openspec/
   对应专题留条目？只写 `.workbuddy/memory/` 等于没写（该目录不入库，别的 Agent 与接手人拿不到）。
 - **仅在确有必要/有价值、或完成一小段开发时做本地 commit**；是否提交由模型/执行者按价值判断，
   不为凑数提交，也不攒一大坨；**不 push**。
-- push、打 tag、双远程同步归维护者。幂等复跑形如 `git push github main && git push gitee main`；
+- push、打 tag、双远程同步归维护者。**先跑 `git remote -v`**：远程名是本机配置，不写死在文档里。
+  当前 Mac 克隆的 `origin` 挂了两条 push URL（Gitee + GitHub），一条 `git push origin main` 即推两端；
+  远程名分开配置时逐端 `git push <远程名> main`，或直接用显式 URL
+  （`git@gitee.com:yuzu-tea-duck/layress.git`、`git@github.com:pomelotea-yuzu/Layress.git`）。
+  多 pushurl 顺序推送、任一端失败即中止，重跑幂等；推完用 `git ls-remote` 逐端核对 hash。
   tag 单独推，**不要移动或强推已发布的 tag**。
 - push 计数只认 `git ls-remote` 的回显，不认文档里写的"已推"。
 - 禁止 `--no-verify` 绕过洁净度门禁。真要绕过，说明门禁写错了，去修脚本而不是每次手工放行。

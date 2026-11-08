@@ -40,6 +40,8 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
   `git fetch --all && git log --oneline '@{u}'..main`. `AGENTS.md` and `openspec/config.yaml` now state that
   remote names come from `git remote -v`: the current macOS clone uses a single `origin` aggregating Gitee
   fetch/push and a GitHub push URL, while the historical "no origin" note only described the initial setup.
+  The `git push github main && git push gitee main` line in `workflow.md` failed for the same reason and now
+  uses `git push origin main` (multiple push URLs in one command), with explicit URLs as a fallback.
 - Added a **knowledge-base write-back rule**: problems found during development, disproved assumptions and
   policy changes must be written into the matching `docs/knowledge/` topic in the same round.
   `.workbuddy/memory/` is a local daily log only — other agents and people who clone the repository cannot
