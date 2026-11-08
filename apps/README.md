@@ -13,7 +13,8 @@
 
 - **便携优先**：业务数据落产品目录下的 `data/`，运行期数据与日志落 `.layress/`；
   `userData` 与 Chromium `sessionData` 必须显式覆盖到数据根之下，不得用系统默认（I12、I13）。
-  只改"数据目录"不够——`os.tmpdir()` 也在 C 盘（见 [`/docs/knowledge/engineering.md`](../docs/knowledge/engineering.md)）。
+  只改"数据目录"不够——三端上 `os.tmpdir()`、Chromium `sessionData` 与 Playwright 缓存默认都落在系统用户目录
+  （Windows 用户目录 / macOS `~/Library` / Linux XDG；见 [`/docs/knowledge/engineering.md`](../docs/knowledge/engineering.md)）。
 - 安装位置由用户选择；安装器不提权、不改系统 PATH；目标目录不可写时**报错并要求指定，不静默回落**。
 - 打包产物与中间物不入库（`release/`、`dist/`、`build/` 已忽略）；构建记录与哈希按
   [`docs/engineering/` 归属说明](../docs/engineering/README.md) 放入其 `reports/` 子目录，随首份报告入库。

@@ -8,6 +8,22 @@
 
 ## 未发布
 
+### 开发环境迁移 macOS 与门禁跨平台加固 · 2026-11-08
+
+- 变更 **开发机口径**：主力开发机由 Windows 迁入 macOS arm64 / zsh，本地仓库 `~/Developer/layress`；
+  `AGENTS.md` §二/§四、`openspec/config.yaml`、`docs/development/workflow.md` 与 CONTRIBUTING 同步；
+  显式区分「开发机 ≠ 产品目标平台」——三端发行承诺（D15）与调研 §7.2 首版范围不变。
+- 变更 **存储纪律改名**：I12「不碰 C 盘」改称「便携优先 · 不写系统用户目录」，承诺不变；禁止路径补齐
+  macOS `~/Library`／`/private/var/folders` 与 Linux XDG；门面双语、术语表、不变量、经验库与规划文档同轮对齐。
+  本文件 2026-11-03 的历史条目仍保留旧称，不作改写。
+- 新增 **门禁跨平台判据**：`check-hygiene.mjs` 的「机器绝对路径」收 POSIX `/Users/<name>/`／`/home/<name>/`，
+  「系统用户目录」补 macOS Library／`/private/var/folders`／Linux XDG／`os.tmpdir()`／更多 Electron 默认路径；
+  `--selftest` 增加 macOS Library、Linux XDG、POSIX 绝对路径三个反证用例。
+- 变更 **首验实机平台口径**：原「先在 Windows 跑」随迁机失效，改为**待随首验方案修订重定**并登记
+  [`docs/knowledge/debt.md`](docs/knowledge/debt.md)；三端打包规划、路线图与首验方案同步，未执行项仍单列。
+- 变更 **本地提交纪律**：智能体仅在确有必要/有价值、或完成一小段开发时做本地 commit，是否提交由模型按价值判断；
+  **push 与 tag 仍归维护者**。
+
 ### 仓库骨架 · 2026-11-03
 
 - 新增 目录结构与归属说明：`docs/{guide,architecture,development,knowledge,research,product,engineering,reviews}`、

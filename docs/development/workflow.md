@@ -6,6 +6,9 @@
 
 ## 环境与日常命令
 
+- **开发机（2026-11-08 起）**：macOS arm64 / zsh / Node ≥ 20；CI runner 为 ubuntu。门禁脚本只用
+  `node:path` 与 git 子进程，三端通用，**本地与云端跑同一条命令链**。开发机平台 ≠ 产品目标平台：
+  三端发行承诺见 D15，首版目标平台见调研 §7.2，两者都不随开发机迁移而变。
 - Node ≥ 20；包管理器 pnpm（workspace 建立后在根 `package.json` 固定 `packageManager` 字段）。
 - 每个克隆一次：`git config core.hooksPath .githooks`。不挂 hook，洁净度问题会推迟到 CI 才暴露。
 
@@ -100,7 +103,8 @@ openspec/
 ## Commit 与 push
 
 - 一次 commit 做一件事；标题 `<type>(<scope>): <一句话改动>`，正文中文写"为什么"。
-- **每完成一个有价值步骤就 commit**，不要攒一大坨；但**不 push**。
+- **仅在确有必要/有价值、或完成一小段开发时做本地 commit**；是否提交由模型/执行者按价值判断，
+  不为凑数提交，也不攒一大坨；**不 push**。
 - push、打 tag、双远程同步归维护者。幂等复跑形如 `git push github main && git push gitee main`；
   tag 单独推，**不要移动或强推已发布的 tag**。
 - push 计数只认 `git ls-remote` 的回显，不认文档里写的"已推"。

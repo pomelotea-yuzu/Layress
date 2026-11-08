@@ -24,7 +24,7 @@ node scripts/check-repo.mjs --all      # 洁净度、全库链接、双语及门
 node scripts/check-repo.mjs --staged   # 暂存后检查实际提交快照，pre-commit 同此
 ```
 
-Node ≥ 20。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/development/workflow.md`](docs/development/workflow.md)），
+Node ≥ 20。**当前开发机为 macOS arm64 / zsh**，CI runner 为 ubuntu；门禁脚本三端通用，本地与云端跑同一条命令链（开发机平台不等于产品目标平台）。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/development/workflow.md`](docs/development/workflow.md)），
 所以现阶段没有 build/test 步骤。
 
 ## 提交流程
@@ -33,7 +33,7 @@ Node ≥ 20。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/devel
 
 1. 开 Issue 或在已有 Issue 下对齐问题陈述。
 2. 建 `openspec/changes/<change-name>/`：`tasks.md` 拆步骤，`design.md` 写方案与取舍。
-3. 按任务实施，**每个有价值的步骤一次 commit**；判据与实测证据留在 change 目录内。
+3. 按任务实施，**仅在确有必要/有价值或完成一小段开发时做一次本地 commit**（是否提交由执行者按价值判断，不为凑数提交）；判据与实测证据留在 change 目录内。
 4. 归档进 `openspec/changes/archive/<date>-<change-name>/`，合入主 spec。
 
 纯文档修订、错别字、链接修复可直接提 PR，不必立项。
@@ -48,7 +48,7 @@ Node ≥ 20。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/devel
 | 二进制/归档后缀 | `.msi .exe .dll .zip .7z .mp4` 等 | 只提交生成脚本，或登记豁免 |
 | 体积 | 单文件 > 512 KB 判红，> 256 KB 警告 | 拆分、压缩为可再生成、或抬高豁免 `size=` |
 | 凭据形态 | 私钥块、`sk-…`、`ghp_…`、`AKIA…`、赋值型 token | 移除；密钥由用户在应用内填写，仓库只留占位符 |
-| 机器绝对路径 | 源码/配置里出现 `C:\Users\…` | 改相对路径或运行时解析的数据目录 |
+| 机器绝对路径 | 源码/配置里出现 `C:\Users\…`、`/Users/<name>/…`、`/home/<name>/…` | 改相对路径或运行时解析的数据目录 |
 | 忽略却已跟踪 | `.gitignore` 说不要但历史里有 | `git rm --cached <file>` 后重新提交 |
 
 **豁免的唯一入口是 [`.git-hygiene-allowlist`](.git-hygiene-allowlist)，格式 `glob  #  理由`。**

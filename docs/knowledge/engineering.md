@@ -6,7 +6,8 @@
 
 ## 环境与行尾
 
-- [2026-11-03][P0] Windows 上格式检查满屏误报，仓库内容其实是好的 ⇒ 系统级 `core.autocrlf=true` 把工作区检出成 CRLF，而 linter（Biome/ESLint）要求 LF ⇒ 用 [`.gitattributes`](../../.gitattributes) 强制文本 `eol=lf` 并给二进制/夹具标 `-text` ⇒ 来源：前置项目 ReBaseAgent 全仓排查一次；**Layress 尚未实跑验证**。
+- [2026-11-03][P0] Windows 上格式检查满屏误报，仓库内容其实是好的 ⇒ 系统级 `core.autocrlf=true` 把工作区检出成 CRLF，而 linter（Biome/ESLint）要求 LF ⇒ 用 [`.gitattributes`](../../.gitattributes) 强制文本 `eol=lf` 并给二进制/夹具标 `-text` ⇒ 来源：前置项目 ReBaseAgent 全仓排查一次；**Layress 尚未实跑验证**（macOS 上系统级 autocrlf 一般不生效，但克隆来的全局配置仍要查）。
+- [2026-11-08][P1] 门禁的「机器绝对路径」与「系统用户目录」规则只按 Windows 形态写，开发机迁到 macOS 后 `/Users/<name>/…`、`~/Library/…` 完全不判红 ⇒ 判据是平台函数而非环境常量，换开发机必须回头查规则覆盖面 ⇒ 三端形态并列写进 `check-hygiene.mjs`，补 macOS Library / Linux XDG / POSIX 绝对路径三个反证用例，由 `--selftest` 证明确实判红 ⇒ 证据：本轮 `check-repo.mjs --all` 自测回显。
 
 ## 门禁
 
@@ -24,12 +25,12 @@
 
 - [2026-11-03][P0] 断言里的字面量永远红或永远绿，且看不出原因 ⇒ 直接在参数里写非 ASCII 字符（`U+FFFD`、emoji）会被工具链吞成空串，于是「包含某非法字符」的断言变成「包含空字符串」= 恒真 ⇒ 非 ASCII 断言参数一律写 `\uXXXX` 转义，并在自测里验证转义本身生效 ⇒ 来源：前置项目实证。
 
-## 存储与便携（不碰 C 盘）
+## 存储与便携（便携优先 · 不写系统用户目录）
 
-- [2026-11-03][P0] 号称便携的产品仍在 C 盘长垃圾 ⇒ 只把"数据目录"挪到产品旁不够：Windows 上 `os.tmpdir()` = `%TEMP%` = `C:\Users\<user>\AppData\Local\Temp`，Electron `app.getPath('userData')` 与 Chromium 的 `sessionData`/`Cache`/`GPUCache` 默认同样落在 C 盘用户目录 ⇒ 三处必须一起覆盖：`app.setPath('userData', <数据根>/userdata)`、`session.setPath('sessionData', ...)`、自建临时目录并显式传给 `--user-data-dir`；**禁止把 `os.tmpdir()` 当默认值用** ⇒ 来源：前置项目 `.gitignore` 已记录"一次性工作目录（含 Electron sessionData 缓存等临时文件）"这一坑；**Layress 待实测确认**。
-- [2026-11-03][P0] 目标目录不可写时静默回落到用户目录 ⇒ 常见写法是"写不进就 `%APPDATA%` 兜底"，直接违反不变量 I12，且用户完全不知道数据去了哪 ⇒ 启动做可写探测；不可写就明确报错并要求 `--data-dir`，**不允许回落**。
+- [2026-11-03][P0] 号称便携的产品仍在系统用户目录长垃圾 ⇒ 只把"数据目录"挪到产品旁不够：Windows `os.tmpdir()` = `%TEMP%` = `C:\Users\<user>\AppData\Local\Temp`，macOS 落在 `/private/var/folders/…`，Linux 落在 `/tmp` 或 XDG 缓存；Electron `app.getPath('userData')` 与 Chromium `sessionData`/`Cache`/`GPUCache` 三端默认同样落在系统用户目录 ⇒ 三处必须一起覆盖：`app.setPath('userData', <数据根>/userdata)`、`session.setPath('sessionData', ...)`、自建临时目录并显式传给 `--user-data-dir`；**禁止把 `os.tmpdir()` 当默认值用** ⇒ 来源：前置项目 `.gitignore` 已记录"一次性工作目录（含 Electron sessionData 缓存等临时文件）"这一坑；**Layress 待实测确认**。
+- [2026-11-03][P0] 目标目录不可写时静默回落到用户目录 ⇒ 常见写法是"写不进就 `%APPDATA%` / `~/Library` / XDG 兜底"，直接违反不变量 I12，且用户完全不知道数据去了哪 ⇒ 启动做可写探测；不可写就明确报错并要求 `--data-dir`，**不允许回落**。
 - [2026-11-03][P1] 用户无法验证数据落点 ⇒ 解析出的数据根从不出现在输出里 ⇒ 启动横幅、日志与报告头部都要写 `resolvedDataDir` 与可写性检查结果（I13）。
-- [2026-11-03][P1] 便携包换机器/换盘符后证据路径失效 ⇒ 配置、报告与数据集里存了 `D:\...` 这类绝对路径 ⇒ 仓库与产物内一律相对数据根、用 posix 分隔符；只在导出给用户时才物化成绝对路径。门禁的「机器绝对路径」检查就是为这条兜底。
+- [2026-11-03][P1] 便携包换机器/换盘符后证据路径失效 ⇒ 配置、报告与数据集里存了 `D:\...` 或 `/Users/<name>/...` 这类绝对路径 ⇒ 仓库与产物内一律相对数据根、用 posix 分隔符；只在导出给用户时才物化成绝对路径。门禁的「机器绝对路径」检查三端形态都收，就是为这条兜底。
 - [2026-11-03][P1] 装在只读介质（U 盘、光盘）或被安全软件管控的目录时崩溃 ⇒ 没有降级路径 ⇒ 明确支持"只读产品目录 + 用户指定可写数据根"这一组合，并在文档里写清。
 
 ## 依赖与产物

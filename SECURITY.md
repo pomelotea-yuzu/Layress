@@ -13,6 +13,9 @@
 | macOS / Linux | 未承诺，首个验证收口后另定 |
 | Electron 适配 | 计划中，随首版验证 |
 
+> 上表是**产品目标平台**，不是开发机：当前开发机为 macOS arm64（2026-11-08 由 Windows 迁入），
+> 三端发行承诺见 D15。开发机迁移不改变支持范围。
+
 版本支持矩阵、依赖更新与停止维护的说明，等首个候选版本发布时补进
 [`docs/development/`](docs/development/README.md)。
 

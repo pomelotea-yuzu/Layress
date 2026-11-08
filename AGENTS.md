@@ -32,7 +32,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 需求与社区调研阶段；2026-11-05 停点与下次第一步见[综合调研 §十](docs/research/2026-11-05-user-needs-and-agent-augmentation-research.md)，先整理语言切换后编辑与取消的本地任务卡，私有明细仅留草稿；收益待验证，[V1 候选](docs/research/2026-11-04-vscode-candidate-readiness.md)未复现，首验[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)仍待修订与批准。2026-11-06 已锁三端打包承诺（D15，Win x64 / Ubuntu 24 x64 / mac arm64），验证仍分阶段，见[三端打包规划](docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md)。2026-11-07 起草[Agent 原生证据闸门](docs/engineering/plans/2026-11-07-agent-native-evidence-gate.md)作首验前端，以自有已打包冻结的 Electron 应用作基线（对象细节留本地草稿）；同日一次基线试用（641 CSS 宽 + en-US + 默认标签）：目标取消按钮经真实坐标命中为真绿，目标上 0 次假绿、假绿门槛 0/1 未达；预注册长标签坏样本未触发，真正待测的 top-layer 假绿面是弹窗背后的同名控件，试用未踩中；视觉待复核；暂不 GO，下次先补该最小对照；证据留本地草稿与 `artifacts/`（不入库）。未立 change |
+| 阶段 | 需求与社区调研阶段；2026-11-05 停点与下次第一步见[综合调研 §十](docs/research/2026-11-05-user-needs-and-agent-augmentation-research.md)，先整理语言切换后编辑与取消的本地任务卡，私有明细仅留草稿；收益待验证，[V1 候选](docs/research/2026-11-04-vscode-candidate-readiness.md)未复现，首验[方案](docs/engineering/plans/2026-11-03-first-validation-plan.md)仍待修订与批准。2026-11-06 已锁三端打包承诺（D15，Win x64 / Ubuntu 24 x64 / mac arm64），验证仍分阶段，见[三端打包规划](docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md)。2026-11-07 起草[Agent 原生证据闸门](docs/engineering/plans/2026-11-07-agent-native-evidence-gate.md)作首验前端，以自有已打包冻结的 Electron 应用作基线（对象细节留本地草稿）；同日一次基线试用（641 CSS 宽 + en-US + 默认标签）：目标取消按钮经真实坐标命中为真绿，目标上 0 次假绿、假绿门槛 0/1 未达；预注册长标签坏样本未触发，真正待测的 top-layer 假绿面是弹窗背后的同名控件，试用未踩中；视觉待复核；暂不 GO，下次先补该最小对照；证据留本地草稿与 `artifacts/`（不入库）。未立 change。2026-11-08 开发机由 Windows 迁入 macOS arm64（zsh），门禁、索引、工程文档与知识库的本机口径同步；存储纪律统一改称「便携优先 · 不写系统用户目录」（原称「不碰 C 盘」，承诺不变），门禁补齐 macOS / Linux 系统目录与 POSIX 绝对路径判据；原「首验先在 Windows 跑」随开发机迁移失效，首验实机平台待随首验方案修订重定并登记 debt；三端打包承诺（D15）与调研外部样本事实不变 |
 | 活动 change | 无（尚未确定首个执行范围） |
 | 代码 | 无。仓库只有骨架、索引与门禁 |
 | 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch github && git log --oneline github/main..main` |
@@ -41,7 +41,7 @@
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
 **push 状态 ⇒ 只认 `git ls-remote` 的回显，不认本文件写了什么**。
 
-仓库与远程：本地 `D:\Layress`；分支 `main`；
+仓库与远程：本地 `~/Developer/layress`（macOS arm64 / zsh，2026-11-08 由 Windows 迁入）；分支 `main`；
 `github` = `https://github.com/pomelotea-yuzu/Layress.git`（主仓库）、
 `gitee` = `https://gitee.com/yuzu-tea-duck/layress.git`（镜像），**没有 `origin`**。
 本地已 `git init`（分支 `main`、`core.hooksPath=.githooks`）；建仓、tag 与 push 归用户操作，
@@ -59,6 +59,10 @@
 7. 调研原文（§一 链接）—— 首版范围、数据集要求、对照设计、继续/收缩门槛都在这里定义。
 
 ## 四、怎么跑起来
+
+**开发环境（2026-11-08 起）**：主力开发机 macOS arm64 / zsh / Node ≥ 20，CI runner 为 ubuntu。
+门禁脚本只用 `node:path` 与 git 子进程，三端通用；**本地与云端跑同一条命令链**。
+⚠️ 开发机 ≠ 产品目标平台：三端发行承诺（D15）与首版目标平台（调研 §7.2）不随开发机迁移而变。
 
 **尚未建立 pnpm workspace**（本轮口径：结构 + 索引 + 门禁 + i18n）。当前公共门禁入口：
 
@@ -101,7 +105,7 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
 4. **截图默认留本地**：`docs/reviews/**/*.png` 已忽略。验收证据真要对外展示才 `add -f`。
 5. **`git add -f` 之前**先问三句：能被脚本重生成吗？能不能放到 `docs/` 或 `datasets/` 的正确位置？
    是否其实只该躺在垃圾场（那就根本不需要豁免）？
-6. **push 归用户**。智能体每完成一个有价值步骤就 commit，**不 push**；远程与 tag 由用户操作。
+6. **push 归用户**。智能体仅在确有必要/有价值、或完成一小段开发时做本地 commit，是否提交由模型按价值判断，不为凑数提交；**不 push**，远程与 tag 由用户操作。
 
 ## 六、经验与坑怎么写（本仓最重要的机制）
 
@@ -132,14 +136,16 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
 ## 七、口径与纪律
 
 - **语言**：所有产出（代码注释、文档、commit message）默认用中文；产品名 `Layress` 保持英文。
-- **存储纪律：不碰 C 盘**（用户硬性要求，与洁净度同级）：
+- **存储纪律：便携优先 · 不写系统用户目录**（用户硬性要求，与洁净度同级；原称「不碰 C 盘」，2026-11-08 改为跨平台表述，承诺本身不变）：
   - 产品默认**便携优先**：数据、日志、缓存、临时文件写在**产品自身目录**（默认 `.layress/`，或 `data/`），
     或用户显式指定的目录。
-  - **不得**默认写入 `C:\Users\<user>\AppData\*`、`%APPDATA%`、`%LOCALAPPDATA%`、注册表、
-    `~/Library/Application Support`。安装位置由用户选择，安装器不提权、不改系统 PATH。
+  - **不得**默认写入任何一端的系统用户目录：Windows `C:\Users\<user>\AppData\*`／`%APPDATA%`／
+    `%LOCALAPPDATA%`／`%TEMP%`／注册表；macOS `~/Library/{Application Support,Caches,Preferences,Logs}`／
+    `/private/var/folders`；Linux `~/.config`／`~/.local/share`／`~/.cache`。
+    安装位置由用户选择，安装器不提权、不改系统 PATH。
   - **数据跟着产品放**：拷贝整个产品目录即完成迁移；删除该目录即无残留。
-  - 连带坑（务必读）：Windows 上 `os.tmpdir()` 与 Electron `app.getPath('userData')` / Chromium
-    `sessionData` **默认都在 C 盘用户目录**，只改"数据目录"不够 ⇒ 详见
+  - 连带坑（务必读）：三端上 `os.tmpdir()`、Electron `app.getPath('userData')`、Chromium
+    `sessionData` 与 Playwright 浏览器缓存**默认都落在系统用户目录**，只改"数据目录"不够 ⇒ 详见
     [`docs/knowledge/engineering.md`](docs/knowledge/engineering.md) 与不变量 I12–I13。
   - 数据目录的解析结果必须在报告、日志与 UI 里**显示出来**，否则用户无法验证这条承诺。
 - **文档默认中文，对外门面按需双语**（详见 [`i18n/README.md`](i18n/README.md)）：

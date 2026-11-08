@@ -48,17 +48,22 @@ const SECRET_RULES = [
 ];
 
 // 机器特定绝对路径：换台机器就失效，也是"本机配置被误提交"的典型指纹。文档不参与本项检查。
-const ABS_PATH = /\b[A-Za-z]:[\\/]{2}(?:Users|home|Program Files)\b|[A-Za-z]:\\\\Users\\\\/;
+// 三端形态都收：Windows 盘符、macOS /Users/<name>、Linux /home/<name>。
+const ABS_PATH = /\b[A-Za-z]:[\\/]{2}(?:Users|home|Program Files)\b|[A-Za-z]:\\\\Users\\\\|\/(?:Users|home)\/[A-Za-z0-9._-]+\//;
 
-// 不变量 I12「不碰 C 盘」的机器落点：产品代码里出现系统用户目录形态即判红。
+// 不变量 I12「便携优先 · 不写系统用户目录」的机器落点：产品代码里出现系统用户目录形态即判红。
+// 三端都要拦（Win 用户目录 / macOS Library / Linux XDG），不能只按当前开发机平台查。
 // 语义（"这是默认值还是用户显式选的"）脚本判不了，所以只拦最典型的写法，其余靠 review。
 const SYSTEM_DIR_RULES = [
-  ['%APPDATA% / %LOCALAPPDATA%', /%(?:APPDATA|LOCALAPPDATA)%/],
-  ['读取用户目录环境变量', /process\.env\.(?:APPDATA|LOCALAPPDATA|USERPROFILE|HOME)\b/],
+  ['Windows 环境变量目录', /%(?:APPDATA|LOCALAPPDATA|TEMP|TMP)%/],
+  ['读取用户目录环境变量', /process\.env\.(?:APPDATA|LOCALAPPDATA|USERPROFILE|HOME|XDG_(?:CONFIG|DATA|CACHE|STATE)_HOME)\b/],
   ['Windows 用户目录', /[A-Za-z]:[\\/]{2}Users[\\/]/],
-  ['macOS 支持目录', /Library\/(?:Application Support|Preferences)[\\/]/],
-  ['Electron 默认 userData', /getPath\(\s*['"](?:userData|appData)['"]\s*\)/],
+  ['macOS Library 目录', /(?:~\/|\/Users\/[^/\s]+\/)Library\/(?:Application Support|Preferences|Caches|Logs|Containers)/],
+  ['macOS 系统临时目录', /\/private\/var\/folders\//],
+  ['Linux XDG 用户目录', /~\/\.(?:config|local\/share|cache)\//],
+  ['Electron 默认路径', /getPath\(\s*['"](?:userData|appData|temp|logs|cache)['"]\s*\)/],
   ['Node 主目录默认值', /os\.homedir\(\)\s*,\s*['"]\./],
+  ['Node 系统临时目录默认值', /os\.tmpdir\(\)/],
 ];
 
 const fails = [];
@@ -193,7 +198,7 @@ function main() {
     for (const [name, re] of SECRET_RULES) {
       if (re.test(text)) add(fails, '凭据形态', `${file}: ${name}`, '移除真实凭据；密钥只由用户在应用内填写，仓库里留占位符');
     }
-    if (isDoc) continue; // 文档里写 `C:\Users\…` 是正当讨论，路径类检查不看文档
+    if (isDoc) continue; // 文档里写系统用户目录路径是正当讨论，路径类检查不看文档
 
     // 策略与模板文本存在的意义就是**禁止**这些路径（openspec 不变量、Issue 表单、门禁规则表自身）。
     // 对它们报警告只会训练贡献者忽略警告，所以本项跳过；凭据扫描仍然照查。
@@ -205,7 +210,7 @@ function main() {
       if (!m) continue;
       const detail = `${file}: ${name} → ${m[0].slice(0, 32)}`;
       if (isProductCode) {
-        add(fails, '系统用户目录', detail, '违反不变量 I12「不碰 C 盘」：数据/缓存/临时文件必须落在数据根之下；不可写时报错并要求 --data-dir，禁止静默回落');
+        add(fails, '系统用户目录', detail, '违反不变量 I12「便携优先 · 不写系统用户目录」：数据/缓存/临时文件必须落在数据根之下；不可写时报错并要求 --data-dir，禁止静默回落');
       } else {
         add(warns, '系统用户目录', detail, '确认这是测试夹具或脚本临时目录，不是产品默认路径');
       }
@@ -300,6 +305,12 @@ function selftest() {
       } },
     { name: '垃圾场路径反例', file: 'output/sample.txt', rule: '垃圾场路径',
       setup: ({ stage }) => stage('output/sample.txt', safe) },
+    { name: 'macOS 系统用户目录反例', file: 'packages/core/data-dir.ts', rule: '系统用户目录',
+      setup: ({ stage }) => stage('packages/core/data-dir.ts', "const dir = '~/Library/Application Support/Layress';\n") },
+    { name: 'Linux XDG 目录反例', file: 'packages/core/xdg.ts', rule: '系统用户目录',
+      setup: ({ stage }) => stage('packages/core/xdg.ts', "const dir = '~/.config/layress';\n") },
+    { name: 'POSIX 机器绝对路径反例', file: 'config.json', rule: '机器绝对路径',
+      setup: ({ stage }) => stage('config.json', '{"dataDir":"/Users/someone/Developer/layress/.layress"}\n') },
     { name: '归档后缀反例', file: 'sample.zip', rule: '二进制/归档后缀',
       setup: ({ stage }) => stage('sample.zip', safe) },
     { name: '索引体积反例', file: 'large.txt', rule: '体积超限',

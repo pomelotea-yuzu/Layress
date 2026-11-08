@@ -9,7 +9,7 @@ context: |
   目标用户：需要确认界面在窄窗、长文本、多语言、字体变化下是否还能正常操作的开发者，中文用户为主。
   分发建议 scoped 包 @layress/*；与 npm 上的 layrr／layerr 与组件库 layui 无关，README 需显式区分。
 
-  仓库与远程：本地 D:\Layress；分支 main；
+  仓库与远程：本地 ~/Developer/layress（macOS arm64 / zsh，2026-11-08 由 Windows 迁入）；分支 main；
   github = https://github.com/pomelotea-yuzu/Layress.git（主仓库）
   gitee  = https://gitee.com/yuzu-tea-duck/layress.git（镜像）；**没有 origin**。
   建仓、tag 与 push 归用户；判 push 状态只认 git ls-remote，不认文档记载。
@@ -21,10 +21,14 @@ context: |
   - 缺陷确认与复现缩减 = 本产品重心，输出可回放证据
 
   技术栈（以源码与依赖清单为准；当前尚未建代码骨架）：
+  - 开发环境（2026-11-08 起）：macOS arm64 / zsh / Node ≥ 20；CI runner ubuntu。门禁脚本只用
+    node:path 与 git 子进程，三端通用；本地与云端同一条命令链。**开发机 ≠ 产品目标平台**，
+    三端发行承诺与首版目标平台不随开发机迁移而变。
   - TypeScript strict + pnpm workspaces；packages/{core,confirm,reduce,replay,cli} + apps/desktop
   - 探针通道候选：Playwright / CDP 直连 / Electron 远程调试（未选型，见 docs/knowledge/debt.md）
   - 打包承诺三端（2026-11-06，D15）：Windows x64 + Linux Ubuntu 24 x64 + macOS arm64；
-    架构与 CI 从第一天按三端设计。验证仍分阶段：首验对照实验先在 Windows + Chromium 跑（另验证一个 Electron 适配），
+    架构与 CI 从第一天按三端设计。验证仍分阶段：首验对照实验的实机平台随开发机迁移**待重定**
+    （2026-11-08 开发机迁入 macOS，原「先在 Windows + Chromium 跑」口径失效，见 debt；另验证一个 Electron 适配），
     Linux/mac 实机验证列为后续里程碑，未验证端单列不勾完成。规划见 docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md
   - 质量：Biome + vitest + TypeScript + OpenSpec；实机判定另附人工复核记录
   - 语言：文档默认中文；仅逐篇登记的对外文档同目录 *.en.md 成对并由 check-i18n 强制，
@@ -45,8 +49,11 @@ context: |
   - I9 缩减只有在保持失败的前提下才算完成
   - I10 扫描 / 确认 / 缩减 / 回放四模块可独立使用，核心检测与报告完整开源
   - I11 机器 PASS 不等于人工通过；未执行的复核单列
-  - I12 不碰 C 盘：数据、日志、缓存、临时文件写在产品自身目录或用户显式指定目录；不得默认写入
-    %APPDATA% / %LOCALAPPDATA% / C:\Users\… / 注册表 / ~/Library/Application Support；
+  - I12 便携优先 · 不写系统用户目录（2026-11-08 由「不碰 C 盘」改名，承诺不变）：数据、日志、缓存、
+    临时文件写在产品自身目录或用户显式指定目录；三端都不得默认写入系统用户目录：
+    Windows %APPDATA% / %LOCALAPPDATA% / C:\Users\… / %TEMP% / 注册表；
+    macOS ~/Library/{Application Support,Caches,Preferences,Logs} / /private/var/folders；
+    Linux ~/.config / ~/.local/share / ~/.cache；
     安装位置由用户选择，安装器不提权、不改系统 PATH；目标目录不可写时报错并要求指定，禁止静默回落
   - I13 数据目录解析口径唯一且可见：--data-dir / LAYRESS_DATA_DIR 优先，其次产品目录下的数据根；
     解析结果与可写性必须出现在启动输出、日志与报告头部

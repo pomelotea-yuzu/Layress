@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// 门禁链跨平台：本地 macOS (zsh) 与 CI ubuntu 跑同一条命令链；只用 node:path 与 git 子进程，不依赖 shell 方言。
 let snapshot;
 
 try {

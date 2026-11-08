@@ -25,7 +25,9 @@ node scripts/check-repo.mjs --all      # hygiene, all Markdown links, bilingual 
 node scripts/check-repo.mjs --staged   # check the staged snapshot, as pre-commit does
 ```
 
-Node ≥ 20. The pnpm workspace and `pnpm check:ci` do not exist yet (see
+Node ≥ 20. **The current development machine is macOS arm64 / zsh**, while CI runs on ubuntu; the gate
+scripts are platform-neutral and local and cloud run the same command chain (the development machine is
+not the product's target platform). The pnpm workspace and `pnpm check:ci` do not exist yet (see
 [`docs/development/workflow.md`](docs/development/workflow.md)), so there is no build or test step at this stage.
 
 ## Submission flow
@@ -34,7 +36,7 @@ Behavior changes go through openspec (details in [`docs/development/workflow.md`
 
 1. Open an Issue, or align on the problem statement under an existing one.
 2. Create `openspec/changes/<change-name>/`: `tasks.md` breaks down the steps, `design.md` records the approach and trade-offs.
-3. Implement task by task, **one commit per valuable step**; criteria and measured evidence stay inside the change directory.
+3. Implement task by task, **making a local commit only when it is genuinely necessary or a small development slice is complete** (the executor judges whether a commit is worthwhile; do not commit just to pad the log); criteria and measured evidence stay inside the change directory.
 4. Archive into `openspec/changes/archive/<date>-<change-name>/` and merge the delta into the main specs.
 
 Documentation-only fixes, typos and link repairs may go straight to a PR without a change proposal.
@@ -50,7 +52,7 @@ rejection is enforced by a script rather than by reviewer vigilance.
 | Binary / archive suffixes | `.msi .exe .dll .zip .7z .mp4` and similar | Commit the generator script instead, or register an exemption |
 | Size | > 512 KB per file fails, > 256 KB warns | Split it, make it regenerable, or raise `size=` on the exemption |
 | Credential shapes | private key blocks, `sk-…`, `ghp_…`, `AKIA…`, assignment-style tokens | Remove them; keys are entered by users inside the app, the repository keeps placeholders only |
-| Machine-absolute paths | `C:\Users\…` in source or config | Use a relative path or a runtime-resolved data directory |
+| Machine-absolute paths | `C:\Users\…`, `/Users/<name>/…` or `/home/<name>/…` in source or config | Use a relative path or a runtime-resolved data directory |
 | Ignored yet tracked | `.gitignore` says no but history says yes | `git rm --cached <file>` and re-commit |
 
 **The only exemption route is [`.git-hygiene-allowlist`](.git-hygiene-allowlist), formatted `glob  #  reason`.**

@@ -8,6 +8,30 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 
 ## Unreleased
 
+### Development machine moved to macOS and cross-platform gate hardening · 2026-11-08
+
+- Changed **development machine assumptions**: the main machine moved from Windows to macOS arm64 / zsh,
+  local checkout at `~/Developer/layress`. `AGENTS.md` §two/§four, `openspec/config.yaml`,
+  `docs/development/workflow.md` and CONTRIBUTING were updated; **development machine ≠ product target
+  platform** is now explicit — the three-platform distribution promise (D15) and the first-release scope in
+  survey §7.2 are unchanged.
+- Changed **storage discipline naming**: invariant I12 "never touch the C drive" is now "portable first,
+  never write to system user directories" with no change to the promise. Banned paths now cover macOS
+  `~/Library`／`/private/var/folders` and Linux XDG directories; public bilingual documents, the glossary,
+  invariants, knowledge base and plans were aligned in the same round. The 2026-11-03 entries above keep
+  the historical name verbatim.
+- Added **cross-platform gate rules**: the machine-absolute-path rule in `check-hygiene.mjs` now catches
+  POSIX `/Users/<name>/`／`/home/<name>/`; the system-user-directory rule adds macOS Library,
+  `/private/var/folders`, Linux XDG, `os.tmpdir()` and more Electron default paths. `--selftest` gained
+  three counter-examples (macOS Library, Linux XDG, POSIX absolute path).
+- Changed **first-validation host platform**: "run it on Windows first" lapsed with the machine move and is
+  now **to be settled when the first validation plan is revised**, registered in
+  [`docs/knowledge/debt.md`](docs/knowledge/debt.md); the packaging plan, roadmap and validation proposal
+  follow suit, with unexecuted items still listed separately.
+- Changed **local commit discipline**: the agent commits locally only when genuinely necessary/valuable or
+  when a small development slice is complete; the model judges whether a commit is worthwhile.
+  **Pushing and tagging still belong to the maintainer.**
+
 ### Repository skeleton · 2026-11-03
 
 - Added directory layout with ownership notes: `docs/{guide,architecture,development,knowledge,research,product,engineering,reviews}`,

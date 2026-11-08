@@ -9,7 +9,7 @@
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"/></a>
   <img src="https://img.shields.io/badge/Release-none-lightgrey.svg" alt="尚无发行版"/>
-  <img src="https://img.shields.io/badge/%E4%B8%8D%E7%A2%B0%20C%20%E7%9B%98-portable-brightgreen.svg" alt="便携优先，不碰 C 盘"/>
+  <img src="https://img.shields.io/badge/portable-first-brightgreen.svg" alt="便携优先，不写系统用户目录"/>
 </p>
 
 </div>
@@ -64,7 +64,8 @@ Layress 关注的不是"和上一版比哪里变了"，而是：
 | 桌面 | `apps/desktop` | Electron 适配与结果浏览，后置 |
 
 首版范围（Windows／Chromium + 一个 Electron 适配）、暂缓项（审美评分、自动修复、全平台矩阵、
-最小 HTML 自动抽取）都写在调研 §7.2，不在这里重复承诺。
+最小 HTML 自动抽取）都写在调研 §7.2，不在这里重复承诺。**这是产品目标平台，不是开发机**：
+当前主力开发机为 macOS arm64，发行按三端规划（D15），开发机迁移不改变上述产品范围。
 
 ## ⌨️ 快速开始
 
@@ -113,8 +114,9 @@ Issue 表单中英并列可直接填；Gitee 侧提供纯中文模板（`.gitee/
 ## 📄 许可与声明
 
 - 许可证：[MIT](LICENSE)
-- **📦 存储纪律（不碰 C 盘）**：产品默认便携，数据、日志、缓存与临时文件**跟着产品放**
-  （产品目录下的数据根，或你显式指定的目录），不写 `%APPDATA%`／`%LOCALAPPDATA%`／注册表；
+- **📦 存储纪律（便携优先 · 不写系统用户目录）**：产品默认便携，数据、日志、缓存与临时文件**跟着产品放**
+  （产品目录下的数据根，或你显式指定的目录），三端都不写系统用户目录——Windows `%APPDATA%`／
+  `%LOCALAPPDATA%`／注册表，macOS `~/Library`／`/private/var/folders`，Linux `~/.config`／`~/.local/share`／`~/.cache`；
   安装位置由你选择，不提权、不改系统 PATH。拷贝整个目录即完成迁移，删除即无残留。
   写不进时直接报错并要求指定目录，**不静默回落到用户目录**（见不变量 I12–I13）。
 - 安全与隐私：[`SECURITY.md`](SECURITY.md) —— 本地优先是产品承诺，扫描对象的页面内容默认不出本机。

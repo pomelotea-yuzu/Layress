@@ -2,7 +2,7 @@
 
 > 本表以中文说明维护，保留中英术语对照，无需英文说明副本。
 
-版本：2（2026-11-04 补充 Agent 友好术语）。适用范围：仓库门面与 `docs/` 双语版本、未来桌面 UI 与 CLI 人类可读输出、
+版本：3（2026-11-08 补充「系统用户目录」三端口径）。适用范围：仓库门面与 `docs/` 双语版本、未来桌面 UI 与 CLI 人类可读输出、
 错误文案的 `zh-CN` / `en-US` 资源。**代码标识、协议字段、错误码、CLI 参数、文件名原值不翻译。**
 
 用词依据：调研原文 [`docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)
@@ -91,8 +91,9 @@
 | 数据根 | 数据根 | data root | 产品自身目录下的数据根，或用户显式指定；解析结果必须可见（I13） |
 | 数据目录 | 数据目录 | data directory | 与"安装位置"区分；前者随产品走，后者由用户选择 |
 | 安装位置 | 安装位置 | install location | 由用户自主选择；安装器不提权、不改系统 PATH |
-| 用户数据目录 | 用户数据目录 | user data directory (`userData`) | Electron/Chromium 术语，默认在 `C:\Users\…\AppData` ⇒ **本产品必须覆盖**；`userData` 原值不翻译 |
+| 系统用户目录 | 系统用户目录 | system user directory | 三端统称：Windows `%APPDATA%`／`C:\Users\…`、macOS `~/Library`／`/private/var/folders`、Linux XDG 目录；不变量 I12 禁止默认写入，**不再写作「C 盘」** |
+| 用户数据目录 | 用户数据目录 | user data directory (`userData`) | Electron/Chromium 术语，三端默认都落在系统用户目录 ⇒ **本产品必须覆盖**；`userData` 原值不翻译 |
 | 会话数据 | 会话数据 | `sessionData` | 同上，Chromium 缓存目录；字段名原值保留 |
-| 临时目录 | 临时目录 | scratch / temp directory | 必须落在数据根之下；`os.tmpdir()` 默认在 C 盘，**不得当默认值** |
+| 临时目录 | 临时目录 | scratch / temp directory | 必须落在数据根之下；`os.tmpdir()` 三端默认都指向系统临时目录，**不得当默认值** |
 | 只读介质 | 只读介质 | read-only medium | 支持"产品目录只读 + 用户指定可写数据根"的组合 |
 | 回落 | 静默回落 | silent fallback | 写不进时退到用户目录的行为；本产品**禁止**，见不变量 I12 |

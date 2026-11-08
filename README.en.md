@@ -72,6 +72,9 @@ reporting fully open source:
 
 First-release scope (Windows／Chromium plus one Electron adapter) and the deferred list (aesthetic scoring,
 auto-fix, full platform matrix, minimal-HTML extraction) are defined in survey §7.2 and are not re-promised here.
+**This is the product's target platform, not the development machine**: the current development machine is
+macOS arm64, distribution is planned for three platforms (D15), and moving the development machine does not
+change the scope above.
 
 ## ⌨️ Quick start
 
@@ -123,9 +126,11 @@ the Gitee side ships Chinese-only templates (`.gitee/`).
 ## 📄 License and notices
 
 - License: [MIT](LICENSE)
-- **Storage discipline (never touch the C drive)**: the product is portable by default — data, logs, caches
-  and temporary files live **next to the product** (its data root, or a directory you name), and are never
-  written to `%APPDATA%`／`%LOCALAPPDATA%` or the registry. You choose the install location; the installer
+- **Storage discipline (portable first, never write to system user directories)**: the product is portable by
+  default — data, logs, caches and temporary files live **next to the product** (its data root, or a directory
+  you name), and are never written to a system user directory on any platform: Windows `%APPDATA%`／
+  `%LOCALAPPDATA%`／registry, macOS `~/Library`／`/private/var/folders`, Linux `~/.config`／`~/.local/share`／
+  `~/.cache`. You choose the install location; the installer
   does not elevate or edit the system PATH. Copying the directory migrates everything; deleting it leaves
   nothing behind. If a write fails the product errors out and asks for a directory — **no silent fallback to
   the user directory** (see invariants I12–I13).

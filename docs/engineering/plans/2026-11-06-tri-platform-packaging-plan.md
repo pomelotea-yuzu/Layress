@@ -4,6 +4,8 @@
 >
 > **状态**：提案（2026-11-06）。用户已拍板四项口径（见 §一与 [`../../knowledge/decisions.md`](../../knowledge/decisions.md) D15）；
 > 具体工具链、数据目录落点与 CI 矩阵仍待首个发行轮 change 的 design 定稿。
+> **2026-11-08 修订**：开发机由 Windows 迁入 macOS arm64，§一「本机」标注、首验实机平台与 §八 M1 随之改为待重定；
+> 三端打包承诺、包格式矩阵与验证分阶段的结论不变。
 > **本文不启动开发、不装依赖、不建 workspace**（遵守 D13）；它只把"三端从一开始就规划好"这件事写成可执行依据，
 > 避免日后再从单平台拆成三平台。权威性排序见 [`../../README.md`](../../README.md)：本文属 `docs/`，低于源码与 openspec。
 
@@ -11,8 +13,8 @@
 
 | 项 | 决定 | 影响 |
 |---|---|---|
-| 三端范围 | **打包承诺三端**：Windows x64（本机）、Linux Ubuntu 24 x64（虚拟机）、macOS arm64（Apple Silicon MacBook） | 架构与 CI 从第一天按三端设计；不是"以后再移植" |
-| 验证节奏 | **验证仍分阶段**：首验对照实验先在 Windows 跑，Linux / mac 实机验证列为后续里程碑 | 三端可打包 ≠ 三端已验证；未验证端单列，不勾完成（I11） |
+| 三端范围 | **打包承诺三端**：Windows x64、Linux Ubuntu 24 x64（虚拟机）、macOS arm64（Apple Silicon MacBook，**2026-11-08 起为当前开发机**） | 架构与 CI 从第一天按三端设计；不是"以后再移植" |
+| 验证节奏 | **验证仍分阶段**：首验对照实验的实机平台**待重定**（本文写于 2026-11-06，当时开发机为 Windows，原「先在 Windows 跑」已随迁机失效，见 debt）；Linux / mac 实机验证列为后续里程碑 | 三端可打包 ≠ 三端已验证；未验证端单列，不勾完成（I11） |
 | mac 架构 | 只出 **arm64**（M 系）；Intel Mac 暂不覆盖 | mac 矩阵最简，CI 与实机验证成本不翻倍 |
 | 桌面壳 | **先不定**（Electron / Tauri 未选）；本文只锁分发形态与平台矩阵，壳选型留接口 | 见 §四与 [`../../knowledge/debt.md`](../../knowledge/debt.md) |
 | mac 签名 | **先不买** Apple Developer（$99/年）；mac 包标注未签名 + 本地绕过步骤，签名/公证留位 | 见 §五与 debt；公开分发前再定 |
@@ -75,14 +77,15 @@ CLI 先行意味着：**三端打包的第一优先级是让 `@layress/cli` 在�
 
 ## 六、三端数据目录落点（I12 / I13）
 
-I12 明列 Windows 与 macOS 的禁止路径；Linux 的 XDG 目录（`~/.config`、`~/.local/share`、`~/.cache`）按"便携优先"精神同样不默认写入。
+I12 明列三端的禁止路径；Windows 用户目录与注册表、macOS `~/Library` 与 `/private/var/folders`、
+Linux 的 XDG 目录（`~/.config`、`~/.local/share`、`~/.cache`）一律不默认写入。
 三端统一解析口径（I13）：`--data-dir` / `LAYRESS_DATA_DIR` > 产品目录下数据根；解析结果与可写性出现在启动输出、日志、报告头部。
 
 | 平台 | 禁止默认写入 | 产品目录数据根（默认） | 连带坑 |
 |---|---|---|---|
 | Windows | `%APPDATA%` `%LOCALAPPDATA%` `C:\Users\…` 注册表 | 产品目录下 `.layress/` 或 `data/` | `os.tmpdir()` 默认在 C 盘用户目录 ⇒ 显式覆盖 |
 | Linux | `~/.config` `~/.local/share` `~/.cache`（便携精神） | 产品目录下 `.layress/` 或用户指定 | Playwright 缓存 `~/.cache/ms-playwright` ⇒ 覆盖；AppImage 挂载点只读 ⇒ 数据落挂载点外 |
-| macOS | `~/Library/Application Support`（I12 明列） | 产品目录（`.app` 旁或用户指定） | Chromium `sessionData`/`userData` 默认在 Library ⇒ 覆盖；`os.tmpdir()`  likewise |
+| macOS | `~/Library/{Application Support,Caches,Preferences,Logs}`／`/private/var/folders`（I12 明列） | 产品目录（`.app` 旁或用户指定） | Chromium `sessionData`/`userData` 默认在 Library ⇒ 覆盖；`os.tmpdir()` 默认在 `/private/var/folders` ⇒ 同样覆盖 |
 
 - **写不进就不写**（I12）：目标目录不可写时明确报错并要求指定，**禁止静默回落到用户/系统目录**——三端一致。
 - **数据跟着产品放**：拷贝整个产品目录即迁移，删除即无残留；这条在三端都要实测验证，尤其 AppImage（只读挂载）与 mac `.app`（签名后目录结构）。
@@ -109,11 +112,11 @@ workspace 骨架落地后，构建矩阵分两层：
 | 里程碑 | 内容 | 进入下一步的证据 | 状态 |
 |---|---|---|---|
 | M0 三端可构建 | CI 矩阵三端装依赖 + typecheck + test + 打包通过 | 三端产物可生成，冒烟启动不崩 | 未执行（待骨架 + 发行轮 change） |
-| M1 Windows 实机验证 | 首验对照实验在 Win 跑（沿用首验提案 S0–S4） | 探针/命中/存储路径约束有实测依据 | 未执行（首验提案待批准） |
+| M1 首验实机验证（平台待重定） | 首验对照实验在重定后的平台跑（沿用首验提案 S0–S4） | 探针/命中/存储路径约束有实测依据 | 未执行（首验提案待批准、平台待重定） |
 | M2 Linux 实机验证 | Ubuntu 24 VM 跑探针与数据目录覆盖 | 窗口/DPR/输入法时序、AppImage 数据落点实测；Playwright 缓存覆盖验证 | 未执行 |
-| M3 macOS 实机验证 | MacBook（arm64）跑探针与未签名绕过 | 命中测试、Library 路径覆盖、未签名打开流程实测 | 未执行 |
+| M3 macOS 实机验证 | MacBook（arm64，现为开发机）跑探针与未签名绕过 | 命中测试、Library 路径覆盖、未签名打开流程实测 | 未执行 |
 
-- **顺序**：M0 可与 M1 并行准备；M1 先行（首验在 Win），M2/M3 在 CLI 核心稳定后展开，不阻塞首版。
+- **顺序**：M0 可与 M1 并行准备；M1 先行（平台待重定），M2/M3 在 CLI 核心稳定后展开，不阻塞首版。
 - **诚实**：每个里程碑的未执行项单列，机器构建通过不写成实机验证通过（I11）；环境阻塞（如 VM 无 GPU、mac 未签名）如实标注。
 
 ## 九、未决项（进 debt，归谁定夺）
@@ -129,7 +132,7 @@ workspace 骨架落地后，构建矩阵分两层：
 ## 十、未执行与边界提醒
 
 - 本文是**规划提案**，未建 workspace、未装依赖、未写代码、未跑三端构建、未做实机验证（遵守 D13 与调研阶段口径）。
-- 三端打包承诺已锁，但**首验仍在 Windows**；Linux/mac 实机验证是后续里程碑，未执行项不勾完成（I11）。
+- 三端打包承诺已锁，但**首验实机平台待重定**（原 Windows 口径随 2026-11-08 迁机失效，见 debt）；Linux/mac 实机验证是后续里程碑，未执行项不勾完成（I11）。
 - 壳选型、mac 签名、Linux 数据落点等未决项已进 debt，不在本文强行定死。
 - 下一步若用户批准进入骨架，按 [`../../development/workflow.md`](../../development/workflow.md) 建 workspace 与 `pnpm check:ci`，
   三端构建矩阵在首个发行轮 change 落地；本文随之从提案晋升为稳定依据（命名去日期前缀，见 [`../../README.md`](../../README.md) 晋升规则）。

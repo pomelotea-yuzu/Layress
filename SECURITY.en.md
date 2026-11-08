@@ -14,6 +14,10 @@ content, credentials, or outbound data is treated as high severity and fixed fir
 | macOS / Linux | Not promised; to be decided after the first validation closes |
 | Electron adapter | Planned, alongside the first validation |
 
+> The table above describes **product target platforms, not the development machine**: development
+> currently happens on macOS arm64 (moved from Windows on 2026-11-08), with three-platform distribution
+> per D15. Moving the development machine does not change the supported scope.
+
 The version support matrix, dependency update policy and end-of-support notes will be added under
 [`docs/development/`](docs/development/README.md) when the first candidate ships.
 
