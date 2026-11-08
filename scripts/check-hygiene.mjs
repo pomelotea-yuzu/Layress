@@ -126,8 +126,8 @@ function collectFiles(root) {
   const indexRows = nul(git(['ls-files', '-s', '-z']))
     .map((row) => {
       const [meta, p] = row.split('\t');
-      const [, sha, stage] = meta.split(' ');
-      return { file: p.replace(/\\/g, '/'), sha, stage };
+      const [mode, sha, stage] = meta.split(' ');
+      return { file: p.replace(/\\/g, '/'), sha, stage, mode };
     })
     .filter((r) => r.stage === '0');
 
@@ -165,7 +165,11 @@ function main() {
   const rows = collectFiles(root);
   const sizes = sizesOf(rows);
 
-  for (const { file, sha } of rows) {
+  for (const { file, sha, mode } of rows) {
+    // Git 在 macOS / Linux 会静默跳过没有执行位的 hook：Windows 上不依赖这个位，迁机后 pre-commit 门禁会形同未挂。
+    if (/^\.githooks\//.test(file) && mode !== '100755') {
+      add(fails, 'hook 缺可执行位', `${file}（${mode}）`, 'Git 在 macOS / Linux 会忽略非可执行 hook；chmod +x 后重新 git add，让索引记录 100755');
+    }
     const ex = findExemption(allow, file);
     if (ex) ex.used = true;
     const base = path.posix.basename(file);
@@ -311,6 +315,8 @@ function selftest() {
       setup: ({ stage }) => stage('packages/core/xdg.ts', "const dir = '~/.config/layress';\n") },
     { name: 'POSIX 机器绝对路径反例', file: 'config.json', rule: '机器绝对路径',
       setup: ({ stage }) => stage('config.json', '{"dataDir":"/Users/someone/Developer/layress/.layress"}\n') },
+    { name: 'hook 缺可执行位反例', file: '.githooks/pre-commit', rule: 'hook 缺可执行位',
+      setup: ({ stage }) => stage('.githooks/pre-commit', '#!/bin/sh\nexit 0\n') },
     { name: '归档后缀反例', file: 'sample.zip', rule: '二进制/归档后缀',
       setup: ({ stage }) => stage('sample.zip', safe) },
     { name: '索引体积反例', file: 'large.txt', rule: '体积超限',

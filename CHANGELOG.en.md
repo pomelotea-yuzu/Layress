@@ -31,6 +31,11 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 - Changed **local commit discipline**: the agent commits locally only when genuinely necessary/valuable or
   when a small development slice is complete; the model judges whether a commit is worthwhile.
   **Pushing and tagging still belong to the maintainer.**
+- Fixed **pre-commit hook ignored on macOS**: `.githooks/pre-commit` was committed with mode `100644`;
+  Windows does not rely on the executable bit, but Git on macOS skips such a hook outright, so the local
+  hygiene chain never ran and only CI was left to catch problems. Changed to `100755`; `git hook run
+  pre-commit` now passes. The gate also gained a "hook missing executable bit" assertion and a counter-example
+  so this cannot recur.
 
 ### Repository skeleton · 2026-11-03
 

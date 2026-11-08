@@ -14,6 +14,7 @@
 - [2026-11-03][P1] `.gitignore` 拦不住垃圾 ⇒ 它是默认放行机制，一个 `git add -f` 就能把数百 MB 的二进制写进历史且删不干净（前置项目的运行时目录里实际躺着一个 374 MB 安装包）⇒ 拒绝逻辑必须由 `scripts/check-hygiene.mjs` 执行并在 pre-commit + CI 双跑 ⇒ 证据：本仓 8 项门禁实测（垃圾场路径/体积/`.env`/凭据/无理由豁免/带理由豁免/忽略泄露）。
 - [2026-11-03][P0] CI 显示全绿但门禁根本没跑 ⇒ Gitee Go 的 `commands` 逐条执行、**单条失败不短路**，前面红了整体仍判绿；且 `build@nodejs` 插件可能静默跳过自带的 Node 安装，容器里没有可用 `node` ⇒ 所有校验用 `&&` 链成**一条**命令，由最终退出码判败；Node 在命令里自装，`nodeVersion` 字段只当必填占位 ⇒ 来源：前置项目首跑实证，本仓 [`.workflow/ci.yml`](../../.workflow/ci.yml) 已按此写。
 - [2026-11-03][P1] 豁免清单会变成考古现场 ⇒ 提交进去的 glob 后来没有一个文件命中，没人敢删 ⇒ `check-hygiene.mjs --all` 把零命中的豁免报成警告，删掉即可 ⇒ 只在 `--all` 判定，staged 模式本次提交没碰到该文件属正常。
+- [2026-11-08][P0] 开发机迁到 macOS 后 pre-commit 门禁形同未挂 ⇒ `.githooks/pre-commit` 在索引里的 mode 是 `100644`，Windows 不依赖执行位，Git on macOS / Linux 直接静默跳过（commit 时只给一行 ignoredHook 提示），本地洁净度链只剩 CI 兜底 ⇒ 改为 `100755` 入库，并在 `check-hygiene.mjs` 加「hook 缺可执行位」断言 + 反证用例；**新增 hook 一律核对索引 mode** ⇒ 证据：`git ls-tree HEAD .githooks/pre-commit` 原为 100644，修复后 `git hook run pre-commit` 实跑通过。
 
 ## 测试
 
