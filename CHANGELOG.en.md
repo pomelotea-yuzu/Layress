@@ -40,6 +40,12 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
   `git fetch --all && git log --oneline '@{u}'..main`. `AGENTS.md` and `openspec/config.yaml` now state that
   remote names come from `git remote -v`: the current macOS clone uses a single `origin` aggregating Gitee
   fetch/push and a GitHub push URL, while the historical "no origin" note only described the initial setup.
+- Added a **knowledge-base write-back rule**: problems found during development, disproved assumptions and
+  policy changes must be written into the matching `docs/knowledge/` topic in the same round.
+  `.workbuddy/memory/` is a local daily log only — other agents and people who clone the repository cannot
+  see it, so writing there alone is the same as not writing at all. The rule now lives in `AGENTS.md` §six,
+  the knowledge-base README and the commit checklist; this round's pitfalls (such as hard-coded remote
+  names breaking a documented command) were backfilled as well.
 
 ### Repository skeleton · 2026-11-03
 

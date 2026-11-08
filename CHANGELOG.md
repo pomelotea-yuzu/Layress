@@ -29,6 +29,9 @@
 - 变更 **远程口径**：查未推提交的命令改为不依赖远程名的 `git fetch --all && git log --oneline '@{u}'..main`；
   `AGENTS.md` 与 `openspec/config.yaml` 注明远程名以 `git remote -v` 为准——当前 Mac 克隆用单个 `origin`
   聚合 Gitee fetch/push 与 GitHub push URL，历史「无 origin」只是建仓当时的状态。
+- 新增 **知识库回填纪律**：开发中发现的问题、被推翻的假设与口径变更必须同轮写进 `docs/knowledge/` 对应专题；
+  `.workbuddy/memory/` 只作本机当日流水，别的 Agent 与接手人拿不到，只写那里等于没写。纪律写进 `AGENTS.md` §六、
+  经验库 README 与提交流程自检；补记「远程名硬编码导致文档命令失效」等本轮坑。
 
 ### 仓库骨架 · 2026-11-03
 

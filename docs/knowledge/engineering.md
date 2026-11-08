@@ -4,10 +4,11 @@
 
 > 条目格式与升级规则见 [`README.md`](README.md)。**未经 Layress 实测的条目一律标注来源，不当作本仓已验证事实。**
 
-## 环境与行尾
+## 环境、行尾与本机配置
 
 - [2026-11-03][P0] Windows 上格式检查满屏误报，仓库内容其实是好的 ⇒ 系统级 `core.autocrlf=true` 把工作区检出成 CRLF，而 linter（Biome/ESLint）要求 LF ⇒ 用 [`.gitattributes`](../../.gitattributes) 强制文本 `eol=lf` 并给二进制/夹具标 `-text` ⇒ 来源：前置项目 ReBaseAgent 全仓排查一次；**Layress 尚未实跑验证**（macOS 上系统级 autocrlf 一般不生效，但克隆来的全局配置仍要查）。
 - [2026-11-08][P1] 门禁的「机器绝对路径」与「系统用户目录」规则只按 Windows 形态写，开发机迁到 macOS 后 `/Users/<name>/…`、`~/Library/…` 完全不判红 ⇒ 判据是平台函数而非环境常量，换开发机必须回头查规则覆盖面 ⇒ 三端形态并列写进 `check-hygiene.mjs`，补 macOS Library / Linux XDG / POSIX 绝对路径三个反证用例，由 `--selftest` 证明确实判红 ⇒ 证据：本轮 `check-repo.mjs --all` 自测回显。
+- [2026-11-08][P1] 文档状态卡里写死 `git fetch github && git log --oneline github/main..main`，换克隆直接报错 ⇒ 远程名是**本机 git 配置**而非仓库事实：当前 Mac 克隆只有单个 `origin`（Gitee fetch/push + GitHub push URL），`github`／`gitee` 这两个名字并不存在 ⇒ 查未推提交一律用不依赖远程名的 `git fetch --all && git log --oneline '@{u}'..main`，文档注明「远程名以 `git remote -v` 为准」；远程配置归用户，智能体不改 ⇒ 证据：本轮 `git remote -v` 回显与状态卡命令失效。
 
 ## 门禁
 
@@ -37,3 +38,7 @@
 ## 依赖与产物
 
 - （待填）首个 `pnpm install` 之后，把实际遇到的解析/锁定/离线打包坑写在这里。
+
+## 知识库与交接
+
+- [2026-11-08][P1] 一轮改造踩的坑只落进 `.workbuddy/memory/`，下个 Agent 与 clone 仓库的人一个字都看不到 ⇒ 该目录被 `.gitignore` 排除，只是本机当日流水；前置项目 90% 经验就是这样丢的（D03）⇒ 开发中的问题**同轮回填** `docs/knowledge/` 对应专题，本机日志只留流水与索引；纪律写进 [`README.md`](README.md)「回填纪律」、`AGENTS.md` §六与提交流程自检 ⇒ 证据：本轮迁移改造后经用户指出才补齐回填。

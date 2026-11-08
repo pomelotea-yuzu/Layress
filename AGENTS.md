@@ -113,6 +113,8 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
 
 前置项目的经验库有 90% 落在**本机记忆目录**里，被 `.gitignore` 整目录排除 ⇒ clone 仓库的人拿不到。
 本仓把同一套东西**入库**，并且规定格式，避免它退化成没人读的流水账。
+**回填纪律**：开发中每发现一个坑、推翻一个假设或变更一条口径，**同轮**写进对应专题；
+`.workbuddy/memory/` 只记本机当日流水，别的 Agent 与接手人看不到，只写那里等于没写。
 
 落点：[`docs/knowledge/`](docs/knowledge/README.md) 五个专题，**按主题不按日期**。
 

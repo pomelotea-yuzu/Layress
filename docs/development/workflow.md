@@ -103,6 +103,8 @@ openspec/
 ## Commit 与 push
 
 - 一次 commit 做一件事；标题 `<type>(<scope>): <一句话改动>`，正文中文写"为什么"。
+- **提交前自检**：本轮踩的坑、被推翻的假设与口径变更，是否已在 [`docs/knowledge/`](../knowledge/README.md)
+  对应专题留条目？只写 `.workbuddy/memory/` 等于没写（该目录不入库，别的 Agent 与接手人拿不到）。
 - **仅在确有必要/有价值、或完成一小段开发时做本地 commit**；是否提交由模型/执行者按价值判断，
   不为凑数提交，也不攒一大坨；**不 push**。
 - push、打 tag、双远程同步归维护者。幂等复跑形如 `git push github main && git push gitee main`；
