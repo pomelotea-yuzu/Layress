@@ -47,3 +47,23 @@
 2. 需要旧材料时按「查历史」处理，不把它当成现行依据；旧文档里的结论与判据一律不作新阶段的前提。
 3. 口径变更继续遵守同轮回填纪律；本文不替代 `AGENTS.md` 的唯一入口地位，状态卡已指向本文。
 4. 新阶段第一份文档另起、另记，不在旧文档上续写。
+
+## 五、补记：仓库外实验目录归档（2026-11-09）
+
+用户自行把 11-08 两轮取证的**执行端输入目录**移入归档目录；智能体未移动、未删除个人目录中的任何文件。
+两个目录与仓库同级、无代码或配置引用，移动后仓库工作区干净、HEAD 未变、门禁与 git 历史不受影响。
+
+| 旧路径（已失效） | 新路径 |
+|---|---|
+| `~/Developer/layress-blind-run/` | `~/Developer/archive/layress-archive/layress-blind-run/` |
+| `~/Developer/layress-blind-task/` | `~/Developer/archive/layress-archive/layress-blind-task/` |
+
+归档内容（8 个原件，字节数与移动前逐一一致）：`protocol.md`、`result.schema.json`、
+`fixtures/A.html`～`fixtures/D.html`、`results/result.json`（第 1 轮）；`page.html`（B 轮）。
+随目录一起带过来的还有 Finder 生成的 `.DS_Store` 与执行端留下的
+`.workbuddy/memory/2026-11-08.md`，它们不是仓库文件，保持原样。
+
+仓库 `artifacts/` 里的结果副本、预注册与机械对照仍在原位，**仍不入库**。
+[11-08 盲测结果](2026-11-08-blind-probe-result.md) 证据指针里的旧路径按封存约定保留原文、不追改，
+以本表映射为准；收尾说明此前只写了「证据原件仍在 `artifacts/`」，未登记这两个仓库外目录，特此补记。
+
