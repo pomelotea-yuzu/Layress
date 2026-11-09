@@ -17,14 +17,13 @@
 
 ## 一、项目一句话
 
-**Layress** — 界面压力测试工具。把运行中的 Web／Electron 应用置于不同窗口尺寸、内容长度、
-语言和字体条件下，**确认关键操作发生了什么损坏**，并把触发条件缩减成可重复回放的证据。
+**Layress** — 面向个人开发者和小团队的本地界面验收助手。人和 Agent 共用任务、现场与复查结果；
+人可以圈画位置并简单描述，让 Agent 理解要改什么，修改后检查原问题。
 
-定位句：本地优先、无需人工正确截图基线、面向**关键操作可达性**，输出已缩减的触发条件 + 可回放证据。
-
-- 调研与立项依据：[`docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)
-- 四条边界（**不可混为一谈**，写代码前先背住）：视觉回归 ≠ 几何异常检测 ≠ 主动压力测试 ≠ 缺陷确认与缩减。
-  本产品的重心在后两项；几何异常只是候选，**候选不等于缺陷**。
+首版形态：**本地服务 + Web 工作台 + 共用任务核心 + CLI**；MCP 与桌面壳按具体需要后加。
+当前依据：[产品方向与使用方式](docs/product/product.md)。开发者无需先写选择器、JSON 或正式用例才能提出反馈。
+旧[立项调研](docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)按历史背景查阅，旧实现范围不自动恢复；
+自动检测候选、用户意见、实际观测与缺陷确认仍须分清，Agent 声称修好不自动等于验收完成。
 
 ## 二、当前状态卡
 
@@ -32,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **已封存 / 重新开始**（2026-11-09 用户决定）。11-03～11-09 的调研、验证方案、闸门、两轮取证、D17/D18 收口、方向对照与最小草案全部封存为历史资产：**不删除、不改写，但不再作为当前执行依据**；全库「当前接手入口 / 下次第一步 / 当前调研接续 / 待批准 / GO 或停」等指向旧阶段下一步的字样一律作废。封存清单、继续有效的工程资产与重新开始约定见[阶段封存与重新开始](docs/research/2026-11-09-phase-closure.md)。新方向**未定**，由用户下一句定义；未给出前不立 change、不写代码、不做新论证。当前无代码、无活动 change、无发行，门禁全绿，未 push |
-| 活动 change | 无（尚未确定首个执行范围） |
-| 代码 | 无。仓库只有骨架、索引与门禁 |
-| 发行 | 无 tag、未发 npm 包。远程领先/落后**跑命令查**（本卡不记 hash，一提交就过期）：`git fetch --all && git log --oneline '@{u}'..main`（远程名以 `git remote -v` 为准） |
+| 阶段 | **今日收工：产品方向与六阶段路线图已敲定，尚未开始实现**（2026-11-09）。正式依据：[产品方向与使用方式](docs/product/product.md)与无日期[路线图索引](docs/product/roadmap.md)；本轮完成公开资料续查、圈画反馈要求、阶段规划与现行入口同步。用户要求改完本地提交后结束，不 push、不直接开发；未建 workspace、未装产品依赖、未立技术 change。下次先讨论阶段 1–2 的细分设计，后续实现需按用户新指令推进；门禁结果以本轮实跑为准 |
+| 活动 change | 无（阶段 1 未开始；下次先讨论体验、接入、任务闭环的范围与验收方式，设计按需成文） |
+| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace |
+| 发行 | 无产品发行，本轮只做本地文档提交，不 push、不打 tag；本轮未重新查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
@@ -58,13 +57,13 @@
 5. [`docs/README.md`](docs/README.md) — 文档地图，新文档该放哪、怎么命名。
 6. [`i18n/README.md`](i18n/README.md) — 双语口径与成对登记规则；**动手写文档前先确认它要不要成对**。
    中英用词一律查 [`i18n/glossary.md`](i18n/glossary.md)。
-7. 调研原文（§一 链接）—— 首版范围、数据集要求、对照设计、继续/收缩门槛都在这里定义。
+7. [产品方向与使用方式](docs/product/product.md)与[开发路线图索引](docs/product/roadmap.md)—— 已确认要求与六阶段规划；设计按需下沉，当前仅讨论与文档整理，未开始实现。[受众调研](docs/research/2026-11-09-audience-and-workflow-research.md)按背景查阅。
 
 ## 四、怎么跑起来
 
 **开发环境（2026-11-08 起）**：主力开发机 macOS arm64 / zsh / Node ≥ 20，CI runner 为 ubuntu。
 门禁脚本只用 `node:path` 与 git 子进程，三端通用；**本地与云端跑同一条命令链**。
-⚠️ 开发机 ≠ 产品目标平台：三端发行承诺（D15）与首版目标平台（调研 §7.2）不随开发机迁移而变。
+⚠️ 开发机 ≠ 产品目标平台：旧 D15 与旧首验平台已随阶段封存，当前平台和适配范围按产品设计与实测另定。
 
 **尚未建立 pnpm workspace**（本轮口径：结构 + 索引 + 门禁 + i18n）。当前公共门禁入口：
 
@@ -162,9 +161,9 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
   - 中英用词查 [`i18n/glossary.md`](i18n/glossary.md)；术语表本身只维护中文说明，**代码标识、协议字段、错误码原值不翻译**。
 - **国际化 = 中国用户优先 + 英文产品名 + 具备海外发布能力**，不等于"把产品改成英文"。
 - **命名**：`docs/` 内已批准且作为当前依据的方案、现行规则、已核实事实用 `<english-kebab-case>.md`；探讨、调研、待批提案与当次记录用 `YYYY-MM-DD-<english-kebab-case>.md`。正文标注状态与证据，`README.md` 与 `*.en.md` 保留惯例；晋升与改名细则见 [`docs/README.md`](docs/README.md)。
-- **Agent 友好**：产品能力必须可由 Agent 发现、非交互调用并取得有版本的结构化结果；机器输出与日志分离，明确退出码与错误码，保留判定层级、证据引用和未执行项。CLI 是首版入口，MCP / Skill 复用核心能力；具体约束见 [`openspec/config.yaml`](openspec/config.yaml) I14，尚未实现。
+- **Agent 友好**：产品能力必须可发现、可非交互调用并取得有版本的结构化结果；机器输出与日志分离，退出码、错误码、证据与未执行项明确。Web 工作台与 CLI 共用任务核心，MCP / Skill 按需增加；约束见 [`openspec/config.yaml`](openspec/config.yaml) 的 Agent 接口约定，尚未实现。
 - **本地优先**：扫描数据、页面内容、截图默认不出本机。用远程视觉模型必须显式标明数据流与成本。
-- **候选不等于缺陷、可点击不等于业务成功**：这两条是产品口径，不是措辞问题（见 §一 四条边界与不变量）。
+- **候选不等于缺陷、可点击不等于业务成功**：用户意见、实际观测、自动检查和 Agent 处理结果保留来源，未执行的人工复核单列，见[产品依据](docs/product/product.md)。
 
 ## 八、目录地图
 
@@ -172,7 +171,7 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
 入库 ── 门面   README CONTRIBUTING SECURITY CODE_OF_CONDUCT CHANGELOG（中英成对）· LICENSE（原文）
         接手   AGENTS.md（唯一入口，默认中文）
         i18n   i18n/README 口径 · i18n/glossary 术语表 · i18n/docs-manifest 成对登记
-        工程   packages/<core|confirm|reduce|replay|cli> apps/desktop
+        工程   packages/ 共用能力 · apps/ 应用入口（具体划分未定）
                scripts/check-repo.mjs 公共入口 · check-hygiene.mjs · check-i18n.mjs
         知识   docs/README 文档地图
               docs/guide architecture development        指南与工程说明（默认中文）

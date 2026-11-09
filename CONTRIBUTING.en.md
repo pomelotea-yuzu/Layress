@@ -7,13 +7,12 @@ Thanks for taking part. This repository enforces **repository hygiene, documenta
 ## What to read first
 
 1. [`AGENTS.md`](AGENTS.md) — the handoff index: one-line scope, status card, red lines, where pitfalls go.
-2. [`docs/knowledge/invariants.md`](docs/knowledge/invariants.md) — the numbered invariants, **not reopenable in a PR**.
+2. [`docs/product/product.md`](docs/product/product.md) and [`docs/product/roadmap.md`](docs/product/roadmap.md) — current product requirements and the formal stage index.
 3. [`docs/knowledge/decisions.md`](docs/knowledge/decisions.md) — settled technical choices and what would overturn them.
 4. [`i18n/glossary.md`](i18n/glossary.md) — the authority for every term pairing.
 
-Discuss ideas in an Issue first; do not open a PR with an implementation already attached. The product's
-core question is critical-action reachability, so any change that pushes reports closer to "looks broken"
-needs alignment first (see invariants I1 and I6).
+Align ideas around the actual task and scope first. Preserve the sources of user feedback, observations and automated checks; an agent claiming a fix does not automatically complete acceptance.
+Old invariant numbers remain historical references. Current engineering and storage constraints come from `AGENTS.md` and `openspec/config.yaml`.
 
 ## Environment setup
 

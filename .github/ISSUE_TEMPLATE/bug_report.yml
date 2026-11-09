@@ -1,28 +1,22 @@
 name: Bug report / Bug 报告
-description: Report a wrong verdict, a crash, or a repro that will not replay / 报告误判、崩溃或无法回放的问题
+description: Report a task, annotation, integration or verification problem / 报告任务、圈画、接入或复查问题
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Search existing issues first. Redact sensitive content — the scanned page's text, screenshots and
-        paths are frequently the sensitive part, so keep only the shape you need to show.
-        Report credential leaks, outbound data or C-drive write problems privately per SECURITY.md; a
-        portable-build violation (writing to `%APPDATA%` / `%LOCALAPPDATA%` / registry) is treated as a bug
-        **and** a policy breach.
-
-        提交前请先搜索已有 issue。请先脱敏——被扫描页面的文本、截图与路径往往正是敏感的那部分，
-        只保留要说明问题的形态即可。
-        涉及凭据泄露、数据外发或写 C 盘的问题请按 SECURITY.md 私下报告；便携包违反"不碰 C 盘"
-        既是 bug，也是口径违规。
+        Search existing issues and redact private page content, screenshots, paths and credentials.
+        Report credential leaks, unintended outbound data or system-user-directory writes privately per SECURITY.md.
+        请先搜索已有 issue，并对页面内容、截图、路径与凭据脱敏。
+        涉及凭据泄露、未授权外发或默认写系统用户目录的问题，按 SECURITY.md 私下报告。
   - type: textarea
     id: problem
     attributes:
       label: What happened / 遇到的问题
-      description: One sentence, then details. Say which stage failed: scan / confirm / reduce / replay / report / 一句话说清现象，再补充细节。请指明失败环节：扫描 / 确认 / 缩减 / 回放 / 报告
+      description: Describe the failed step and its impact / 描述哪个步骤出了什么问题、影响是什么
       placeholder: |
-        e.g. A button clipped at narrow width was reported as reachable (false green at the confirm stage)
-        例：窄窗口下被裁切的按钮被判为可点击（确认环节假绿）
+        e.g. The annotation moved after resizing the captured image.
+        例：缩放采集画面后，圈画位置错位。
     validations:
       required: true
   - type: textarea
@@ -35,64 +29,47 @@ body:
     id: steps
     attributes:
       label: Reproduction steps / 复现步骤
-      description: The shortest path you actually ran / 你实际跑过的最少步骤
-      placeholder: |
-        1.
-        2.
-        3.
+      description: Include only steps you ran; mark missing information as unknown / 只写实际跑过的步骤，缺失信息写 unknown
     validations:
       required: true
   - type: textarea
     id: conditions
     attributes:
-      label: Trigger conditions (all four are required) / 触发条件（四项都要）
-      description: >-
-        Invariant I3: a repro without size + UI state + font/scaling + locale is not replayable. Unknown is
-        fine — write "unknown", never guess it in.
-        不变量 I3：缺任一项都不算可回放。不知道就写"unknown"，不要猜着补全。
-      value: |
-        - 尺寸 Size (content width × height, CSS px):
-        - 界面状态 UI state (sidebar expanded / tab active / error toast shown):
-        - 字体与缩放 Font & scaling (system font, browser zoom, DPR):
-        - 语言 Locale:
-    validations:
-      required: true
+      label: Relevant scene conditions (if applicable) / 相关现场条件（如适用）
+      description: Include URL shape, viewport, state, scaling and locale when relevant; never invent missing values / 按相关性提供 URL 形态、视口、状态、缩放和语言，不猜补缺失信息
   - type: dropdown
     id: target
     attributes:
-      label: Scan target type / 被扫描对象类型
+      label: Affected workflow / 受影响的流程
       options:
-        - Web page in Chromium / Chromium 里的网页
-        - Electron app / Electron 应用
-        - Other / 其他
+        - Scene capture and annotation / 现场采集与圈画
+        - Tasks and agent handoff / 任务与 Agent 交接
+        - Rechecks and results / 复查与结果
+        - Installation or connection / 安装或连接
+        - Documentation or other / 文档或其他
   - type: textarea
     id: env
     attributes:
       label: Version and environment / 版本与环境
       value: |
         - Layress version or commit / 版本或提交：
-        - OS (and language) / 操作系统与语言：
-        - Node / Electron version / Node 与 Electron 版本：
-        - Data directory used / 实际使用的数据目录：
-        - Product install location / 产品安装位置：
+        - OS and browser / 操作系统与浏览器：
+        - Agent client and version, if applicable / Agent 客户端与版本（如适用）：
+        - Node version / Node 版本：
+        - Data directory used / 实际数据目录：
     validations:
       required: true
   - type: textarea
     id: logs
     attributes:
-      label: Logs or screenshot (optional) / 日志或截图（可选）
-      description: >-
-        Attach only the redacted error shape or the minimal region. Do not upload the whole data directory,
-        the full page DOM or file attachment store.
-        只附脱敏后的报错形态或必要区域；不要上传整个数据目录、完整页面 DOM 或附件目录。
+      label: Redacted logs or screenshot (optional) / 脱敏日志或截图（可选）
+      description: Share only the minimum region or error shape; no full data directory or private DOM / 只附必要区域或报错形态，不上传整个数据目录或私有 DOM
   - type: checkboxes
     id: confirm
     attributes:
       label: Confirmations / 确认项
       options:
-        - label: Searched existing issues / 已搜索过已有 issue
+        - label: Searched existing issues / 已搜索已有 issue
           required: true
-        - label: Redacted credentials and the scanned page's private content / 已对凭据与被扫描页面隐私内容脱敏
-          required: true
-        - label: This is a tool defect, not a disagreement about whether a layout looks good / 这是工具缺陷，不是"这个布局好不好看"的分歧
+        - label: Redacted credentials and private page material / 已对凭据和页面隐私资料脱敏
           required: true

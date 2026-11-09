@@ -4,11 +4,13 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；2026-11-09 收工时仅规划成文，未开始实现。下次先讨论阶段 1–2 的细分设计，不恢复旧验证方案的批准闸门或包划分。
+
 ## 环境与日常命令
 
 - **开发机（2026-11-08 起）**：macOS arm64 / zsh / Node ≥ 20；CI runner 为 ubuntu。门禁脚本只用
   `node:path` 与 git 子进程，三端通用，**本地与云端跑同一条命令链**。开发机平台 ≠ 产品目标平台：
-  三端发行承诺见 D15，首版目标平台见调研 §7.2，两者都不随开发机迁移而变。
+  旧 D15 与旧首验平台已封存，当前支持范围由设计与实测确定。
 - Node ≥ 20；包管理器 pnpm（workspace 建立后在根 `package.json` 固定 `packageManager` 字段）。
 - 每个克隆一次：`git config core.hooksPath .githooks`。不挂 hook，洁净度问题会推迟到 CI 才暴露。
 
@@ -44,7 +46,7 @@ node scripts/check-i18n.mjs --selftest
 - **本地与云端跑同一条链**：公共入口 [`scripts/check-repo.mjs`](../../scripts/check-repo.mjs) 顺序运行洁净度、洁净度自测、文档门禁自测、全库链接与对外双语配对，任一步失败即停止。CI 两侧调用 `--all`；pre-commit 调用 `--staged`，先导出完整索引快照，按该快照的脚本、忽略规则、双语清单与文档检查，未暂存的修复不能掩盖提交里的错误。普通 `--all` 的链接与配对检查读取已跟踪的工作区文档，CI 干净检出时与索引一致。
 - **机器 PASS ≠ 验收**。视觉与交互判定归人工复核；未执行的复核在项目状态里单列"未执行"。
 
-实现 Agent 接口时，change 必须定义输入输出 schema、退出码与错误码，并验证无 TTY 调用、缺参、机器输出解析、状态分层、超时 / 取消和证据引用；验收口径见 [`openspec/config.yaml`](../../openspec/config.yaml) I14 与 Agent 接口约定。此项为待实现要求，不计作当前门禁已覆盖。
+实现 Agent 接口时，change 必须定义输入输出 schema、退出码与错误码，并验证无 TTY 调用、缺参、机器输出解析、状态分层、超时 / 取消和证据引用；验收口径见 [`openspec/config.yaml`](../../openspec/config.yaml) 的 Agent 接口约定。此项为待实现要求，不计作当前门禁已覆盖。
 
 ## 仓库洁净度操作
 

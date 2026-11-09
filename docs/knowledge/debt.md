@@ -2,6 +2,8 @@
 
 > 本文默认以中文维护。
 
+> **当前接手说明（2026-11-09）**：下面是旧阶段挂账，旧“下一步”和待批准条件不作为当前执行指引；新阶段已确认[产品方向](../product/product.md)与[路线图](../product/roadmap.md)，阶段 1 未开始，下次先讨论细分设计。历史欠账保持原文，不要求先逐条销账才能推进新阶段。
+
 > 这里只放**还没有结论**的事。已有结论的进 [`decisions.md`](decisions.md)，已知的坑进
 > [`engineering.md`](engineering.md) / [`runtime-probe.md`](runtime-probe.md)。
 > 每条必须写"归谁定夺"和"什么时候必须定"，否则会一直挂着。

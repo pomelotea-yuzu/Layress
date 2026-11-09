@@ -49,8 +49,11 @@
 | [`reviews/`](reviews/README.md) | 实机验收与审阅证据；**过程截图默认不入库** | 不需要 |
 | `drafts/` | 个人工作草稿与停止维护的内部译本本地归档，**整目录不入库**；归档子目录自带来源索引 | — |
 
-当前规划入口：[简短路线图](product/roadmap.md)——先补需求与社区证据，再修订验证方案并决定首个 change。
-当前调研接续：[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)（接手先读第十节的 2026-11-05 停点）——整合基础任务与历史证据，以当前 Agent 为比较起点，分别核查应用入口与跨 Agent 增强价值；[社区原始记录](research/2026-11-04-community-evidence-round-one.md)与[VS Code 候选](research/2026-11-04-vscode-candidate-readiness.md)保留，实跑、访谈与跨 Agent 验证未执行，开发方向仍开放。
+当前产品依据：[产品方向与使用方式](product/product.md)——用户已确认本地界面验收助手、首版 Web 工作台 + 共用任务核心 + CLI；对人和 Agent 都要简单，支持圈画现场与简短描述，具体交互和接入尚未实现。
+正式阶段索引：[开发路线图](product/roadmap.md)——沿用无日期路径并替换原内容，六阶段规划已敲定；近期具体、远期留白，设计按主题或 change 单独成文，当前阶段 1 尚未开始。
+调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
+新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
+历史资料：[阶段封存](research/2026-11-09-phase-closure.md)、[原路线图快照](product/2026-11-09-previous-roadmap.md)、[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)、[社区原始记录](research/2026-11-04-community-evidence-round-one.md)与[VS Code 候选](research/2026-11-04-vscode-candidate-readiness.md)保留供查。旧“下次第一步”、待批状态和停止条件不自动作为新阶段执行依据。
 
 ## 双语范围
 
@@ -78,6 +81,16 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 ```
 
 ## 路径变更记录
+
+- **2026-11-09 收工一致性复核**：同步中英 README / 贡献与安全说明、GitHub / Gitee 表单、模块与指南入口、config 和术语，移除现行入口对旧四模块、首验批准与桌面平台的自动承诺；历史不变量与欠账增加时效说明，原条目与旧研究保留。现行依据统一指向产品与正式路线图；无文件迁移，未新增产品实现。
+
+- **2026-11-09 六阶段路线图索引**：将 [`product/roadmap.md`](product/roadmap.md) 改为六阶段目标、完成信号、滚动调整原则与细分设计入口，限制索引体量 ≤ 100 行 / ≤ 8 KB，方案按需下沉；改写前正文原样保存在 [`product/2026-11-09-previous-roadmap.md`](product/2026-11-09-previous-roadmap.md)（仅新增历史快照说明）。现行产品 / 目录索引及接手状态同轮更新，历史研究中的旧链接保留为当时指向。仅文档整理，未启动实现。
+
+- **2026-11-09 产品方向与圈画反馈确认**：新增稳定依据 [`product/product.md`](product/product.md)，记录用户确认的本地界面验收助手、Web 工作台 + CLI 与简单圈画反馈要求，区分已确认目标和实现建议；状态卡、D22、前期讨论时效注记、索引、路线图与 config 同轮接续。无路径迁移，无产品实现。
+
+- **2026-11-09 受众与常用流程续查**：新增 [`research/2026-11-09-audience-and-workflow-research.md`](research/2026-11-09-audience-and-workflow-research.md)，核查公开调查、用户工作流与成熟替代，回应“避免越做越小众”；前一轮建议加时效说明，状态卡、D21、索引、路线图顶部与 config 注记同轮接续。无路径迁移，无产品实现。
+
+- **2026-11-09 新阶段讨论**：新增 [`product/2026-11-09-agent-ui-review-direction.md`](product/2026-11-09-agent-ui-review-direction.md)，记录用户新目标、公开共性问题续查、成熟工具分工、本机 Playwright 条件与首个切片建议。状态卡、config 时效注记、D20、产品 / 调研索引及旧路线图顶部同轮指向新入口；旧封存说明和研究正文保持原文。无路径迁移，无产品实现。
 
 - **2026-11-09 阶段封存**：新增 [`research/2026-11-09-phase-closure.md`](research/2026-11-09-phase-closure.md) 作为 11-03～11-09 阶段的唯一收尾说明；状态卡（[`../AGENTS.md`](../AGENTS.md) §二）、`knowledge/decisions.md` D19 与 `research/README.md` 索引同轮指向它。历史文件不删除、不改写，全部保留供查；全库旧「当前接手 / 下次第一步」字样作废。无既有文件迁移。
 

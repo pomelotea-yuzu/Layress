@@ -4,139 +4,83 @@
 
 <p><a href="README.md">简体中文</a> | English</p>
 
-**UI Stress Testing Tool · 界面压力测试工具**
+**Local UI Acceptance Assistant · 本地界面验收助手**
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"/></a>
   <img src="https://img.shields.io/badge/Release-none-lightgrey.svg" alt="No release yet"/>
-  <img src="https://img.shields.io/badge/portable-first-brightgreen.svg" alt="Portable first, never touches the system drive"/>
 </p>
 
 </div>
 
-> **Current status: research and scoping are done. There is no code and no release.**
-> This page describes the **target shape**. For what is actually finished, see the status card in
-> [`AGENTS.md`](AGENTS.md) §two and `git log`.
+> **Current status: the product direction and six-stage roadmap are confirmed. Product implementation has not started, and there is no release.**
+> This page describes the intended experience, not delivered features. See [`AGENTS.md`](AGENTS.md) §two and `git log` for actual progress.
 
 ## 🧭 What it is
 
-Layress puts a running Web／Electron application under varying window sizes, content lengths, locales and
-fonts, looks for the conditions under which the interface breaks, and **keeps the trigger conditions**.
+Layress helps individuals and small teams using AI agents to build Web / Electron interfaces share acceptance tasks, issue evidence and recheck results between people and agents.
 
-The question is not "what changed versus the approved version" but:
+The shortest human workflow is: **see the interface → mark a region → add a short note → hand it to an agent → review the result**.
+For example, mark the Save button and write “the footer covers this; saving should remain possible in a smaller window.” The tool assembles the scene, location and available context to reduce explanation and lookup work.
 
-> Under an explicitly stated UI state, apply pressure on purpose, confirm what damage happened to a
-> **critical action**, and reduce the trigger conditions to evidence that can be replayed.
-
-Four kinds of work must not be conflated. Layress targets the last two:
-
-| Work | Core question | What the result means |
-|---|---|---|
-| Visual regression | What differs from the approved version? | A diff may be an intended update or a regression |
-| Geometric anomaly detection | Which elements overflow, overlap, clip or rewrap? | Produces **candidates**, which do not yet prove a defect |
-| Active stress testing | Which condition changes make the UI fail? | Widens input and state coverage |
-| Defect confirmation and reduction | Does it really block use? What is the least that still fails? | Produces evidence a developer can act on |
-
-An ideal report looks like this (**illustration, not a measurement**):
-
-> On the settings page, at content width 873–906 CSS px, height 720 CSS px, English copy, sidebar expanded,
-> the Save button is covered by the footer bar and still cannot be reached with the pointer after scrolling.
-> The report carries the target element, the covering element, a screenshot, environment details and replay steps.
+The first version is a **local service + Web workbench + shared task core + CLI**. MCP and a desktop shell can follow concrete needs.
+Supported target applications and agent connections must be verified individually. Arbitrary websites, frameworks and clients are not promised to work out of the box.
 
 ## 📌 Current status
 
-- **Unreleased**: no downloadable package, no npm package, no tag.
-- The repository is initialized and pushed to both remotes: GitHub
-  [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) (primary) and
-  [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) (mirror); still no tag, no downloadable package.
-  To see whether anything is unpushed: `git fetch --all && git log --oneline '@{u}'..main` (remote names come from `git remote -v`).
-- The repository holds the directory layout, the handoff index, the bilingual and hygiene gates, and the
-  scoping survey.
-- The first validation plan (real-project dataset, control groups, continue/shrink thresholds) is written up
-  as a proposal and **not yet approved**.
-- Open questions and debt are collected in [`docs/knowledge/debt.md`](docs/knowledge/debt.md).
+- No installable product, npm release or tag; no product source, workspace or active technical change.
+- The [product direction and usage](docs/product/product.md) and [formal development roadmap](docs/product/roadmap.md) are confirmed. Stage 1 has not started.
+- Existing assets include documentation, directory ownership, public research and engineering knowledge, plus hygiene, link and bilingual gates.
+- GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) is the primary repository; Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) is the mirror. Remote synchronization must be checked live; agents do not push.
+- The 11-03–11-09 phase is [closed](docs/research/2026-11-09-phase-closure.md) and remains available as historical reference. Its validation gates, four-module architecture and desktop platform commitments do not automatically carry forward.
 
 ## 🚀 Planned capabilities
 
-Per the survey, scan / confirm / reduce / replay are separable standalone modules, with detection and
-reporting fully open source:
+| Capability | Intended experience |
+|---|---|
+| Visual feedback | Start from a scene or captured image, mark a location and add a short note without mandatory selectors, JSON or test cases |
+| Human / agent collaboration | The workbench and CLI share tasks and evidence; agents retrieve context and return their handling results |
+| Recheck after a fix | Connect the original issue with the updated scene; distinguish execution, failure and pending review. An agent claiming a fix does not automatically complete acceptance |
+| Repeatable acceptance | Gradually save reusable checks and setup steps, incorporating established automated checks |
 
-| Module | Planned location | Responsibility |
-|---|---|---|
-| Scan | `packages/core` | Collect geometric and occlusion candidates under declared stress conditions |
-| Confirm | `packages/confirm` | Use real hit-testing to decide whether a critical action is reachable; emit a three-way verdict |
-| Reduce | `packages/reduce` | Drop conditions one at a time, re-verify failure after each drop, keep the minimal trigger |
-| Replay | `packages/replay` | Replay archived records only, adding no real external side effects |
-| Entry points | `packages/cli` + MCP / CI integration | Human-readable report plus structured results, embeddable in existing test scripts |
-| Desktop | `apps/desktop` | Electron adapter and result browsing, deliberately later |
+Detailed designs are written when needed; see the [roadmap index](docs/product/roadmap.md). Technology choices, adaptation order and release dates remain open.
 
-First-release scope (Windows／Chromium plus one Electron adapter) and the deferred list (aesthetic scoring,
-auto-fix, full platform matrix, minimal-HTML extraction) are defined in survey §7.2 and are not re-promised here.
-**This is the product's target platform, not the development machine**: the current development machine is
-macOS arm64, distribution is planned for three platforms (D15), and moving the development machine does not
-change the scope above.
+## ⌨️ Repository checks
 
-## ⌨️ Quick start
-
-The shared repository gate includes hygiene, links across all Markdown documents, public bilingual pairing and gate self-tests:
+Node ≥ 20. Only repository gates are currently runnable:
 
 ```bash
 node scripts/check-repo.mjs --all      # local checks and CI
-node scripts/check-repo.mjs --staged   # check the staged index snapshot, as pre-commit does
+node scripts/check-repo.mjs --staged   # check the actual staged snapshot, as pre-commit does
 ```
 
-To take part in development, read [`AGENTS.md`](AGENTS.md), then
-[`docs/development/workflow.md`](docs/development/workflow.md), then [`i18n/README.md`](i18n/README.md),
-in that order. Once the CLI is installable, this section becomes real installation steps and four usage paths.
+Set `git config core.hooksPath .githooks` once per clone. Real product installation and usage commands will be documented when runnable.
 
 ## 🧱 Project layout
 
-```
-Layress/
-├─ AGENTS.md              handoff index (single entry point, Chinese by default)
-├─ i18n/                  bilingual policy · glossary · pairing manifest
-├─ docs/
-│  ├─ guide/ architecture/ development/     user-facing
-│  ├─ knowledge/                            pitfalls · invariants · decisions · debt
-│  └─ research/ product/ engineering/ reviews/  engineering process assets
-├─ datasets/              positive and negative case dataset
-├─ openspec/              config.yaml · specs/ · changes/{,archive/}
-├─ packages/  apps/       code (layout decided, not implemented)
-└─ scripts/               check-repo shared entry · check-hygiene · check-i18n
-```
+- [`AGENTS.md`](AGENTS.md): the single handoff entry, status and engineering rules.
+- [`docs/product/`](docs/product/README.md): current product requirements, roadmap index and detailed designs.
+- [`docs/`](docs/README.md): guides, architecture, workflow, knowledge, research and process records.
+- [`packages/`](packages/README.md) / [`apps/`](apps/README.md): ownership placeholders; package and app directories await design, without inheriting the old four-module split.
+- `scripts/` / `i18n/` / `openspec/` / `datasets/`: gates, bilingual policy, change workflow and case ownership.
 
-Local output goes to exactly two places and is never committed: `artifacts/` (rerunnable output) and
-`.layress/` (runtime data and logs).
+Disposable output belongs only in `artifacts/`; runtime data and logs belong in `.layress/`. Neither is committed.
 
 ## 📚 Documentation
 
-- Handoff index and discipline: [`AGENTS.md`](AGENTS.md)
-- Documentation map: [`docs/README.md`](docs/README.md)
-- Knowledge base (pitfalls and closed decisions): [`docs/knowledge/README.md`](docs/knowledge/README.md)
-- Scoping and market survey: [`docs/research/`](docs/research/README.md)
-- Bilingual glossary: [`i18n/glossary.md`](i18n/glossary.md)
+- Current product: [product direction and usage](docs/product/product.md)
+- Formal stage index: [development roadmap](docs/product/roadmap.md)
+- Documentation and experience: [documentation map](docs/README.md) · [knowledge base](docs/knowledge/README.md)
+- Development and terminology: [workflow](docs/development/workflow.md) · [glossary](i18n/glossary.md)
 
 ## 🤝 Contributing
 
-Start with [`CONTRIBUTING.md`](CONTRIBUTING.md), especially the **repository hygiene** section: this repo
-strictly controls what enters history, rejections are enforced by `scripts/check-hygiene.mjs`, and every
-exemption must state a reason. GitHub issue forms carry both languages and can be filled in either;
-the Gitee side ships Chinese-only templates (`.gitee/`).
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md). Registered public documents are updated in both languages together; internal documentation defaults to Chinese.
+The next discussion concerns detailed designs for stages 1–2. A confirmed roadmap does not mean implementation has started.
 
-## 📄 License and notices
+## 📄 License and commitments
 
-- License: [MIT](LICENSE)
-- **Storage discipline (portable first, never write to system user directories)**: the product is portable by
-  default — data, logs, caches and temporary files live **next to the product** (its data root, or a directory
-  you name), and are never written to a system user directory on any platform: Windows `%APPDATA%`／
-  `%LOCALAPPDATA%`／registry, macOS `~/Library`／`/private/var/folders`, Linux `~/.config`／`~/.local/share`／
-  `~/.cache`. You choose the install location; the installer
-  does not elevate or edit the system PATH. Copying the directory migrates everything; deleting it leaves
-  nothing behind. If a write fails the product errors out and asks for a directory — **no silent fallback to
-  the user directory** (see invariants I12–I13).
-- Security and privacy: [`SECURITY.md`](SECURITY.md) — local-first is a product commitment; the scanned
-  application's page content stays on your machine by default.
-- Code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
-- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
-- Naming: `Layress` = Layer + Stress. Unrelated to the npm packages `layrr` and `layerr` or to the `layui`
-  component library — do not install the wrong one.
+- License: [MIT](LICENSE). The `Layress` brand is retained, unrelated to the npm packages `layrr` / `layerr` and the `layui` component library.
+- **Local-first**: tasks, page material and screenshots stay local by default. Disclose data flow and cost when handing them to remote agents or models; never send them silently. See [`SECURITY.md`](SECURITY.md).
+- **Portable-first**: data, logs, caches and temporary files stay under the product directory or a directory explicitly selected by the user. Never default to system user directories, elevate privileges, change the system PATH or silently fall back when writing fails. Development environment installation is separate from product storage commitments; see [`AGENTS.md`](AGENTS.md) §seven.
+- Conduct and version history: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) · [`CHANGELOG.md`](CHANGELOG.md).

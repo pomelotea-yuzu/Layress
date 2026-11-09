@@ -22,5 +22,5 @@ contact_links:
   - name: Report a vulnerability / 私密安全报告
     url: https://github.com/pomelotea-yuzu/Layress/security/advisories/new
     about: >-
-      Never file credentials, data-flow or C-drive write issues publicly /
-      凭据泄露、数据外发、写 C 盘等问题请走私密渠道，不要开公开 issue
+      Never file credential leaks, unauthorized outbound data or default system-user-directory writes publicly /
+      凭据泄露、未授权外发或默认写系统用户目录的问题请走私密渠道，不要开公开 issue

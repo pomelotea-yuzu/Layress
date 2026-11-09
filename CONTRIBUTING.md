@@ -7,12 +7,12 @@
 ## 先读什么
 
 1. [`AGENTS.md`](AGENTS.md) —— 接手索引：项目一句话、状态卡、纪律红线、坑该写在哪。
-2. [`docs/knowledge/invariants.md`](docs/knowledge/invariants.md) —— 全部编号不变量，**不许在 PR 里重开**。
+2. [`docs/product/product.md`](docs/product/product.md) 与 [`docs/product/roadmap.md`](docs/product/roadmap.md) —— 当前产品要求与正式阶段索引。
 3. [`docs/knowledge/decisions.md`](docs/knowledge/decisions.md) —— 已定的技术选择与其推翻条件。
 4. [`i18n/glossary.md`](i18n/glossary.md) —— 中英用词一律以它为准。
 
-想法类讨论先开 Issue，不要直接提交实现。产品口径的核心问题是"关键操作可达性"，
-任何让报告更接近"看起来坏"的实现方向都需要先对齐（见不变量 I1、I6）。
+想法类讨论先对齐实际使用任务与范围。用户意见、实际观测和自动检查需保留来源，Agent 声称修好不自动等于验收完成。
+旧不变量编号保留为历史参考，当前工程与存储约束以 `AGENTS.md` 和 `openspec/config.yaml` 为准。
 
 ## 环境准备
 

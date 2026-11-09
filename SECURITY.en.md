@@ -10,13 +10,10 @@ content, credentials, or outbound data is treated as high severity and fixed fir
 | Version / platform | Status |
 |---|---|
 | No release yet | The repository currently holds structure and gates only — no runnable product (see the status section in [`README.md`](README.md)) |
-| Windows + Chromium | Planned first-release target |
-| macOS / Linux | Not promised; to be decided after the first validation closes |
-| Electron adapter | Planned, alongside the first validation |
+| Local Web workbench and CLI | Confirmed first-version shape, not implemented; no verified support matrix yet |
+| Target browsers / Electron applications and agent clients | Support will be published by tested integration; arbitrary application or client compatibility is not promised |
 
-> The table above describes **product target platforms, not the development machine**: development
-> currently happens on macOS arm64 (moved from Windows on 2026-11-08), with three-platform distribution
-> per D15. Moving the development machine does not change the supported scope.
+> Development happens on macOS arm64; working on the development machine does not establish product support. The old D15 desktop distribution matrix was closed with the previous phase. See the current [product requirements](docs/product/product.md) and [roadmap](docs/product/roadmap.md).
 
 The version support matrix, dependency update policy and end-of-support notes will be added under
 [`docs/development/`](docs/development/README.md) when the first candidate ships.
@@ -31,8 +28,7 @@ This tool touches sensitive data by design, so the risk surface is spelled out i
 2. **Evidence export and sharing.** To stay reproducible, reports include URLs, element locators, states and
    screenshots; exporting or uploading is disclosure. The redaction policy is undecided (see
    [`docs/knowledge/debt.md`](docs/knowledge/debt.md)).
-3. **Remote vision models sending data out.** Invariant I8 requires data to stay local by default, outbound
-   traffic to be explicitly declared with cost, and **no silent fallback to remote**. Any implementation that
+3. **Handing material to remote agents or models.** Page material stays local by default; outbound data flow and cost must be explicit, with **no silent fallback to remote**. Any implementation that
    bypasses those three is a security defect, not a configuration preference.
 4. **The debug channel is over-privileged.** A CDP／remote-debugging port means full script execution against
    the target page; if the port binds to a non-loopback address, other local processes or the LAN can attach.
@@ -42,8 +38,7 @@ This tool touches sensitive data by design, so the risk surface is spelled out i
    page can carry prompt-injection payloads that steer verdicts or trigger outbound traffic.
 7. **Credential handling.** Model keys and target-app sessions are entered by users inside the app; plaintext
    must not appear in logs, reports or traces. The repository gate fails `sk-`／`ghp_`／private-key shapes outright.
-8. **Read-only promise.** Diagnostic entry points (CLI, MCP) are read-only by default; writing requires explicit
-   authorization and must never modify the project under scan.
+8. **Operation scope.** Tasks, feedback and evidence are written under the product data directory. Reading a task does not authorize modifying the target project or rerunning actions with external side effects. The user's existing agent performs fixes within its own authorization; handling results remain separate from acceptance.
 
 ## Data flow and privacy commitments
 

@@ -1,5 +1,5 @@
-<!-- Title format: <type>(<scope>): <one-line change>, e.g. feat(reduce): re-verify failure after each dropped condition -->
-<!-- 标题格式：<类型>(<范围>): <一句话改动>，如 feat(reduce): 逐条件回退时保持失败才算缩减成功 -->
+<!-- Title format: <type>(<scope>): <one-line change>, e.g. feat(feedback): preserve the marked scene -->
+<!-- 标题格式：<类型>(<范围>): <一句话改动>，如 feat(feedback): 保留圈画对应的现场 -->
 
 ## Summary / 改动说明
 
@@ -14,20 +14,14 @@
 
 ## Boundary check / 边界自检
 
-<!-- Layress deliberately separates four jobs. Say which one this serves, and that it does not blur them. -->
-<!-- 四类工作是刻意分开的。说明本 PR 服务哪一类，以及它没有把边界抹糊。 -->
+<!-- Use the current product requirements and roadmap. Describe which user or agent workflow this changes. -->
+<!-- 以当前产品依据与路线图为准，说明影响了哪段人或 Agent 的使用流程。 -->
 
-- [ ] Serves one of: scan / confirm / reduce / replay / reporting / integration — stated above
-      服务于扫描 / 确认 / 缩减 / 回放 / 报告 / 集成 之一，已在上文说明
-- [ ] A geometric anomaly is still reported as a **candidate**, not as a defect (I1)
-      几何异常仍然按**候选**输出，没有被写成缺陷（I1）
-- [ ] Reachability verdicts use real hit-testing, not programmatic clicks (I2)
-      可达性判定走真实命中测试，没用程序化点击（I2）
-- [ ] Trigger conditions keep the full four-tuple; nothing guessed in when unknown (I3, I4)
-      触发条件保持四元组完整；不知道就标 unknown，没有猜着补全（I3、I4）
-- [ ] No new default write outside the data root; no `%APPDATA%` / registry / system PATH change (I12, I13)
-      没有在数据根之外新增默认写入；未碰 `%APPDATA%`／注册表／系统 PATH（I12、I13）
-- [ ] Replay still adds no real external side effects (I5) / 回放仍未新增真实外部副作用（I5）
+- [ ] Scope matches docs/product/product.md and the related change / 范围与产品依据及对应 change 一致
+- [ ] User feedback, observations, check candidates and agent results retain their sources / 用户意见、观测、检查候选与 Agent 结果保留来源
+- [ ] Scene and annotation context stays accurate; missing information is explicit / 现场与圈画上下文对应，缺失信息明确
+- [ ] Data, logs, caches and temporary files stay under the selected data root / 数据、日志、缓存与临时文件留在指定数据根
+- [ ] Agent completion does not silently close human review; reruns stay within authorization / Agent 完成不自动代替人工复核，重跑不越过授权范围
 
 ## Repository hygiene / 仓库洁净度
 
@@ -54,10 +48,10 @@
 
 <!-- State the commit, the exact commands run and their output. For builds attach artifact hashes; for UI or
      visual checks attach the actual click / keyboard / layout evidence, or state that human review was NOT done.
-     A machine PASS is not a human approval (I11): list unexecuted checks as "not executed" with the reason —
+     A machine PASS is not a human approval: list unexecuted checks as "not executed" with the reason —
      never ticked, never reported as delivered. Stale results from an earlier commit do not count. -->
 <!-- 写明对应提交、实际执行的命令与结果。涉及构建附产物哈希；涉及界面/视觉附实际点击、键盘与布局证据，
-     或明确写"未做人工复核"。机器 PASS 不等于人工通过（I11）：未执行项如实写"未执行"与原因，
+     或明确写"未做人工复核"。机器 PASS 不等于人工通过：未执行项如实写"未执行"与原因，
      不许勾完成、不许写成已交付；旧提交的结果不能拿来勾本轮。 -->
 
 - 提交 / commit:

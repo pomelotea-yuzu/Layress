@@ -4,123 +4,83 @@
 
 <p><a href="README.en.md">English</a> | 简体中文</p>
 
-**界面压力测试工具 · UI Stress Testing Tool**
+**本地界面验收助手 · Local UI Acceptance Assistant**
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"/></a>
   <img src="https://img.shields.io/badge/Release-none-lightgrey.svg" alt="尚无发行版"/>
-  <img src="https://img.shields.io/badge/portable-first-brightgreen.svg" alt="便携优先，不写系统用户目录"/>
 </p>
 
 </div>
 
-> **当前状态：调研与立项完成，尚无代码、尚无发行版。**
-> 本页描述的是**目标形态**。做到哪一步了请看 [`AGENTS.md`](AGENTS.md) §二 状态卡与 `git log`。
+> **当前状态：产品方向与六阶段路线图已确认，尚未开始产品实现，没有发行版。**
+> 下文是目标体验，不是已交付能力。实际进度见 [`AGENTS.md`](AGENTS.md) §二与 `git log`。
 
 ## 🧭 这是什么
 
-把运行中的 Web／Electron 应用置于不同窗口尺寸、内容长度、语言和字体条件下，寻找界面在什么情况下失效，
-并**保留触发条件**。
+Layress 面向使用 AI Agent 开发 Web / Electron 界面的个人开发者与小团队，帮助人和 Agent 共用验收任务、问题现场和复查结果。
 
-Layress 关注的不是"和上一版比哪里变了"，而是：
+人的最短路径是：**看到现场 → 圈出位置 → 写一句想法 → 交给 Agent → 查看修改后的结果**。
+例如，圈住保存按钮并写“这里被底栏挡住了，缩小窗口后也要能保存”；工具整理现场、位置和必要上下文，降低描述与定位成本。
 
-> 在明确的界面状态下主动施压，确认**关键操作**发生了什么损坏，并把触发条件缩减成可重复回放的证据。
-
-四类工作不能混为一谈，本产品做后两项：
-
-| 工作 | 核心问题 | 结果的含义 |
-|---|---|---|
-| 视觉回归 | 与已认可的版本相比哪里变了？ | 差异可能是正常更新，也可能是回归 |
-| 几何异常检测 | 哪些元素溢出、重叠、裁切或换行？ | 产生**候选**，尚不能直接证明是缺陷 |
-| 主动压力测试 | 改变哪些条件会让界面出问题？ | 扩大输入与状态覆盖范围 |
-| 缺陷确认与复现缩减 | 是否真的影响使用？最少保留哪些条件仍会失败？ | 生成便于开发者处理的证据 |
-
-一个理想报告长这样（**示例，非实测**）：
-
-> 设置页在内容区宽度 873–906 CSS px、高度 720 CSS px、英文文案、侧栏展开时，保存按钮被底栏遮挡；
-> 滚动后仍无法通过指针点击。报告包含目标元素、遮挡元素、截图、环境信息和回放步骤。
+首版形态为**本地服务 + Web 工作台 + 共用任务核心 + CLI**。MCP 与桌面壳按实际需求后加。
+具体被测应用和 Agent 的接入范围需要逐项验证；当前不承诺任意网站、框架或客户端开箱可用。
 
 ## 📌 当前状态
 
-- **未发布**：没有可下载的包，没有 npm 包，没有 tag。
-- 仓库已初始化并推到双远程：GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)（主）
-  与 Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)（镜像）；仍然没有 tag、没有可下载包。
-  是否还有未推提交：`git fetch --all && git log --oneline '@{u}'..main`（远程名以 `git remote -v` 为准）。
-- 仓库内容 = 目录结构 + 接手索引 + 双语与洁净度门禁 + 立项调研。
-- 首个验证方案（真实项目数据集、对照组、继续/收缩门槛）已写成建议，**尚未批准**。
-- 已知的欠账与未决口径集中在 [`docs/knowledge/debt.md`](docs/knowledge/debt.md)。
+- 没有可安装产品、npm 发行包或 tag；没有产品源码、workspace 或活动技术 change。
+- 当前已敲定[产品方向与使用方式](docs/product/product.md)和[正式开发路线图](docs/product/roadmap.md)，阶段 1 尚未开始。
+- 仓库现有资产包括文档、目录归属、公开调研与工程知识、洁净度 / 链接 / 双语门禁。
+- GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)为主仓库，Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)为镜像；远程同步状态以实时命令为准，智能体不 push。
+- 11-03～11-09 旧阶段资料已[封存](docs/research/2026-11-09-phase-closure.md)，可作历史参考；旧验证闸门、四模块划分和桌面平台承诺不自动恢复。
 
 ## 🚀 计划中的能力
 
-按调研的建议形态，扫描 / 确认 / 缩减 / 回放分离为可独立使用的模块，检测与报告核心完整开源：
+| 能力 | 目标体验 |
+|---|---|
+| 圈画反馈 | 从现场或已采集画面开始，圈选位置并写短描述，不强制填写选择器、JSON 或测试用例 |
+| 人与 Agent 协作 | 工作台与 CLI 读写同一份任务和证据，Agent 可取得上下文并回传处理结果 |
+| 修复后复查 | 关联原问题和修改后现场，区分已执行、失败与待复核；Agent 声称修好不自动等于验收完成 |
+| 可重复验收 | 逐步保存可复用的检查任务与准备步骤，接入成熟自动检查能力 |
 
-| 模块 | 计划位置 | 职责 |
-|---|---|---|
-| 扫描 | `packages/core` | 在声明的压力条件下采集几何与遮挡候选 |
-| 确认 | `packages/confirm` | 用真实命中测试判定关键操作是否可达，产出三态判定 |
-| 缩减 | `packages/reduce` | 逐条去掉条件、每去掉一次仍要复现，得到最小触发条件 |
-| 回放 | `packages/replay` | 只重放既有记录，不新增真实外部副作用 |
-| 入口 | `packages/cli` + MCP / CI 集成 | 可读报告与结构化结果，可接进现有测试脚本 |
-| 桌面 | `apps/desktop` | Electron 适配与结果浏览，后置 |
+每阶段具体设计按需成文，详见[路线图索引](docs/product/roadmap.md)。技术选型、适配顺序与发布日期尚未锁定。
 
-首版范围（Windows／Chromium + 一个 Electron 适配）、暂缓项（审美评分、自动修复、全平台矩阵、
-最小 HTML 自动抽取）都写在调研 §7.2，不在这里重复承诺。**这是产品目标平台，不是开发机**：
-当前主力开发机为 macOS arm64，发行按三端规划（D15），开发机迁移不改变上述产品范围。
+## ⌨️ 仓库检查
 
-## ⌨️ 快速开始
-
-现在仓库的公共门禁入口如下，包含洁净度、全库文档链接、对外双语配对及门禁自测：
+Node ≥ 20；当前只有仓库门禁可运行：
 
 ```bash
 node scripts/check-repo.mjs --all      # 本地排查与 CI
-node scripts/check-repo.mjs --staged   # 按待提交索引快照检查（pre-commit 同此）
+node scripts/check-repo.mjs --staged   # 按实际提交快照检查，pre-commit 同此
 ```
 
-想参与开发，按顺序读 [`AGENTS.md`](AGENTS.md) → [`docs/development/workflow.md`](docs/development/workflow.md)
-→ [`i18n/README.md`](i18n/README.md)。等 CLI 可以安装，这一节会换成真实的上手路径与四条使用场景。
+每个克隆设置一次 `git config core.hooksPath .githooks`。产品可运行后再补真实安装与上手命令。
 
 ## 🧱 项目结构
 
-```
-Layress/
-├─ AGENTS.md              接手索引（唯一入口，默认中文）
-├─ i18n/                  双语口径 · 术语表 · 成对登记
-├─ docs/
-│  ├─ guide/ architecture/ development/     面向使用者
-│  ├─ knowledge/                            经验库：坑 · 不变量 · 决策 · 欠账
-│  └─ research/ product/ engineering/ reviews/  工程过程资产
-├─ datasets/              正负例数据集
-├─ openspec/              config.yaml · specs/ · changes/{,archive/}
-├─ packages/  apps/       代码（骨架已定，尚未实现）
-└─ scripts/               check-repo 公共入口 · check-hygiene · check-i18n
-```
+- [`AGENTS.md`](AGENTS.md)：唯一接手入口、状态与工程纪律。
+- [`docs/product/`](docs/product/README.md)：现行产品依据、路线图索引与细分设计。
+- [`docs/`](docs/README.md)：指南、架构、工作流、知识库、调研与过程资产。
+- [`packages/`](packages/README.md) / [`apps/`](apps/README.md)：代码归属占位，具体包与应用目录待设计，不沿用旧四模块划分。
+- `scripts/` / `i18n/` / `openspec/` / `datasets/`：门禁、双语口径、变更流程与案例归属。
 
-不入库的本地产物只去两个地方：`artifacts/`（可重跑产物）与 `.layress/`（运行时数据与日志）。
+一次性产物只去 `artifacts/`，运行时数据与日志只去 `.layress/`，均不入库。
 
 ## 📚 文档
 
-- 接手索引与纪律：[`AGENTS.md`](AGENTS.md)
-- 文档地图：[`docs/README.md`](docs/README.md)
-- 经验库（踩过的坑与不许重开的决定）：[`docs/knowledge/README.md`](docs/knowledge/README.md)
-- 立项与市场调研：[`docs/research/`](docs/research/README.md)
-- 双语术语表：[`i18n/glossary.md`](i18n/glossary.md)
+- 当前产品：[产品方向与使用方式](docs/product/product.md)
+- 正式阶段索引：[开发路线图](docs/product/roadmap.md)
+- 文档地图与经验库：[文档索引](docs/README.md) · [知识库](docs/knowledge/README.md)
+- 开发与术语：[工作流](docs/development/workflow.md) · [术语表](i18n/glossary.md)
 
 ## 🤝 贡献
 
-先看 [`CONTRIBUTING.md`](CONTRIBUTING.md)，特别是**仓库洁净度**一节：本仓严格控制进入历史的文件，
-拒绝逻辑由 `scripts/check-hygiene.mjs` 执行，豁免必须登记理由。
-Issue 表单中英并列可直接填；Gitee 侧提供纯中文模板（`.gitee/`）。
+请读 [`CONTRIBUTING.md`](CONTRIBUTING.md) 与 [`AGENTS.md`](AGENTS.md)。对外登记文档同轮同步中英，内部文档默认中文。
+当前先讨论阶段 1–2 的细分设计，不把路线图正式敲定当作已经开始实现。
 
-## 📄 许可与声明
+## 📄 许可与承诺
 
-- 许可证：[MIT](LICENSE)
-- **📦 存储纪律（便携优先 · 不写系统用户目录）**：产品默认便携，数据、日志、缓存与临时文件**跟着产品放**
-  （产品目录下的数据根，或你显式指定的目录），三端都不写系统用户目录——Windows `%APPDATA%`／
-  `%LOCALAPPDATA%`／注册表，macOS `~/Library`／`/private/var/folders`，Linux `~/.config`／`~/.local/share`／`~/.cache`；
-  安装位置由你选择，不提权、不改系统 PATH。拷贝整个目录即完成迁移，删除即无残留。
-  写不进时直接报错并要求指定目录，**不静默回落到用户目录**（见不变量 I12–I13）。
-- 安全与隐私：[`SECURITY.md`](SECURITY.md) —— 本地优先是产品承诺，扫描对象的页面内容默认不出本机。
-- 行为准则：[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
-- 更新日志：[`CHANGELOG.md`](CHANGELOG.md)
-- 命名说明：`Layress` = Layer + Stress。与 npm 上的 `layrr`／`layerr` 和组件库 `layui` **无关**，
-  请勿装错包。
+- 许可证：[MIT](LICENSE)。`Layress` 品牌名保留，与 npm 的 `layrr` / `layerr` 及组件库 `layui` 无关。
+- **本地优先**：任务、页面资料与截图默认留本机；交给远程 Agent 或模型时明确数据流与成本，不静默外发。详见 [`SECURITY.md`](SECURITY.md)。
+- **便携优先**：数据、日志、缓存与临时文件放产品目录或用户明确指定的目录；不默认写系统用户目录，不提权、不改系统 PATH，不可写时明确报错。开发环境安装与产品写盘承诺分开，详见 [`AGENTS.md`](AGENTS.md) §七。
+- 行为准则与版本记录：[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) · [`CHANGELOG.md`](CHANGELOG.md)。

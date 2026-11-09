@@ -2,23 +2,27 @@
 
 > 本表以中文说明维护，保留中英术语对照，无需英文说明副本。
 
-版本：3（2026-11-08 补充「系统用户目录」三端口径）。适用范围：仓库门面与 `docs/` 双语版本、未来桌面 UI 与 CLI 人类可读输出、
+版本：4（2026-11-09 补充界面验收助手与工作台口径）。适用范围：仓库门面与 `docs/` 双语版本、未来 Web 工作台与 CLI 人类可读输出、
 错误文案的 `zh-CN` / `en-US` 资源。**代码标识、协议字段、错误码、CLI 参数、文件名原值不翻译。**
 
-用词依据：调研原文 [`docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)
-的四类工作边界（§1.2）与建议定位（§5.2）。**同一概念只允许一种译法**；要改先改这张表，再批量改文档。
+当前用词依据：[产品方向与使用方式](../docs/product/product.md)。旧压力测试术语保留供查，不恢复旧模块或范围承诺。
+**同一概念只允许一种译法**；要改先改这张表，再批量改文档。
 
 ## 1. 产品与边界
 
 | 概念 | 中文 | English | 约束 |
 |---|---|---|---|
-| 产品类别 | 界面压力测试 | UI stress testing (layout) | 首次出现必须补限定词，**不等于**负载/性能压测（load testing） |
-| 关键操作可达性 | 关键操作可达性 | critical-action reachability | 产品核心口径；不写成"可用性 accessibility" |
-| 视觉回归 | 视觉回归 | visual regression | 与已认可版本的差异；本产品不依赖人工基线，不要混为同类 |
+| 产品类别 | 本地界面验收助手 | local UI acceptance assistant | 当前定位；具体能力以已实现范围为准 |
+| Web 工作台 | Web 工作台 | Web workbench | 首版人类入口，与 CLI 共用任务核心 |
+| 圈画反馈 | 圈画反馈 | visual feedback | 包含位置与原话，不自动等于确认的缺陷 |
+| 验收任务 | 验收任务 | acceptance task | 人和 Agent 共享，处理完成与验收通过分开 |
+| 界面压力测试 | 界面压力测试 | UI stress testing (layout) | 历史方向与可选专项，不等于负载/性能压测（load testing） |
+| 关键操作可达性 | 关键操作可达性 | critical-action reachability | 专项检查概念，不写成"可用性 accessibility" |
+| 视觉回归 | 视觉回归 | visual regression | 与已认可版本的差异；具体是否采用基线由能力设计确定 |
 | 几何异常检测 | 几何异常检测 | geometric anomaly detection | 只产出**候选**，见 §3 |
 | 主动压力测试 | 主动压力测试 | active stress testing | 改变条件以扩大覆盖；与被动观察区分 |
-| 缺陷确认与缩减 | 缺陷确认与复现缩减 | defect confirmation and reduction | 本产品重心；"缩减"不要写成"简化" |
-| 人工正确截图基线 | 正确截图基线 | golden screenshot baseline | 本产品明确**不需要**，表述时保留否定式 |
+| 缺陷确认与缩减 | 缺陷确认与复现缩减 | defect confirmation and reduction | 历史专项；不作为当前首版强制能力，"缩减"不要写成"简化" |
+| 人工正确截图基线 | 正确截图基线 | golden screenshot baseline | 对照概念，不自动设为首次反馈的前提 |
 | 本地优先 | 本地优先 | local-first | 数据默认不出本机；用远程模型必须另写数据流与成本 |
 | Agent 友好 | Agent 友好 | agent-friendly | Agent 可发现能力、非交互调用并解析结构化结果；不要求产品内置模型 |
 
@@ -61,13 +65,13 @@
 
 | 概念 | 中文 | English | 约束 |
 |---|---|---|---|
-| 扫描 | 扫描 | scan | 四个可独立使用模块之一 |
-| 确认 | 确认 | confirm | 同上 |
+| 扫描 | 扫描 | scan | 检查动作，是否独立成包由设计确定 |
+| 确认 | 确认 | confirm | 明确证据与结论来源，不自动恢复旧独立包 |
 | 缩减 | 条件缩减 | condition reduction | 把触发条件缩到最小仍可失败；**不承诺**自动抽取最小 HTML |
 | 回放 | 回放 | replay | 只重放既有记录，**不新增**真实外部副作用 |
 | 重跑 | 重跑 | rerun | 会真实执行；与 replay 严格区分，措辞不可互换 |
 | 触发条件 | 触发条件 | trigger conditions | 宽窄区间之外还须含高度、状态、字体、缩放 |
-| 可回放证据 | 可回放证据 | replayable evidence | 产品最终交付物 |
+| 可回放证据 | 可回放证据 | replayable evidence | 只有实际具备回放条件才这样标记 |
 | 运行记录 | 运行记录 | scan run / run | 一次扫描的存档，含环境与产物清单 |
 | 负例 | 负例 | negative case | 合理省略、滚动区域、抽屉菜单、浮层等**看起来坏但没问题**的样本 |
 | 正例 | 正例 | positive case | 真实历史缺陷样本 |

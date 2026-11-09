@@ -1,96 +1,53 @@
 schema: spec-driven
 
 context: |
-  项目：Layress — 界面压力测试工具（本地优先、便携优先、Agent 友好；首版形态为 CLI + 可读报告 + 结构化结果）
+  项目：Layress — 面向个人开发者和小团队的本地界面验收助手。
+  当前依据：docs/product/product.md（D22）与 docs/product/roadmap.md（D23，正式六阶段索引）。
+  首版形态：本地服务 + Web 工作台 + 共用任务核心 + CLI。MCP 与桌面壳由实际需求驱动，非首版前提。
+  用户希望人和 Agent 都简单使用：人从现场圈画和短描述开始，Agent 获得同一任务、位置、证据与复查结果。
+  不强制用户先写选择器、JSON 或正式用例；交互细节和具体接入方式尚未实现。
 
-  定位句：在明确的界面状态下主动施压，确认关键操作发生了什么损坏，并把触发条件缩减成可重复回放的证据。
-  无需人工"正确截图基线"，但仍需开发者声明关键操作、准备步骤、可接受滚动与排除范围。
+  当前阶段（2026-11-09）：路线图正式敲定，阶段 1 尚未开始。用户明确要求先讨论设计，不直接开始开发。
+  本轮仅文档整理与本地提交，不装依赖、不建 workspace、不立技术 change、不 push。
+  下一次先讨论阶段 1–2 的范围、交付物和验证方式，按需建立细分设计；路线图仅作索引。
+  旧阶段封存见 docs/research/2026-11-09-phase-closure.md；旧资料可查，不自动恢复旧闸门、四模块架构、缩减算法、实验规模或三端桌面发行承诺。
 
-  目标用户：需要确认界面在窄窗、长文本、多语言、字体变化下是否还能正常操作的开发者，中文用户为主。
-  分发建议 scoped 包 @layress/*；与 npm 上的 layrr／layerr 与组件库 layui 无关，README 需显式区分。
+  已确认的产品与工程边界：
+  - UI 与 CLI 共享任务事实、证据和复查结果；Agent 不必操作工作台按钮才能使用能力。
+  - 用户原话、实际观测、自动检查候选和 Agent 建议保留来源；不能猜造缺失现场、定位器、源码路径或检查结果。
+  - 圈画位置绑定原始画面和采集条件；页面更新后的新现场不覆盖原反馈现场，不默认旧位置仍有效。
+  - 缺陷候选与确认结果分开；可点击不等于业务成功；Agent 声称修好不自动等于验收完成。
+  - 执行成功、检查通过、失败、未执行和不确定分别表达；机器通过不替代未执行的人工复核。
+  - 任务、截图、页面资料默认本地保存；交给远程 Agent / 模型时说明数据流和成本，不静默外发或增加付费调用。
+  - 产品数据、日志、缓存、临时文件留在产品目录下的数据根（默认 .layress/）或用户明确指定的目录；不得默认写系统用户目录。
+  - 数据根解析结果与可写性可见；不可写时明确报错，不回落系统用户目录；安装不提权、不改系统 PATH。
+  - 浏览器运行期目录也需纳入数据根；使用本机既有开发工具不代表产品已经满足便携写盘要求。
+  - 一次性产物只去 artifacts/；运行时资料只去 .layress/；二者不入库，手写结论进 docs/ 对应位置。
 
-  仓库与远程：本地 ~/Developer/layress（macOS arm64 / zsh，2026-11-08 由 Windows 迁入）；分支 main；
-  目标双远程 github = https://github.com/pomelotea-yuzu/Layress.git（主仓库）
-  gitee  = https://gitee.com/yuzu-tea-duck/layress.git（镜像）；
-  **实际远程名以 git remote -v 为准**——当前 Mac 克隆用单个 origin 聚合 Gitee fetch/push + GitHub push URL，
-  历史记载的「无 origin」只描述 2026-11-03 建仓当时。建仓、tag 与 push 归用户；判 push 状态只认 git ls-remote，不认文档记载。
+  Agent 接口约定（目标要求，尚未实现）：
+  - 可通过非交互 CLI 发现能力、取得任务与证据、提交处理结果、发起范围明确的复查。
+  - 提供有版本的结构化输入输出、稳定任务标识、退出码和错误码；机器结果走 stdout，进度与诊断走 stderr。
+  - 缺参明确报错退出，不悬挂等待 TTY；超时、取消和部分完成范围可见，释放本次资源。
+  - 连接现有 Agent 必须验证具体方式，不假定能向任意运行中的聊天会话推送消息。
+  - 读取证据、查看旧现场、真实重跑与会改变被测项目的操作分开；后者遵守具体授权范围，不因非交互调用而自动授权。
+  - 具体命令、字段、状态机、支持的宿主及验收测试写在实现 change，不提前宣称已兼容。
 
-  四条工作边界（不可混为一谈）：
-  - 视觉回归 = 与已认可版本比差异；本产品不做这一类
-  - 几何异常检测 = 产出**候选**，不等于缺陷
-  - 主动压力测试 = 改变条件以扩大覆盖
-  - 缺陷确认与复现缩减 = 本产品重心，输出可回放证据
-
-  技术栈（以源码与依赖清单为准；当前尚未建代码骨架）：
-  - 开发环境（2026-11-08 起）：macOS arm64 / zsh / Node ≥ 20；CI runner ubuntu。门禁脚本只用
-    node:path 与 git 子进程，三端通用；本地与云端同一条命令链。**开发机 ≠ 产品目标平台**，
-    三端发行承诺与首版目标平台不随开发机迁移而变。
-  - TypeScript strict + pnpm workspaces；packages/{core,confirm,reduce,replay,cli} + apps/desktop
-  - 探针通道候选：Playwright / CDP 直连 / Electron 远程调试（未选型，见 docs/knowledge/debt.md）
-  - 打包承诺三端（2026-11-06，D15）：Windows x64 + Linux Ubuntu 24 x64 + macOS arm64；
-    架构与 CI 从第一天按三端设计。验证仍分阶段：首验对照实验的实机平台随开发机迁移**待重定**
-    （2026-11-08 开发机迁入 macOS，原「先在 Windows + Chromium 跑」口径失效，见 debt；另验证一个 Electron 适配），
-    Linux/mac 实机验证列为后续里程碑，未验证端单列不勾完成。规划见 docs/engineering/plans/2026-11-06-tri-platform-packaging-plan.md
-  - 质量：Biome + vitest + TypeScript + OpenSpec；实机判定另附人工复核记录
-  - 语言：文档默认中文；仅逐篇登记的对外文档同目录 *.en.md 成对并由 check-i18n 强制，
-    当前为根目录 README / CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / CHANGELOG；
-    AGENTS.md、docs/ 与 i18n/ 维护说明无需翻译，旧内部英文版移入 docs/drafts/ 本地归档，不入库。
-    产品字符串层 zh-CN 默认、en-US 待建，不因文档范围收窄而取消。
-  - 许可：MIT
-
-  关键不变量（所有 spec 必须遵守；细节与后果见 docs/knowledge/invariants.md）：
-  - I1 候选不等于缺陷：几何异常只进候选层，确认层产出 confirmed / not-a-defect / inconclusive 三态
-  - I2 可达性判定必须以真实命中测试为准；程序化点击只能用于准备状态
-  - I3 触发条件四元组完整：尺寸（宽×高）+ 界面状态 + 字体/缩放 + 语言，缺一即标记不可回放
-  - I4 来源缺失、损坏或未知状态不得被 UI 猜测补造为可信事实
-  - I5 回放不新增真实外部副作用；重跑必须显式授权并说明副作用与费用
-  - I6 无需基线不等于无需规约：关键操作、准备步骤、可接受滚动、排除范围必须由开发者声明
-  - I7 数据集物理分离：调规则子集与最终评估子集不重叠
-  - I8 本地优先：页面内容、截图、结果默认不出本机；远程模型必须声明数据流与成本，禁止静默降级
-  - I9 缩减只有在保持失败的前提下才算完成
-  - I10 扫描 / 确认 / 缩减 / 回放四模块可独立使用，核心检测与报告完整开源
-  - I11 机器 PASS 不等于人工通过；未执行的复核单列
-  - I12 便携优先 · 不写系统用户目录（2026-11-08 由「不碰 C 盘」改名，承诺不变）：数据、日志、缓存、
-    临时文件写在产品自身目录或用户显式指定目录；三端都不得默认写入系统用户目录：
-    Windows %APPDATA% / %LOCALAPPDATA% / C:\Users\… / %TEMP% / 注册表；
-    macOS ~/Library/{Application Support,Caches,Preferences,Logs} / /private/var/folders；
-    Linux ~/.config / ~/.local/share / ~/.cache；
-    安装位置由用户选择，安装器不提权、不改系统 PATH；目标目录不可写时报错并要求指定，禁止静默回落
-  - I13 数据目录解析口径唯一且可见：--data-dir / LAYRESS_DATA_DIR 优先，其次产品目录下的数据根；
-    解析结果与可写性必须出现在启动输出、日志与报告头部
-  - I14 Agent 友好：扫描 / 确认 / 缩减 / 回放必须可发现、可非交互调用、可解析且可追溯；
-    CLI 与未来 MCP / Skill 复用核心能力，桌面 UI 不得成为执行必需入口。
-
-  Agent 接口约定（目标要求，尚未实现；具体命令、字段与码值在实现 change 中定稿）：
-  - 能力发现：提供命令帮助、参数说明及可机读的输入输出 schema，声明环境要求与能力限制。
-  - 显式输入：关键操作、准备状态、压力条件、预算与数据目录可通过参数或结构化配置传入；
-    非交互模式不得弹窗或等待 stdin 提示，缺参时返回可解析错误与缺失项，退出而非悬挂。
-  - 机器输出：提供有 schema 版本的 JSON 结果；机器模式 stdout 只承载结果，进度与诊断走 stderr；
-    字段、状态与错误码不随语言改变，可读报告与机器结果来自同一份事实。
-  - 状态分层：运行成功 / 失败与缺陷判定分开；定义稳定退出码与错误码，不把 inconclusive、
-    超时、环境阻塞或未执行的人工复核归为通过；失败或中断时标明已完成范围与可用证据。
-  - 证据衔接：结果引用运行标识、完整触发条件、证据清单与回放入口，供 Agent 继续确认或缩减；
-    支持显式超时 / 预算与取消，取消后释放本次持有的资源。
-  - 授权边界：Agent 调用同样遵守 I5 / I8 / I12；授权经显式输入传递，非交互不等于自动授权。
-  - 实现验收：覆盖无 TTY 调用、缺参、机器输出可解析、状态分层、超时 / 取消与证据引用；
-    MCP / Skill 的交付时点单独立项，Agent 友好不要求内置模型或扩大首验检测范围。
-
-  存储与产物边界：
-  - 默认数据根与日志根 = 产品目录下 .layress/（或用户指定）；便携包业务数据落 data/
-  - Chromium/Electron 的 userData 与 sessionData 必须显式覆盖到数据根之下，不得用系统默认
-  - 一次性产物只去 artifacts/；两者均不入库（见 .gitignore 与 check-hygiene.mjs）
-  - 仓库与产物内一律相对数据根的路径 + posix 分隔符；导出给用户时才物化为绝对路径
-
-  首版范围与暂缓项以 docs/research/ 的调研 §7.2 为准，不在 spec 里另行扩大。
+  环境与未定技术选择：
+  - 开发环境 macOS arm64 / zsh / Node ≥ 20，当前会话可使用独立 Node；CI runner 为 Ubuntu。
+  - TypeScript strict 与 pnpm 是后续工程规划，workspace、包划分、Web 框架及浏览器接入由阶段设计与依赖清单定稿。
+  - 优先复用成熟浏览器、批注与检查能力；Playwright / CDP 等尚未选定为产品接入实现。
+  - 本地与 CI 共用 node scripts/check-repo.mjs 公共门禁；构建、类型、业务测试、lint、spec 检查待产品骨架建立后接入同一条链。
+  - MIT；产出默认中文，根目录登记的对外文档同轮同步英文，产品文案按 i18n/ 口径演进。
+  - 实际远程名以 git remote -v 为准；本地提交可以做，push 与 tag 归用户，远程同步状态只认实时命令。
 
 conventions:
-  language: 文档默认中文；仅逐篇登记的对外文档同目录同轮维护 *.en.md，范围见 i18n/docs-manifest.json 的 docs；内部文档无需翻译，旧内部英文版在 docs/drafts/ 本地归档，不入库
+  language: 默认中文；仅 i18n/docs-manifest.json 的 docs 登记文件同轮维护英文，内部文档无需成对
   naming:
     specs: openspec/specs/<capability>/spec.md
     changes: openspec/changes/<verb-led-kebab-name>/
     archive: openspec/changes/archive/<YYYY-MM-DD>-<change-name>/
-    docs: docs/ 中作为当前依据的已批准方案、现行规则与已核实事实用 english-kebab-case.md；探讨、调研、待批提案及当次记录用 YYYY-MM-DD-english-kebab-case.md；README.md 与 *.en.md 保留惯例，晋升与迁移细则见 docs/README.md
+    docs: 现行已批准规则用 english-kebab-case.md；讨论与当次记录用 YYYY-MM-DD-english-kebab-case.md；路线图只作阶段和设计入口索引
   evidence:
-    live-probes: 实机判据记在 change 的 evidence-index.md；截图默认留本地（docs/reviews/**/*.png 不入库）
-    honesty: 未执行项单列"未执行"，禁止把机器判据通过写成人工验收通过
+    live-probes: 具体设计、任务和证据按 change 归属；截图默认本地，不提交真实被测页面资料
+    honesty: 未执行项如实单列，不把机器通过或 Agent 声称完成写成人工验收通过
   authority: 源码 > changes/archive/ > specs/ > docs/ > AGENTS.md
