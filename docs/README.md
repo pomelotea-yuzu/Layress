@@ -79,6 +79,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-09 阶段封存**：新增 [`research/2026-11-09-phase-closure.md`](research/2026-11-09-phase-closure.md) 作为 11-03～11-09 阶段的唯一收尾说明；状态卡（[`../AGENTS.md`](../AGENTS.md) §二）、`knowledge/decisions.md` D19 与 `research/README.md` 索引同轮指向它。历史文件不删除、不改写，全部保留供查；全库旧「当前接手 / 下次第一步」字样作废。无既有文件迁移。
+
 - **2026-11-09 最小可用草案**：新增 [`product/2026-11-09-declaration-and-evidence-draft.md`](product/2026-11-09-declaration-and-evidence-draft.md)：开发者声明四项、三态判定、有版本的证据 schema 与用 11-08 B 轮观测填好的实例。按用户「别再论证、先开始做」的原意直接产出，不再新增方向论证文档；[`research/2026-11-09-shrink-direction-comparison.md`](research/2026-11-09-shrink-direction-comparison.md) 降级为过程记录。无既有文件迁移，未立 change。
 
 - **2026-11-09 收口接续与方向对照**：新增 [`research/2026-11-09-shrink-direction-comparison.md`](research/2026-11-09-shrink-direction-comparison.md) 作为收口后接手入口；[`research/2026-11-05-user-needs-and-agent-augmentation-research.md`](research/2026-11-05-user-needs-and-agent-augmentation-research.md) 第十节、[`product/roadmap.md`](product/roadmap.md)「当前接手从哪里开始」、[`knowledge/debt.md`](knowledge/debt.md) 与首验方案状态块同轮标注 D18 收口后的时效；`docs/research/README.md` 索引同步。无既有文件迁移，未立 change。

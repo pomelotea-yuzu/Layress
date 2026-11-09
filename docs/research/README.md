@@ -5,8 +5,12 @@
 
 ## 已有内容
 
+> **2026-11-09 封存**：下表全部为 11-03～11-09 阶段的过程资产，**不再是当前执行依据**；
+> 收尾说明见 [`2026-11-09-phase-closure.md`](2026-11-09-phase-closure.md)，新方向未定前不续写旧口径。
+
 | 文件 | 说明 |
 |---|---|
+| [`2026-11-09-phase-closure.md`](2026-11-09-phase-closure.md) | **唯一收尾说明**：封存范围、继续有效的工程资产、封存时仓库状态与重新开始的约定 |
 | [`2026-11-09-shrink-direction-comparison.md`](2026-11-09-shrink-direction-comparison.md) | 收口后的方向对照**过程记录**：D18 两条收缩方向并排对照，含证据边界与推翻条件；不构成 GO 决策。2026-11-09 用户澄清原意是「别再论证、先做」，本文不再作为接手入口，当前最小产物见 [`../product/2026-11-09-declaration-and-evidence-draft.md`](../product/2026-11-09-declaration-and-evidence-draft.md) |
 | [`2026-11-08-blind-probe-result.md`](2026-11-08-blind-probe-result.md) | 两轮盲测与自主任务对照结果：机制分叉成立、痛点被反证，D18 收口的直接依据；证据原件不入库 |
 | [`2026-11-05-user-needs-and-agent-augmentation-research.md`](2026-11-05-user-needs-and-agent-augmentation-research.md) | 基础需求综合调研：当前 Agent 比较、自有任务匿名归纳与跨 Agent 增强评价；第十节的 2026-11-05 停点**已被 D18 收口取代**，现只作历史过程资产，具体素材仅留本地，运行与收益未验证 |
