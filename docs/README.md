@@ -79,6 +79,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-09 最小可用草案**：新增 [`product/2026-11-09-declaration-and-evidence-draft.md`](product/2026-11-09-declaration-and-evidence-draft.md)：开发者声明四项、三态判定、有版本的证据 schema 与用 11-08 B 轮观测填好的实例。按用户「别再论证、先开始做」的原意直接产出，不再新增方向论证文档；[`research/2026-11-09-shrink-direction-comparison.md`](research/2026-11-09-shrink-direction-comparison.md) 降级为过程记录。无既有文件迁移，未立 change。
+
 - **2026-11-09 收口接续与方向对照**：新增 [`research/2026-11-09-shrink-direction-comparison.md`](research/2026-11-09-shrink-direction-comparison.md) 作为收口后接手入口；[`research/2026-11-05-user-needs-and-agent-augmentation-research.md`](research/2026-11-05-user-needs-and-agent-augmentation-research.md) 第十节、[`product/roadmap.md`](product/roadmap.md)「当前接手从哪里开始」、[`knowledge/debt.md`](knowledge/debt.md) 与首验方案状态块同轮标注 D18 收口后的时效；`docs/research/README.md` 索引同步。无既有文件迁移，未立 change。
 
 - **2026-11-08 CHANGELOG 回归版本定位**：`CHANGELOG.md`／`CHANGELOG.en.md`「未发布」下原有 2026-11-03～11-08 的仓库搭建与门禁过程条目，按主题回归既有落点（决策 `knowledge/decisions.md`、坑 `knowledge/engineering.md`、调研与实验 `research/`、状态 `AGENTS.md` §二、逐笔 `git log`），**不另建第三份流水账**；原文可从 `git log -- CHANGELOG.md` 查。文件口径改为「按版本记录面向使用者的变更」。无路径迁移。

@@ -7,7 +7,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| [`2026-11-09-shrink-direction-comparison.md`](2026-11-09-shrink-direction-comparison.md) | **收口后当前接手入口**：D18 两条收缩方向（开发者声明规约 + 可回放证据 / 转插件与上游贡献）并排对照，含证据边界、推翻条件、下一步判据与未执行项；不构成 GO 决策 |
+| [`2026-11-09-shrink-direction-comparison.md`](2026-11-09-shrink-direction-comparison.md) | 收口后的方向对照**过程记录**：D18 两条收缩方向并排对照，含证据边界与推翻条件；不构成 GO 决策。2026-11-09 用户澄清原意是「别再论证、先做」，本文不再作为接手入口，当前最小产物见 [`../product/2026-11-09-declaration-and-evidence-draft.md`](../product/2026-11-09-declaration-and-evidence-draft.md) |
 | [`2026-11-08-blind-probe-result.md`](2026-11-08-blind-probe-result.md) | 两轮盲测与自主任务对照结果：机制分叉成立、痛点被反证，D18 收口的直接依据；证据原件不入库 |
 | [`2026-11-05-user-needs-and-agent-augmentation-research.md`](2026-11-05-user-needs-and-agent-augmentation-research.md) | 基础需求综合调研：当前 Agent 比较、自有任务匿名归纳与跨 Agent 增强评价；第十节的 2026-11-05 停点**已被 D18 收口取代**，现只作历史过程资产，具体素材仅留本地，运行与收益未验证 |
 | [`2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md) | 立项调研：方向边界、竞品与替代、相关研究、市场与定价锚点、开源前景、技术坑、首个验证方案与继续/收缩门槛、命名核查 |
