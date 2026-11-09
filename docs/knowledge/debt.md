@@ -32,7 +32,7 @@
 | Linux 数据目录落点（D15） | XDG 目录（`~/.config`/`~/.local/share`/`~/.cache`）按便携精神不默认写入；AppImage 只读挂载的数据落点、Playwright 缓存覆盖**未实测** | 发行轮 change design | M2 Linux 实机验证之前 |
 | 原生依赖三端 prebuild 覆盖（D15） | 未引入依赖；引入时逐个核 Win x64 / Linux x64 / mac arm64 的 prebuild，缺则 CI 需本地编译 | 引入该依赖的 change | 引入该依赖之前 |
 | Node LTS 基线（D15） | CI 现用 Node 20；三端统一基线待定（20 / 22），写进 `engines` 与 README | 发行轮 change | 首个 tag 之前 |
-| 首验实机平台口径（D16） | 2026-11-08 开发机迁入 macOS arm64，原「首验先在 Windows + Chromium 跑」失效；**未重定**，不默认改成 mac，也不假装 Windows 仍成立 | 用户 + 首验方案修订 | 首验方案批准、进第一个 change 之前 |
+| 首验实机平台口径（D16） | 2026-11-08 开发机迁入 macOS arm64，原「首验先在 Windows + Chromium 跑」失效；**未重定**，不默认改成 mac，也不假装 Windows 仍成立。**2026-11-09 用户确认：作为基线的自有已打包 Electron 应用没有 Mac 版本** ⇒ 失效的不只是平台口径，基线对象本身也绑在 Windows；11-07 闸门 §五「自有应用作稳定基线」隐含「与开发机同平台」的假设被推翻。换对象 / VM 跑 Windows / 暂不跑，三者均未定 | 用户 + 首验方案修订 | 首验方案批准、进第一个 change 之前（按 D18 当前暂停） |
 
 ## 已知的"不打算现在做"
 
