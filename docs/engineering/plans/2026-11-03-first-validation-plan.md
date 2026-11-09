@@ -5,6 +5,9 @@
 > **2026-11-07 衔接**：新增[Agent 原生证据闸门](2026-11-07-agent-native-evidence-gate.md)作为本方案的精简前端——
 > 先以两段闸门取证"要不要开发"（第一段≈当前 Agent 对照，第二段≈ S0 测量项 2 的最小版），GO 后再正式立项 S0；
 > 闸门停则本方案不进入执行。两者均待批准，不并行竞争。
+> **2026-11-08 结果 / 2026-11-09 对齐**：B 轮自主任务对照给出痛点反证，闸门第一段判「停／收缩」，
+> 用户选 A 收口（[D18](../../knowledge/decisions.md)）。本提案 **S0–S4 不进入执行**，
+> §四的六件拍板事不再需要拍板；除非用户显式推翻 D18 另立 change，本文件只作历史方案保留。
 > 来源：调研 §七 把核心问题、首版范围、数据集建议、对照设计、指标与门槛都定义好了
 > （[`../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md`](../../research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)），
 > 本文件不另造口径，只做**可执行化**：排阶段、给数字、写死判据、列出需要你拍板的取舍。
