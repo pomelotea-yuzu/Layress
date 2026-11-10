@@ -64,6 +64,7 @@ Set `git config core.hooksPath .githooks` once per clone. Real product installat
 - [`docs/`](docs/README.md): guides, architecture, workflow, knowledge, research and process records.
 - [`packages/`](packages/README.md) / [`apps/`](apps/README.md): ownership placeholders; package and app directories await design, without inheriting the old four-module split.
 - `scripts/` / `i18n/` / `openspec/` / `datasets/`: gates, bilingual policy, change workflow and case ownership.
+- [`artifacts/`](artifacts/README.md): disposable output directory; only the placeholder note inside it is committed, everything else is not.
 
 Disposable output belongs only in `artifacts/`; runtime data and logs belong in `.layress/`. Neither is committed.
 

@@ -64,6 +64,7 @@ node scripts/check-repo.mjs --staged   # 按实际提交快照检查，pre-commi
 - [`docs/`](docs/README.md)：指南、架构、工作流、知识库、调研与过程资产。
 - [`packages/`](packages/README.md) / [`apps/`](apps/README.md)：代码归属占位，具体包与应用目录待设计，不沿用旧四模块划分。
 - `scripts/` / `i18n/` / `openspec/` / `datasets/`：门禁、双语口径、变更流程与案例归属。
+- [`artifacts/`](artifacts/README.md)：一次性产物目录，目录内仅占位说明入库，其余内容不入库。
 
 一次性产物只去 `artifacts/`，运行时数据与日志只去 `.layress/`，均不入库。
 

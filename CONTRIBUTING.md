@@ -43,6 +43,7 @@ Node ≥ 20。**当前开发机为 macOS arm64 / zsh**，CI runner 为 ubuntu；
 
 ## 仓库洁净度
 
+一次性产物只进 `artifacts/`，运行时数据只进 `.layress/`，两者均不入库；手写结论进 `docs/`。
 本仓严格控制进入历史的内容。**blob 一旦提交就删不干净**，所以拒绝由脚本执行，不靠 reviewer 眼力。
 
 | 规则 | 触发 | 做法 |

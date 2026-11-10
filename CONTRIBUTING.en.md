@@ -45,6 +45,7 @@ Documentation-only fixes, typos and link repairs may go straight to a PR without
 
 ## Repository hygiene
 
+Disposable output goes only to `artifacts/`, runtime data only to `.layress/`; neither is committed. Hand-written conclusions belong in the matching `docs/` subdirectory.
 This repository strictly controls what enters history. **A committed blob is never really deleted**, so
 rejection is enforced by a script rather than by reviewer vigilance.
 

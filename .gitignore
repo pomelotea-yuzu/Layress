@@ -31,7 +31,9 @@ data/
 # ── 一次性产物垃圾场（可重跑生成，默认不入库）──────────────────
 # 规矩：这里只放**脚本重新生成即可复原**的东西。
 # 手写内容、结论、审阅记录一律直接写进 docs/，不要先落 artifacts/ 再说。
-artifacts/
+artifacts/*
+# 占位说明入库，与 apps/ packages/ datasets/ 一致；其余内容仍不入库
+!artifacts/README.md
 output/
 .tmp/
 .tmp-*/
