@@ -13,7 +13,7 @@
 
 </div>
 
-> **Current status: the product direction and six-stage roadmap are confirmed. Product implementation has not started, and there is no release.**
+> **Current status: the product direction, Tauri desktop framework and six-stage roadmap are confirmed. The rest of the stage-one plan remains under review; product implementation has not started, and there is no release.**
 > This page describes the intended experience, not delivered features. See [`AGENTS.md`](AGENTS.md) §two and `git log` for actual progress.
 
 ## 🧭 What it is
@@ -23,13 +23,14 @@ Layress helps individuals and small teams using AI agents to build Web / Electro
 The shortest human workflow is: **see the interface → mark a region → add a short note → hand it to an agent → review the result**.
 For example, mark the Save button and write “the footer covers this; saving should remain possible in a smaller window.” The tool assembles the scene, location and available context to reduce explanation and lookup work.
 
-The first version is a **local service + Web workbench + shared task core + CLI**. MCP and a desktop shell can follow concrete needs.
+The first version is a **Tauri desktop workbench + shared task core + CLI**. Operate the target page, select a device and add feedback in one main window; MCP follows concrete needs.
+Tauri uses system WebViews. Capture and emulation capabilities will be published after platform testing; a second browser is not bundled by default.
 Supported target applications and agent connections must be verified individually. Arbitrary websites, frameworks and clients are not promised to work out of the box.
 
 ## 📌 Current status
 
 - No installable product, npm release or tag; no product source, workspace or active technical change.
-- The [product direction and usage](docs/product/product.md) and [formal development roadmap](docs/product/roadmap.md) are confirmed. Stage 1 has not started.
+- The [product direction and usage](docs/product/product.md), Tauri desktop framework and [formal development roadmap](docs/product/roadmap.md) are confirmed. The rest of the [stage-one plan](docs/product/2026-11-10-stage-one-plan.md) remains under review; implementation has not started.
 - Existing assets include documentation, directory ownership, public research and engineering knowledge, plus hygiene, link and bilingual gates.
 - GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) is the primary repository; Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) is the mirror. Remote synchronization must be checked live; agents do not push.
 - The 11-03–11-09 phase is [closed](docs/research/2026-11-09-phase-closure.md) and remains available as historical reference. Its validation gates, four-module architecture and desktop platform commitments do not automatically carry forward.
@@ -43,7 +44,7 @@ Supported target applications and agent connections must be verified individuall
 | Recheck after a fix | Connect the original issue with the updated scene; distinguish execution, failure and pending review. An agent claiming a fix does not automatically complete acceptance |
 | Repeatable acceptance | Gradually save reusable checks and setup steps, incorporating established automated checks |
 
-Detailed designs are written when needed; see the [roadmap index](docs/product/roadmap.md). Technology choices, adaptation order and release dates remain open.
+Detailed designs are written when needed; see the [roadmap index](docs/product/roadmap.md). Tauri is the chosen desktop framework; specific WebView integration, adaptation order and release dates remain open.
 
 ## ⌨️ Repository checks
 
@@ -76,7 +77,7 @@ Disposable output belongs only in `artifacts/`; runtime data and logs belong in 
 ## 🤝 Contributing
 
 Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md). Registered public documents are updated in both languages together; internal documentation defaults to Chinese.
-The next discussion concerns detailed designs for stages 1–2. A confirmed roadmap does not mean implementation has started.
+The Tauri stage-one plan is currently under review; stage 2 follows later. Selecting the desktop framework and writing a plan do not mean implementation has started.
 
 ## 📄 License and commitments
 

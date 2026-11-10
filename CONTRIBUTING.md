@@ -27,6 +27,8 @@ node scripts/check-repo.mjs --staged   # 暂存后检查实际提交快照，pre
 Node ≥ 20。**当前开发机为 macOS arm64 / zsh**，CI runner 为 ubuntu；门禁脚本三端通用，本地与云端跑同一条命令链（开发机平台不等于产品目标平台）。pnpm workspace 与 `pnpm check:ci` 尚未建立（见 [`docs/development/workflow.md`](docs/development/workflow.md)），
 所以现阶段没有 build/test 步骤。
 
+桌面载体已确定为 Tauri；实现时将涉及 Rust 原生层与 TypeScript 前端。具体工具链、WebView 前置依赖和安装步骤待实现 change 核实，本轮未安装；新增 Rust / 前端检查仍须接入同一条公共门禁。
+
 ## 提交流程
 
 行为变更走 openspec（口径见 [`docs/development/workflow.md`](docs/development/workflow.md)）：

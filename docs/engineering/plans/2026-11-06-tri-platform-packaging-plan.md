@@ -1,6 +1,7 @@
 # 三端打包规划（Windows / Linux / macOS）
 
 > 本文默认以中文维护。
+> **历史方案时效（2026-11-10）**：本文属于 D19 封存阶段，旧三端发行承诺、包格式和“桌面壳未定”不自动继承。当前用户已确定 Tauri（D25），新阶段范围见[产品依据](../../product/product.md)和[阶段 1 计划](../../product/2026-11-10-stage-one-plan.md)；下文保留当时口径。
 >
 > **状态**：提案（2026-11-06）。用户已拍板四项口径（见 §一与 [`../../knowledge/decisions.md`](../../knowledge/decisions.md) D15）；
 > 具体工具链、数据目录落点与 CI 矩阵仍待首个发行轮 change 的 design 定稿。

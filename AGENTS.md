@@ -20,7 +20,7 @@
 **Layress** — 面向个人开发者和小团队的本地界面验收助手。人和 Agent 共用任务、现场与复查结果；
 人可以圈画位置并简单描述，让 Agent 理解要改什么，修改后检查原问题。
 
-11-09 首版形态依据为**本地服务 + Web 工作台 + 共用任务核心 + CLI**；11-10 正优先评估 Electron 单应用，以减少双窗口与手工搬运，尚未完成选型。MCP 按具体需要增加。
+首版形态：**Tauri 桌面工作台 + 共用任务核心 + CLI**（2026-11-10 用户确认）；一个主窗口承载被测画面、设备配置与原地反馈。MCP 按具体需要增加，系统 WebView 的采集与模拟能力仍须实测。
 当前依据：[产品方向与使用方式](docs/product/product.md)。开发者无需先写选择器、JSON 或正式用例才能提出反馈。
 旧[立项调研](docs/research/2026-11-03-web-electron-ui-stress-test-tool-market-and-open-source-research.md)按历史背景查阅，旧实现范围不自动恢复；
 自动检测候选、用户意见、实际观测与缺陷确认仍须分清，Agent 声称修好不自动等于验收完成。
@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **第一阶段规划待用户审阅，尚未开始实现**（2026-11-10）。用户要求先规划第一阶段；按 Electron 单应用优先方向整理[阶段计划提案](docs/product/2026-11-10-stage-one-plan.md)，覆盖主窗口、设备配置、原地反馈、记录恢复、手动补拍与验收建议。提案未获逐项确认，不继续扩大方向论证，未建 workspace、未装依赖 |
-| 活动 change | 无（本轮只写可审阅计划；阶段 1 的技术方案、范围与验收以提案讨论结果为准，Agent 自动交接与处理闭环留阶段 2） |
-| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace；本轮仅规划文档与必要索引同步 |
-| 发行 | 无产品发行；本轮仅本地规划文档，不 push、不打 tag，未查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **Tauri 载体已确认，第一阶段计划其余范围待审阅，尚未开始实现**（2026-11-10）。用户明确转 Tauri 并要求同步文档；[产品依据](docs/product/product.md)、[阶段计划](docs/product/2026-11-10-stage-one-plan.md)、中英入口与 D25 同轮更新。保留单窗口体验，改按系统 WebView 验证采集、视口、权限和便携存储；未建 workspace、未装依赖 |
+| 活动 change | 无（本轮只更新文档；Tauri 已选定，具体版本、页面承载与采集方案留实现 change；Agent 自动交接与处理闭环仍留阶段 2） |
+| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace；本轮没有新增 Tauri / Rust / 前端代码 |
+| 发行 | 无产品发行；本轮只做本地文档更新，不 push、不打 tag，未查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
@@ -147,8 +147,8 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
     `/private/var/folders`；Linux `~/.config`／`~/.local/share`／`~/.cache`。
     安装位置由用户选择，安装器不提权、不改系统 PATH。
   - **数据跟着产品放**：拷贝整个产品目录即完成迁移；删除该目录即无残留。
-  - 连带坑（务必读）：三端上 `os.tmpdir()`、Electron `app.getPath('userData')`、Chromium
-    `sessionData` 与 Playwright 浏览器缓存**默认都落在系统用户目录**，只改"数据目录"不够 ⇒ 详见
+  - 连带坑（务必读）：系统 WebView 的会话 / 缓存和 Tauri 默认应用路径须逐端核查并覆盖；旧探针涉及的
+    `os.tmpdir()`、Electron `userData` / `sessionData` 与 Playwright 缓存也会默认写系统用户目录，只改"数据目录"不够 ⇒ 详见
     [`docs/knowledge/engineering.md`](docs/knowledge/engineering.md) 与不变量 I12–I13。
   - 数据目录的解析结果必须在报告、日志与 UI 里**显示出来**，否则用户无法验证这条承诺。
 - **文档默认中文，对外门面按需双语**（详见 [`i18n/README.md`](i18n/README.md)）：
@@ -161,7 +161,7 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
   - 中英用词查 [`i18n/glossary.md`](i18n/glossary.md)；术语表本身只维护中文说明，**代码标识、协议字段、错误码原值不翻译**。
 - **国际化 = 中国用户优先 + 英文产品名 + 具备海外发布能力**，不等于"把产品改成英文"。
 - **命名**：`docs/` 内已批准且作为当前依据的方案、现行规则、已核实事实用 `<english-kebab-case>.md`；探讨、调研、待批提案与当次记录用 `YYYY-MM-DD-<english-kebab-case>.md`。正文标注状态与证据，`README.md` 与 `*.en.md` 保留惯例；晋升与改名细则见 [`docs/README.md`](docs/README.md)。
-- **Agent 友好**：产品能力必须可发现、可非交互调用并取得有版本的结构化结果；机器输出与日志分离，退出码、错误码、证据与未执行项明确。Web 工作台与 CLI 共用任务核心，MCP / Skill 按需增加；约束见 [`openspec/config.yaml`](openspec/config.yaml) 的 Agent 接口约定，尚未实现。
+- **Agent 友好**：产品能力必须可发现、可非交互调用并取得有版本的结构化结果；机器输出与日志分离，退出码、错误码、证据与未执行项明确。桌面工作台与 CLI 共用任务核心，MCP / Skill 按需增加；约束见 [`openspec/config.yaml`](openspec/config.yaml) 的 Agent 接口约定，尚未实现。
 - **本地优先**：扫描数据、页面内容、截图默认不出本机。用远程视觉模型必须显式标明数据流与成本。
 - **候选不等于缺陷、可点击不等于业务成功**：用户意见、实际观测、自动检查和 Agent 处理结果保留来源，未执行的人工复核单列，见[产品依据](docs/product/product.md)。
 

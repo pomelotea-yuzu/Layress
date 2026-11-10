@@ -10,7 +10,7 @@ content, credentials, or outbound data is treated as high severity and fixed fir
 | Version / platform | Status |
 |---|---|
 | No release yet | The repository currently holds structure and gates only — no runnable product (see the status section in [`README.md`](README.md)) |
-| Local Web workbench and CLI | Confirmed first-version shape, not implemented; no verified support matrix yet |
+| Tauri desktop workbench and CLI | Desktop framework selected, not implemented; no verified support matrix yet. System WebView capabilities require platform testing |
 | Target browsers / Electron applications and agent clients | Support will be published by tested integration; arbitrary application or client compatibility is not promised |
 
 > Development happens on macOS arm64; working on the development machine does not establish product support. The old D15 desktop distribution matrix was closed with the previous phase. See the current [product requirements](docs/product/product.md) and [roadmap](docs/product/roadmap.md).
@@ -39,6 +39,7 @@ This tool touches sensitive data by design, so the risk surface is spelled out i
 7. **Credential handling.** Model keys and target-app sessions are entered by users inside the app; plaintext
    must not appear in logs, reports or traces. The repository gate fails `sk-`／`ghp_`／private-key shapes outright.
 8. **Operation scope.** Tasks, feedback and evidence are written under the product data directory. Reading a task does not authorize modifying the target project or rerunning actions with external side effects. The user's existing agent performs fixes within its own authorization; handling results remain separate from acceptance.
+9. **Desktop native permissions.** Isolate target pages from the tool interface. External pages must not receive Tauri native command, filesystem or process access. System WebView sessions, caches and temporary directories are also subject to portable storage requirements.
 
 ## Data flow and privacy commitments
 

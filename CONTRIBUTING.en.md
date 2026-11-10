@@ -29,6 +29,8 @@ scripts are platform-neutral and local and cloud run the same command chain (the
 not the product's target platform). The pnpm workspace and `pnpm check:ci` do not exist yet (see
 [`docs/development/workflow.md`](docs/development/workflow.md)), so there is no build or test step at this stage.
 
+Tauri is the selected desktop framework; implementation will involve a Rust native layer and a TypeScript frontend. The toolchain, WebView prerequisites and setup steps will be verified in the implementation change and have not been installed in this round. Rust and frontend checks must join the same public gate chain.
+
 ## Submission flow
 
 Behavior changes go through openspec (details in [`docs/development/workflow.md`](docs/development/workflow.md)):

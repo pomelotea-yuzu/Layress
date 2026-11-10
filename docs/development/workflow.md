@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；2026-11-09 收工时仅规划成文，未开始实现。下次先讨论阶段 1–2 的细分设计，不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；2026-11-10 用户已确定 Tauri 桌面工作台，[第一阶段计划](../product/2026-11-10-stage-one-plan.md)其余范围待审阅，未开始实现。不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 
@@ -12,6 +12,7 @@
   `node:path` 与 git 子进程，三端通用，**本地与云端跑同一条命令链**。开发机平台 ≠ 产品目标平台：
   旧 D15 与旧首验平台已封存，当前支持范围由设计与实测确定。
 - Node ≥ 20；包管理器 pnpm（workspace 建立后在根 `package.json` 固定 `packageManager` 字段）。
+- Tauri 采用 Rust 原生层与 TypeScript 前端；具体 Rust / Tauri 版本、系统 WebView 依赖和构建步骤在实现 change 确定，本轮未安装、不编造可运行命令。后续 Rust 与前端检查一起接入现有公共入口，不另设只在本机运行的门禁链。
 - 每个克隆一次：`git config core.hooksPath .githooks`。不挂 hook，洁净度问题会推迟到 CI 才暴露。
 
 ```bash

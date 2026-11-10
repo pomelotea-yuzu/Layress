@@ -1,8 +1,9 @@
 # packages/ · 共用能力归属
 
-> 当前没有产品代码。首版已确认本地 Web 工作台 + 共用任务核心 + CLI，见[产品依据](../docs/product/product.md)和[正式路线图](../docs/product/roadmap.md)。
+> 当前没有产品代码。首版已确认 Tauri 桌面工作台 + 共用任务核心 + CLI，见[产品依据](../docs/product/product.md)和[正式路线图](../docs/product/roadmap.md)。
 
 本目录承接可被不同入口复用的能力。任务、现场、反馈和复查结果应共用事实，具体包划分由阶段 1–2 的设计与后续 change 决定。
+Tauri 引入 Rust 原生层，前端仍用 TypeScript；任务核心与 CLI 的语言边界在实现设计中确定，不预设所有共用能力必须是 Node.js 包，也不建立两套任务记录。
 不提前建立空包，不恢复旧 `core / confirm / reduce / replay / cli` 五包承诺；那是封存阶段的划分。
 
 实现时遵守：

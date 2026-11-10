@@ -2,7 +2,7 @@
 
 > 本表以中文说明维护，保留中英术语对照，无需英文说明副本。
 
-版本：4（2026-11-09 补充界面验收助手与工作台口径）。适用范围：仓库门面与 `docs/` 双语版本、未来 Web 工作台与 CLI 人类可读输出、
+版本：5（2026-11-10 确认 Tauri 桌面工作台口径）。适用范围：仓库门面与 `docs/` 双语版本、未来桌面工作台与 CLI 人类可读输出、
 错误文案的 `zh-CN` / `en-US` 资源。**代码标识、协议字段、错误码、CLI 参数、文件名原值不翻译。**
 
 当前用词依据：[产品方向与使用方式](../docs/product/product.md)。旧压力测试术语保留供查，不恢复旧模块或范围承诺。
@@ -13,7 +13,9 @@
 | 概念 | 中文 | English | 约束 |
 |---|---|---|---|
 | 产品类别 | 本地界面验收助手 | local UI acceptance assistant | 当前定位；具体能力以已实现范围为准 |
-| Web 工作台 | Web 工作台 | Web workbench | 首版人类入口，与 CLI 共用任务核心 |
+| 桌面工作台 | 桌面工作台 | desktop workbench | 当前人类入口，采用 Tauri，与 CLI 共用任务事实 |
+| Web 工作台 | Web 工作台 | Web workbench | 11-09 的历史形态；当前采用 Tauri 桌面工作台，不混用两个名称 |
+| 系统 WebView | 系统 WebView | system WebView | Tauri 使用的平台网页引擎，平台间能力不同，不等于统一 Chromium 或真机浏览器 |
 | 圈画反馈 | 圈画反馈 | visual feedback | 包含位置与原话，不自动等于确认的缺陷 |
 | 验收任务 | 验收任务 | acceptance task | 人和 Agent 共享，处理完成与验收通过分开 |
 | 界面压力测试 | 界面压力测试 | UI stress testing (layout) | 历史方向与可选专项，不等于负载/性能压测（load testing） |

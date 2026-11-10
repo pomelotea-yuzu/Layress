@@ -2,15 +2,15 @@ schema: spec-driven
 
 context: |
   项目：Layress — 面向个人开发者和小团队的本地界面验收助手。
-  当前依据：docs/product/product.md（D22）与 docs/product/roadmap.md（D23，正式六阶段索引）。
-  11-09 形态依据：本地服务 + Web 工作台 + 共用任务核心 + CLI。
-  11-10 正优先评估 Electron 单应用，在同一主窗口操作页面、配置设备和原地反馈；具体技术方案未定，MCP 按实际需要增加。
+  当前依据：docs/product/product.md（D22 / D25）与 docs/product/roadmap.md（D23，正式六阶段索引）。
+  当前首版形态：Tauri 桌面工作台 + 共用任务核心 + CLI（2026-11-10 用户决定，D25）。
+  在同一主窗口操作页面、配置设备和原地反馈；此前 Web 工作台与 Electron 候选不再是当前方案，MCP 按实际需要增加。
   用户希望人和 Agent 都简单使用：人从现场圈画和短描述开始，Agent 获得同一任务、位置、证据与复查结果。
   不强制用户先写选择器、JSON 或正式用例；交互细节和具体接入方式尚未实现。
 
-  当前阶段（2026-11-10）：第一阶段计划提案待用户审阅，尚未开始实现。
+  当前阶段（2026-11-10）：Tauri 载体已确认，第一阶段计划其余范围待审阅，尚未开始实现。
   当前仅讨论与文档整理，不装依赖、不建 workspace、不立技术 change、不 push。
-  阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；按 Electron 单应用优先方向规划，新增手动补拍范围待审阅，阶段 2 保留 Agent 自动交接与处理闭环。
+  阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；按 Tauri 单应用规划，新增手动补拍范围待审阅，阶段 2 保留 Agent 自动交接与处理闭环。
   用户要求检验竞争力：圈画、快捷反馈、设备预览和反馈闭环本身已有先例，不据此声称差异化；核查见 docs/research/2026-11-10-integrated-review-differentiation.md。
   旧阶段封存见 docs/research/2026-11-09-phase-closure.md；旧资料可查，不自动恢复旧闸门、四模块架构、缩减算法、实验规模或三端桌面发行承诺。
 
@@ -25,6 +25,8 @@ context: |
   - 产品数据、日志、缓存、临时文件留在产品目录下的数据根（默认 .layress/）或用户明确指定的目录；不得默认写系统用户目录。
   - 数据根解析结果与可写性可见；不可写时明确报错，不回落系统用户目录；安装不提权、不改系统 PATH。
   - 浏览器运行期目录也需纳入数据根；使用本机既有开发工具不代表产品已经满足便携写盘要求。
+  - Tauri 与系统 WebView 的应用数据、会话、缓存和临时目录也须纳入便携存储验证，不能直接沿用系统用户目录默认值。
+  - Windows WebView2、macOS WKWebView、Linux WebKitGTK 的引擎与控制能力不同；实际引擎和可用的模拟条件要显示，不能把截图和设备预设等同真机或跨浏览器验证。
   - 一次性产物只去 artifacts/；运行时资料只去 .layress/；二者不入库，手写结论进 docs/ 对应位置。
 
   Agent 接口约定（目标要求，尚未实现）：
@@ -37,7 +39,8 @@ context: |
 
   环境与未定技术选择：
   - 开发环境 macOS arm64 / zsh / Node ≥ 20，当前会话可使用独立 Node；CI runner 为 Ubuntu。
-  - TypeScript strict 与 pnpm 是后续工程规划，workspace、包划分、Web 框架及浏览器接入由阶段设计与依赖清单定稿。
+  - 桌面载体采用 Tauri；Rust 原生层与 TypeScript strict 前端配合，前端使用 pnpm。workspace、具体版本、UI 框架、核心与 CLI 的语言边界由实现设计定稿。
+  - 优先验证系统 WebView 的页面承载、视口、截图、批注和权限隔离，不默认附带 Chromium 或 Node.js；若另需浏览器或运行时，先写清用途、总分发体积与写盘范围，不静默改变载体。
   - 优先复用成熟浏览器、批注与检查能力；Playwright / CDP 等尚未选定为产品接入实现。
   - 本地与 CI 共用 node scripts/check-repo.mjs 公共门禁；构建、类型、业务测试、lint、spec 检查待产品骨架建立后接入同一条链。
   - MIT；产出默认中文，根目录登记的对外文档同轮同步英文，产品文案按 i18n/ 口径演进。
