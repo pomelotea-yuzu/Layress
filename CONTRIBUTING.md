@@ -35,8 +35,9 @@ Node ≥ 20。**当前开发机为 macOS arm64 / zsh**，CI runner 为 ubuntu；
 
 1. 开 Issue 或在已有 Issue 下对齐问题陈述。
 2. 建 `openspec/changes/<change-name>/`：`tasks.md` 拆步骤，`design.md` 写方案与取舍。
-3. 按任务实施，**仅在确有必要/有价值或完成一小段开发时做一次本地 commit**（是否提交由执行者按价值判断，不为凑数提交）；判据与实测证据留在 change 目录内。
-4. 归档进 `openspec/changes/archive/<date>-<change-name>/`，合入主 spec。
+3. 编写 Agent 写完 change 后，等待用户切换到**另一 Agent 审阅并在对应目录产出 `review.md`**；用户再回到原编写 Agent，由其读取并处理意见、修订 change、完成必要检查，随后即可本地提交，无需再次确认。不得用编写者自审、空占位或机器 PASS 替代审阅；Agent 审阅不替代人工验收，用户保留最终决定权。
+4. 按任务实施，满足上述审阅前置条件后，**仅在确有必要/有价值或完成一小段开发时做本地 commit**，不为凑数提交；判据与实测证据留在 change 目录内。
+5. 归档进 `openspec/changes/archive/<date>-<change-name>/`，合入主 spec。
 
 纯文档修订、错别字、链接修复可直接提 PR，不必立项。
 

@@ -8,8 +8,9 @@ context: |
   用户希望人和 Agent 都简单使用：人从现场圈画和短描述开始，Agent 获得同一任务、位置、证据与复查结果。
   不强制用户先写选择器、JSON 或正式用例；交互细节和具体接入方式尚未实现。
 
-  当前阶段（2026-11-10）：用户已要求建立首个 change，add-tauri-page-host 已立项；尚未编码、安装依赖、建立 workspace 或运行实机验证，本轮不 push。
+  当前阶段（2026-11-10）：add-tauri-page-host 已立项，共享 OpenSpec CLI 1.17.0 已按用户指定位置安装并通过严格规格校验；尚未产品编码、安装产品依赖、建立 workspace 或运行实机验证，本轮不 push。
   活动入口：openspec/changes/add-tauri-page-host/proposal.md；只覆盖阶段 1 首增量的单窗口页面承载、基础视口、截图与原地预览可行性，其余范围不自动获批。
+  当前提交状态：用户已明确本地提交；另一 Agent 的 review 已收到，原编写 Agent 已处理意见，本轮同步最终审阅流程并在必要检查通过后提交，不开始产品编码。
   阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；Tauri 已确定，项目 / 设备记忆、持久反馈与补拍留后续增量，阶段 2 保留 Agent 自动交接与处理闭环。
   用户要求检验竞争力：圈画、快捷反馈、设备预览和反馈闭环本身已有先例，不据此声称差异化；核查见 docs/research/2026-11-10-integrated-review-differentiation.md。
   旧阶段封存见 docs/research/2026-11-09-phase-closure.md；旧资料可查，不自动恢复旧闸门、四模块架构、缩减算法、实验规模或三端桌面发行承诺。
@@ -39,13 +40,15 @@ context: |
 
   环境与未定技术选择：
   - 开发环境 macOS arm64 / zsh / Node ≥ 20，当前会话可使用独立 Node；CI runner 为 Ubuntu。
+  - 共享开发工具 OpenSpec 1.17.0 另要求 Node >= 22.12.0，本机 Node 26.13.0 已运行通过。入口和隔离目录约定见 docs/development/workflow.md，工具不随产品打包、不装进本仓，也不改系统 PATH。
   - 桌面载体采用 Tauri；Rust 原生层与 TypeScript strict 前端配合，前端使用 pnpm。workspace、具体版本、UI 框架、核心与 CLI 的语言边界由实现设计定稿。
   - 优先验证系统 WebView 的页面承载、视口、截图、批注和权限隔离，不默认附带 Chromium 或 Node.js；若另需浏览器或运行时，先写清用途、总分发体积与写盘范围，不静默改变载体。
   - 已读取 API：多 WebView 的 Window::add_child 目前要求 unstable 功能；macOS WKWebView 不支持 data_directory，自定义 data store identifier 不等于可指定目录。首个 change 单列非持久会话及真实写盘验证，不以 API 设置成功冒充便携通过。
   - 优先复用成熟浏览器、批注与检查能力；Playwright / CDP 等尚未选定为产品接入实现。
   - 本地与 CI 共用 node scripts/check-repo.mjs 公共门禁；构建、类型、业务测试、lint、spec 检查待产品骨架建立后接入同一条链。
   - MIT；产出默认中文，根目录登记的对外文档同轮同步英文，产品文案按 i18n/ 口径演进。
-  - 实际远程名以 git remote -v 为准；本地提交可以做，push 与 tag 归用户，远程同步状态只认实时命令。
+  - 编写 Agent 写完 change 后等待用户切换另一 Agent，在对应目录产出 review.md；用户回原编写 Agent 后，由其读取并处理意见、通过必要检查，即可本地提交，无需再次确认。不得以编写者自审、空占位或机器 PASS 跳过流程；用户负责切换，不要求自动生成子 Agent。机器审阅不替代人工验收。
+  - 实际远程名以 git remote -v 为准；本地提交遵守 Agent 审阅前置条件，push 与 tag 归用户，远程同步状态只认实时命令。
 
 conventions:
   language: 默认中文；仅 i18n/docs-manifest.json 的 docs 登记文件同轮维护英文，内部文档无需成对

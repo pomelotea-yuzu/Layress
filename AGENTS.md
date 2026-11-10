@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **第一阶段首个 change 已立项，尚未开始编码**（2026-11-10）。用户要求起第一个 change，范围为 Tauri 单窗口页面承载、基础视口控制、截图与原地批注可行性；见[活动 change](openspec/changes/add-tauri-page-host/proposal.md)。本轮建立方案、规格增量、任务与证据计划，未建 workspace、未装产品依赖；其余阶段范围不自动视为已批准 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（规划就绪，实施与实机验收均未执行；完整项目 / 设备管理、持久反馈和 Agent 闭环留后续增量） |
-| 代码 | 无产品源码；本轮新增首个 change 文档，尚无 Tauri / Rust / 前端实现、workspace 或产品依赖 |
-| 发行 | 无产品发行；本轮只做本地 change 文档，不 push、不打 tag，未查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **首个 change 的 review 文档意见已处理，用户已授权本地提交，尚未开始产品编码**（2026-11-10）。用户明确 D26：编写 Agent 写完 change，由用户切换另一 Agent 产出 review.md，再回原编写 Agent 处理意见与检查，完成后即可提交，无需重复确认。本轮同步最终流程并提交已有文档改动，18 项实施任务仍未执行 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[review](openspec/changes/add-tauri-page-host/review.md)规划意见已落实；OpenSpec strict 与完整暂存快照门禁以本轮实跑为准；E01–E14 产品运行与人工验收未执行） |
+| 代码 | 无产品源码；本轮仅同步审阅流程、提交 change 修订与共享工具记录，不新增 Tauri / Rust / 前端实现 |
+| 发行 | 无产品发行；本轮按用户指令本地提交，不 push、不打 tag，未查询远程同步；共享 OpenSpec 安装保留。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
@@ -106,7 +106,7 @@ Workspace 骨架落地后按 `docs/development/workflow.md` 建立 `pnpm check:c
 4. **截图默认留本地**：`docs/reviews/**/*.png` 已忽略。验收证据真要对外展示才 `add -f`。
 5. **`git add -f` 之前**先问三句：能被脚本重生成吗？能不能放到 `docs/` 或 `datasets/` 的正确位置？
    是否其实只该躺在垃圾场（那就根本不需要豁免）？
-6. **push 归用户**。智能体仅在确有必要/有价值、或完成一小段开发时做本地 commit，是否提交由模型按价值判断，不为凑数提交；**不 push**，远程与 tag 由用户操作。
+6. **change 先由另一 Agent 审阅，原编写 Agent 修订后提交，push 归用户**。写完 change 后等待用户切换另一 Agent，在对应目录产出 `review.md`；用户回到原编写 Agent 后，由其读取并处理意见、通过必要检查，即可做相关本地 commit，无需再次索要确认。不得以编写者自审、空占位或机器 PASS 跳过此流程；Agent 审阅不替代人工验收。满足条件后仍只在确有价值时提交，不凑数；**不 push**，远程与 tag 由用户操作。
 
 ## 六、经验与坑怎么写（本仓最重要的机制）
 

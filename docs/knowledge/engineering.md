@@ -36,6 +36,7 @@
 
 ## 存储与便携（便携优先 · 不写系统用户目录）
 
+- [2026-11-10][P1] 写盘观测无事件容易被误写成便携通过 ⇒ 观测链可能没捕获事件、漏掉系统 WebView 辅助进程或无法排除背景写入 ⇒ 先以隔离夹具根外写入验证检测链，再对真实应用记录进程 / 时间归因、前后对照与覆盖盲区，证据不足标不确定 ⇒ 证据：[review 的 E10 意见](../../openspec/changes/add-tauri-page-host/review.md)与[已补证据计划](../../openspec/changes/add-tauri-page-host/evidence-index.md)，实际写盘验证尚未执行。
 - [2026-11-10][P1] WKWebView 不支持 `data_directory`，`data_store_identifier` 也不是任意路径，非持久模式不证明无运行期写入 ⇒ 把跨平台 API 名称当作一致的存储能力会误判便携通过 ⇒ 首个 change 分别记录平台限制、非持久会话设置和实际写盘观测，不静默使用系统持久目录 ⇒ 证据：[首个 change 设计与官方 API 核查](../../openspec/changes/add-tauri-page-host/design.md)，仅文档核对，尚未实机验证。
 - [2026-11-10][P1] 桌面载体转 Tauri 后仍容易套用统一 Chromium 与 Electron 路径覆盖假设 ⇒ Tauri 复用平台 WebView，引擎、控制与存储路径不同 ⇒ 按实际引擎验证视口 / 截图 / 模拟，另核会话、缓存与临时目录，未验证不声明便携或真机兼容 ⇒ 证据：D25、[阶段计划的技术依据](../product/2026-11-10-stage-one-plan.md)与官方 Tauri 架构 / WebView 文档；本项目尚未实测。
 - [2026-11-03][P0] 号称便携的产品仍在系统用户目录长垃圾 ⇒ 只把"数据目录"挪到产品旁不够：Windows `os.tmpdir()` = `%TEMP%` = `C:\Users\<user>\AppData\Local\Temp`，macOS 落在 `/private/var/folders/…`，Linux 落在 `/tmp` 或 XDG 缓存；Electron `app.getPath('userData')` 与 Chromium `sessionData`/`Cache`/`GPUCache` 三端默认同样落在系统用户目录 ⇒ 三处必须一起覆盖：`app.setPath('userData', <数据根>/userdata)`、`session.setPath('sessionData', ...)`、自建临时目录并显式传给 `--user-data-dir`；**禁止把 `os.tmpdir()` 当默认值用** ⇒ 来源：前置项目 `.gitignore` 已记录"一次性工作目录（含 Electron sessionData 缓存等临时文件）"这一坑；**Layress 待实测确认**。
@@ -46,6 +47,9 @@
 
 ## 依赖与产物
 
+- [2026-11-10][P1] 共享安装只指定 npm prefix 仍可能让 OpenSpec 配置、缓存和临时资料落入系统用户目录 ⇒ 安装前缀与 CLI 的 XDG / 临时目录是不同控制面 ⇒ 共享启动入口统一设置 XDG、TMPDIR、npm cache / logs，并关闭遥测与自动更新，项目内只留调用说明 ⇒ 证据：OpenSpec 1.17.0 安装源码核对、实际共享入口与[工作流](../development/workflow.md)。
+- [2026-11-10][P2] npm 11.20.0 同时把 userconfig 和 globalconfig 指向 `/dev/null` 时安装报 double-loading config ⇒ npm 不接受两个配置层复用同一文件路径 ⇒ 在授权工具根提供两个独立配置文件，再显式指定 prefix / cache / logs ⇒ 证据：本轮首次安装报错与随后 57 个包安装成功，OpenSpec `--version` 输出 1.17.0。
+- [2026-11-10][P1] OpenSpec `status` 返回 `isComplete: true` 容易被当成实施完成 ⇒ 该命令描述规划文档状态，任务未必已勾选 ⇒ 以 tasks 与实机证据判断实现，规格校验与规划完成分别记录 ⇒ 证据：[首个 change 校验记录](../../openspec/changes/add-tauri-page-host/evidence-index.md)，本轮实施任务仍全部未执行。
 - （待填）首个 `pnpm install` 之后，把实际遇到的解析/锁定/离线打包坑写在这里。
 
 ## 知识库与交接

@@ -95,7 +95,37 @@ openspec/
 
 纯文档修订、错别字、链接修复不必立项。
 
-本会话尚未找到 OpenSpec CLI；可先按 `spec-driven` 结构准备 change，本轮不安装工具。未运行 CLI 校验需明示，仓库文档门禁不等于 OpenSpec 语义校验；CLI 可用时补做对应校验，不得写成已经通过。
+### Agent 审阅与本地提交（2026-11-10 建立，同日修订）
+
+用户于 2026-11-10 明确最终流程：
+
+1. 编写 Agent 写完 change，保留工作区改动，等待用户切换到另一 Agent。
+2. 审阅 Agent 在对应 `openspec/changes/<name>/` 产出 `review.md`，记录结论、带文件位置与建议动作的问题清单、实跑检查与静态推断的区分、未执行项；不要求额外多模型交叉或用户手写审阅。
+3. 用户回到原编写 Agent，由其读取 review、处理意见并修改 change，运行必要检查。
+4. 意见处理完成且检查通过后，原编写 Agent 即可做相关本地提交，无需再让用户确认一次；不 push、不打 tag。
+
+编写者自行生成 review、空文件占位、规划齐备或机器 PASS 均不能代替另一 Agent 的审阅；用户切换 Agent，不要求编写 Agent 自动生成子 Agent。若审阅仍有实际未解决问题，应处理或说明，不能仅凭文件存在就当成通过，也不能先提交附带的工具记录绕过等待。
+Agent 审阅属**机器复核，不替代人工验收**：视觉 / 交互人工复核、实机验证与未执行项仍单列。文档意见已落实与对应产品运行验证已通过分别记录，用户保留最终决定权。
+这一规则适用于 change 相关的文档与实现提交；它是本地提交的前置条件，不代替产品实现授权，也不恢复旧阶段的市场 / 探针批准闸门。
+
+### 共享 OpenSpec CLI（2026-11-10 已安装）
+
+当前开发机采用项目外共享工具目录 `tools/openspec/`，固定 `@fission-ai/openspec@1.17.0`，由用户指定位置；本机布局下从 Layress 根目录通过以下入口调用：
+
+```bash
+../tools/openspec/openspec --version
+../tools/openspec/openspec validate add-tauri-page-host --strict --no-interactive --json
+../tools/openspec/openspec status --change add-tauri-page-host --json
+```
+
+其他项目在自己的项目根目录使用同一个工具入口的实际路径，工作目录保持为被操作项目。上述相对路径仅适用于本机同级 `tools/` 布局，clone 仓库不会自动带来工具安装，不将本机绝对路径或依赖目录提交到仓库。
+该版本要求 Node ≥ 22.12.0，本机 Node 26.13.0 已实跑；仓库原有门禁 Node ≥ 20 的要求不因此改写。本轮未安装 Tauri / Rust / pnpm 产品工具链。
+
+共享入口将 XDG 配置 / 缓存 / 数据、npm 缓存 / 日志与临时目录定位到工具根，设置 `OPENSPEC_TELEMETRY=0`、`DO_NOT_TRACK=1` 和 `OPENSPEC_NO_UPDATE_CHECK=1`；不做全局安装、不修改系统 PATH。使用该入口，直接调用原始 `node_modules/.bin/openspec` 会绕过这些目录与隐私设置。
+安装使用 npm 官方源、精确版本、工具根内的独立用户 / 全局配置与 `--ignore-scripts`，依赖和锁文件留工具目录；本轮已验证无需依赖安装脚本即可运行校验。升级由显式操作更新，不自动拉取 `latest` 或修改其他项目。
+
+本轮 `validate` 通过，1 个 change、0 个问题；`status` 确认四类规划文档齐备。`isPlanningComplete` / `isComplete` 是该命令的规划状态，不等于任务已实施；实际实施仍看 change 的未勾选任务与实机证据。
+仓库文档门禁与 OpenSpec 语义校验分别记录；共享 CLI 可用尚不等于已建立 workspace 或自动 `check:spec` 门禁。
 
 ## 文档与命名
 
@@ -111,7 +141,7 @@ openspec/
 - **提交前自检**：本轮踩的坑、被推翻的假设与口径变更，是否已在 [`docs/knowledge/`](../knowledge/README.md)
   对应专题留条目？只写 `.workbuddy/memory/` 等于没写（该目录不入库，别的 Agent 与接手人拿不到）。
 - **仅在确有必要/有价值、或完成一小段开发时做本地 commit**；是否提交由模型/执行者按价值判断，
-  不为凑数提交，也不攒一大坨；**不 push**。
+  不为凑数提交，也不攒一大坨；change 相关提交须先满足本页的 Agent 审阅 `review.md` 前置条件，等待时保留工作区修改；**不 push**。
 - push、打 tag、双远程同步归维护者。**先跑 `git remote -v`**：远程名是本机配置，不写死在文档里。
   当前 Mac 克隆的 `origin` 挂了两条 push URL（Gitee + GitHub），一条 `git push origin main` 即推两端；
   远程名分开配置时逐端 `git push <远程名> main`，或直接用显式 URL

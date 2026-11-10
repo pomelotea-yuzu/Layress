@@ -37,8 +37,9 @@ Behavior changes go through openspec (details in [`docs/development/workflow.md`
 
 1. Open an Issue, or align on the problem statement under an existing one.
 2. Create `openspec/changes/<change-name>/`: `tasks.md` breaks down the steps, `design.md` records the approach and trade-offs.
-3. Implement task by task, **making a local commit only when it is genuinely necessary or a small development slice is complete** (the executor judges whether a commit is worthwhile; do not commit just to pad the log); criteria and measured evidence stay inside the change directory.
-4. Archive into `openspec/changes/archive/<date>-<change-name>/` and merge the delta into the main specs.
+3. After the authoring agent writes the change, wait for the user to switch to **another agent to review it and produce `review.md` in that directory**. The user then returns to the original agent, which reads and addresses the feedback, revises the change and runs the necessary checks. It may then commit locally without asking for confirmation again. Author self-review, empty placeholders and passing machine checks do not replace this review. Agent review does not replace human acceptance; the user retains the final say.
+4. Implement task by task. Once the review prerequisite is met, **make a local commit only when necessary or worthwhile, or when a small development slice is complete**; do not commit just to pad the log. Criteria and measured evidence stay inside the change directory.
+5. Archive into `openspec/changes/archive/<date>-<change-name>/` and merge the delta into the main specs.
 
 Documentation-only fixes, typos and link repairs may go straight to a PR without a change proposal.
 

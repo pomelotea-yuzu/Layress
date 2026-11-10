@@ -22,5 +22,5 @@ specs/
 
 ## 尚未落实
 
-`check:spec`（主 spec 与归档 change 的差集校验）依赖 pnpm workspace 与 openspec CLI，尚未建立；
-建好之前，本目录的一致性由人工核对保证。
+`check:spec`（主 spec 与归档 change 的差集校验）尚未接入公共门禁，workspace 也未建立。
+共享 OpenSpec CLI 1.17.0 已安装并对首个 change 执行严格校验，调用见[工作流](../../docs/development/workflow.md)；这不代表主规格 / 归档差集检查已经自动化，当前仍需人工核对。
