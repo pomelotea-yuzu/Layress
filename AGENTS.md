@@ -40,7 +40,7 @@
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
 **push 状态 ⇒ 只认 `git ls-remote` 的回显，不认本文件写了什么**。
 
-仓库与远程：本地 `~/Developer/layress`（macOS arm64 / zsh，2026-11-08 由 Windows 迁入）；分支 `main`；
+仓库与远程：本地 `~/Developer/project/layress/`（macOS arm64 / zsh，2026-11-08 由 Windows 迁入，2026-11-10 由 `~/Developer/layress/` 归位到同级 `project/` 下，见 D27）；分支 `main`；
 项目约定的双远程为 `github` = `https://github.com/pomelotea-yuzu/Layress.git`（主仓库）、
 `gitee` = `https://gitee.com/yuzu-tea-duck/layress.git`（镜像）。**远程名一律以 `git remote -v` 为准**：
 当前 Mac 克隆只用单个 `origin`（fetch/push 指向 Gitee，另挂 GitHub push URL），历史记载的「无 origin」

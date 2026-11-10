@@ -11,6 +11,7 @@
 - [2026-11-08][P1] 门禁的「机器绝对路径」与「系统用户目录」规则只按 Windows 形态写，开发机迁到 macOS 后 `/Users/<name>/…`、`~/Library/…` 完全不判红 ⇒ 判据是平台函数而非环境常量，换开发机必须回头查规则覆盖面 ⇒ 三端形态并列写进 `check-hygiene.mjs`，补 macOS Library / Linux XDG / POSIX 绝对路径三个反证用例，由 `--selftest` 证明确实判红 ⇒ 证据：本轮 `check-repo.mjs --all` 自测回显。
 - [2026-11-09][P1] 迁机 macOS 后仍把「自有、已打包、开发冻结的 Electron 应用」当可复用基线，用户确认该应用**没有 Mac 版本** ⇒ D16 只改了「首验实机平台」口径，没核基线对象是否随开发机可用；「自有 + 已打包 + 冻结」不等于「当前机器上跑得起来」 ⇒ 迁机 / 换机必须同时核三件事：基线对象可启动性、探针栈可用性、证据原件是否随机器迁移；不可用时把对象与平台**一起**列欠账，不默认 Mac 能跑、也不假装 Windows 仍成立 ⇒ 证据：用户 2026-11-09 确认；[`debt.md`](debt.md)「首验实机平台口径」行、[`../engineering/plans/2026-11-07-agent-native-evidence-gate.md`](../engineering/plans/2026-11-07-agent-native-evidence-gate.md) §五。
 - [2026-11-08][P1] 文档状态卡里写死 `git fetch github && git log --oneline github/main..main`，换克隆直接报错 ⇒ 远程名是**本机 git 配置**而非仓库事实：当前 Mac 克隆只有单个 `origin`（Gitee fetch/push + GitHub push URL），`github`／`gitee` 这两个名字并不存在 ⇒ 查未推提交一律用不依赖远程名的 `git fetch --all && git log --oneline '@{u}'..main`，文档注明「远程名以 `git remote -v` 为准」；远程配置归用户，智能体不改 ⇒ 证据：本轮 `git remote -v` 回显与状态卡命令失效；同一根因下 `git push github main && git push gitee main` 同样失效，工作流已一并改为先查 `git remote -v`。
+- [2026-11-10][P2] 整目录移动 git 仓库后，当前会话的 shell 立刻报 `Working directory does not exist`，而文档读写工具仍正常 ⇒ Bash 类工具的 cwd 绑定会话启动时的工作区绝对路径，IDE 工作区与本机记忆索引同样按路径绑定；`.git` 内部全为相对路径，仓库本身无损，失效的是仓库外的本机绑定 ⇒ 移动后先在新路径实跑 git 与门禁，并在 IDE 重新打开工作区；会话内还要跑 shell 时临时让旧路径可进入、收尾删净，本机日志写入改指新路径 ⇒ 证据：2026-11-10 目录归位实跑回显、D27 与[`AGENTS.md`](../../AGENTS.md) §二。
 
 ## 门禁
 
