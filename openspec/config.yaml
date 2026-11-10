@@ -8,9 +8,9 @@ context: |
   用户希望人和 Agent 都简单使用：人从现场圈画和短描述开始，Agent 获得同一任务、位置、证据与复查结果。
   不强制用户先写选择器、JSON 或正式用例；交互细节和具体接入方式尚未实现。
 
-  当前阶段（2026-11-10）：路线图已敲定，阶段 1 细分设计讨论中，尚未开始实现。
+  当前阶段（2026-11-10）：第一阶段计划提案待用户审阅，尚未开始实现。
   当前仅讨论与文档整理，不装依赖、不建 workspace、不立技术 change、不 push。
-  阶段 1 讨论稿：docs/product/2026-11-10-stage-one-experience-and-access.md；具体接入方案未定，阶段 2 后续讨论。
+  阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；按 Electron 单应用优先方向规划，新增手动补拍范围待审阅，阶段 2 保留 Agent 自动交接与处理闭环。
   用户要求检验竞争力：圈画、快捷反馈、设备预览和反馈闭环本身已有先例，不据此声称差异化；核查见 docs/research/2026-11-10-integrated-review-differentiation.md。
   旧阶段封存见 docs/research/2026-11-09-phase-closure.md；旧资料可查，不自动恢复旧闸门、四模块架构、缩减算法、实验规模或三端桌面发行承诺。
 

@@ -49,8 +49,8 @@
 | [`reviews/`](reviews/README.md) | 实机验收与审阅证据；**过程截图默认不入库** | 不需要 |
 | `drafts/` | 个人工作草稿与停止维护的内部译本本地归档，**整目录不入库**；归档子目录自带来源索引 | — |
 
-当前产品依据：[产品方向与使用方式](product/product.md)——用户已确认本地界面验收助手、首版 Web 工作台 + 共用任务核心 + CLI；对人和 Agent 都要简单，支持圈画现场与简短描述，具体交互和接入尚未实现。
-正式阶段索引：[开发路线图](product/roadmap.md)——沿用无日期路径并替换原内容，六阶段规划已敲定；近期具体、远期留白，设计按主题或 change 单独成文，当前阶段 1 尚未开始。
+当前产品依据：[产品方向与使用方式](product/product.md)——本地界面验收助手；11-10 根据用户反馈优先评估 Electron 单应用，保留共用任务事实与 Agent 非交互调用要求，具体方案尚未实现。
+正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；当前[第一阶段计划提案](product/2026-11-10-stage-one-plan.md)待审阅，近期具体、远期留白，尚未开始实现。
 调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
 新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
 历史资料：[阶段封存](research/2026-11-09-phase-closure.md)、[原路线图快照](product/2026-11-09-previous-roadmap.md)、[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)、[社区原始记录](research/2026-11-04-community-evidence-round-one.md)与[VS Code 候选](research/2026-11-04-vscode-candidate-readiness.md)保留供查。旧“下次第一步”、待批状态和停止条件不自动作为新阶段执行依据。
@@ -81,6 +81,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 ```
 
 ## 路径变更记录
+
+- **2026-11-10 第一阶段计划提案**：新增[单窗口体验与现场记录计划](product/2026-11-10-stage-one-plan.md)，明确范围、界面、实施增量、验收与阶段边界；讨论稿、产品 / 路线图 / 目录索引、config、未决项与接手状态同轮接续。提案未逐项确认，无既有路径迁移，未启动开发。
 
 - **2026-11-10 单应用与竞争力讨论**：新增[同类产品核查](research/2026-11-10-integrated-review-differentiation.md)，同步产品与阶段 1 讨论稿、研究索引、config、经验条目与接手状态。Electron 为优先评估方向，尚未锁定；记录已有能力重叠和未验证收益，无既有路径迁移，无产品实现。
 

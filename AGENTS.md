@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **阶段 1 体验与差异化讨论中，尚未开始实现**（2026-11-10）。用户指出双窗口加手工截图没有足够减少工作量，倾向 Electron 单应用承载被测画面与工具，同时要求重新判断竞争力。已补[同类产品核查](docs/research/2026-11-10-integrated-review-differentiation.md)；单应用为优先评估方向，圈画、反馈闭环与多设备本身不视为已成立优势，具体定位待讨论 |
-| 活动 change | 无（阶段 1 尚未开始实现；当前比较单窗口体验与现有工具，下一步按具体任务验证省下哪些操作；尚未锁定 Electron 技术方案或新增功能清单） |
-| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace；本轮仅讨论、公开资料核查与文档整理 |
-| 发行 | 无产品发行；本轮不 push、不打 tag，未重新查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **第一阶段规划待用户审阅，尚未开始实现**（2026-11-10）。用户要求先规划第一阶段；按 Electron 单应用优先方向整理[阶段计划提案](docs/product/2026-11-10-stage-one-plan.md)，覆盖主窗口、设备配置、原地反馈、记录恢复、手动补拍与验收建议。提案未获逐项确认，不继续扩大方向论证，未建 workspace、未装依赖 |
+| 活动 change | 无（本轮只写可审阅计划；阶段 1 的技术方案、范围与验收以提案讨论结果为准，Agent 自动交接与处理闭环留阶段 2） |
+| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace；本轮仅规划文档与必要索引同步 |
+| 发行 | 无产品发行；本轮仅本地规划文档，不 push、不打 tag，未查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
