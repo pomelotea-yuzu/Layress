@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **今日收工：产品方向与六阶段路线图已敲定，尚未开始实现**（2026-11-09）。正式依据：[产品方向与使用方式](docs/product/product.md)与无日期[路线图索引](docs/product/roadmap.md)；本轮完成公开资料续查、圈画反馈要求、阶段规划与现行入口同步。用户要求改完本地提交后结束，不 push、不直接开发；未建 workspace、未装产品依赖、未立技术 change。下次先讨论阶段 1–2 的细分设计，后续实现需按用户新指令推进；门禁结果以本轮实跑为准 |
-| 活动 change | 无（阶段 1 未开始；下次先讨论体验、接入、任务闭环的范围与验收方式，设计按需成文） |
-| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace |
-| 发行 | 无产品发行，本轮只做本地文档提交，不 push、不打 tag；本轮未重新查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **阶段 1 细分设计讨论中，尚未开始实现**（2026-11-10）。产品与路线图沿用 11-09 依据；用户补充设备选择、记住上次配置等基础流程要求，见[产品依据](docs/product/product.md)。[第一阶段讨论稿](docs/product/2026-11-10-stage-one-experience-and-access.md)区分独立浏览器、页面内工具与嵌入展示，记录模型操作能力的影响及待定方案；未建 workspace、未装产品依赖 |
+| 活动 change | 无（阶段 1 尚未开始实现；当前细化设备与页面选择、现场采集、圈画和短描述，独立浏览器与悬浮工具均未定稿；阶段 2 任务闭环后续讨论） |
+| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace；本轮仅进入设计讨论 |
+| 发行 | 无产品发行；本轮不 push、不打 tag，未重新查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
