@@ -53,6 +53,7 @@
 正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；[第一阶段计划](product/2026-11-10-stage-one-plan.md)已转 Tauri，其余范围待审阅，近期具体、远期留白，尚未开始实现。
 首个活动 change：[add-tauri-page-host](../openspec/changes/add-tauri-page-host/proposal.md)——其目录与 `specs/desktop-page-host/` 分别承接首增量执行文档与待实现规格，归属见[活动 change 索引](../openspec/changes/README.md)；已立项，尚未编码。
 调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
+平台分布背景：[开发者操作系统分布](research/2026-11-10-developer-os-distribution.md)——三类外圈数据的来源分级、题目口径冲突与未定稿的适配顺序建议；不是目标用户统计，也不恢复旧三端发行承诺。
 新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
 历史资料：[阶段封存](research/2026-11-09-phase-closure.md)、[原路线图快照](product/2026-11-09-previous-roadmap.md)、[基础需求与 AI Agent 增强调研汇总](research/2026-11-05-user-needs-and-agent-augmentation-research.md)、[社区原始记录](research/2026-11-04-community-evidence-round-one.md)与[VS Code 候选](research/2026-11-04-vscode-candidate-readiness.md)保留供查。旧“下次第一步”、待批状态和停止条件不自动作为新阶段执行依据。
 
@@ -82,6 +83,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 ```
 
 ## 路径变更记录
+
+- **2026-11-10 开发者操作系统分布背景核查**：新增 [`research/2026-11-10-developer-os-distribution.md`](research/2026-11-10-developer-os-distribution.md)，同步调研与文档索引；按受众调研口径标注来源等级、官方页面与二手转述的题目口径冲突及未执行项，平台适配顺序仅为建议、未定稿。状态卡四行真值未变，未改产品依据与活动 change，无路径迁移，未开始产品实现。
 
 - **2026-11-10 明确跨 Agent 审阅与提交**：用户最终确认“编写 change → 用户切换另一 Agent 产出 review → 回原编写 Agent 修订、检查、提交”，同步 D26、接手状态、工作流、中英贡献指南、change 索引、任务 / 证据 / review 与 config；本轮提交已处理的规划意见及共享工具记录，无路径迁移，未开始产品实现。此前“不提交”记录只描述当轮状态。
 

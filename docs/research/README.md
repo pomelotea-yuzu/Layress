@@ -9,6 +9,8 @@
 
 - [单应用界面检查工具：先例与差异化核查](2026-11-10-integrated-review-differentiation.md)：Polypane、Responsively、Agentation、ProofShot 与 stagewise 当前官方资料；单应用、设备预览、反馈往返与证据均有先例，候选流程收益尚未实测。
 
+- [开发者操作系统分布：平台适配的背景核查](2026-11-10-developer-os-distribution.md)：核查 Stack Overflow 2025、JetBrains 2025、StatCounter 与创业 / 大厂投票；来源分级、题目口径冲突与未核原始 CSV 单列。仅作平台适配背景，未推算本产品用户规模，平台范围未定稿。
+
 历史调研记录：[受众与常用界面检查流程](2026-11-09-audience-and-workflow-research.md)——记录确认产品形态前围绕“避免越做越小众”核查的开发者调查、直接使用反馈、已有 Agent 与相近产品；其中“具体形态未定”是当时状态，竞品实跑与中文近期需求仍待补齐。
 
 新阶段用户目标与前一轮候选建议见[面向 Agent 开发流程的界面检查](../product/2026-11-09-agent-ui-review-direction.md)。下面的旧阶段表保留历史资料，仍可按来源与适用范围引用。
