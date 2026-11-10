@@ -8,9 +8,9 @@ context: |
   用户希望人和 Agent 都简单使用：人从现场圈画和短描述开始，Agent 获得同一任务、位置、证据与复查结果。
   不强制用户先写选择器、JSON 或正式用例；交互细节和具体接入方式尚未实现。
 
-  当前阶段（2026-11-10）：Tauri 载体已确认，第一阶段计划其余范围待审阅，尚未开始实现。
-  当前仅讨论与文档整理，不装依赖、不建 workspace、不立技术 change、不 push。
-  阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；按 Tauri 单应用规划，新增手动补拍范围待审阅，阶段 2 保留 Agent 自动交接与处理闭环。
+  当前阶段（2026-11-10）：用户已要求建立首个 change，add-tauri-page-host 已立项；尚未编码、安装依赖、建立 workspace 或运行实机验证，本轮不 push。
+  活动入口：openspec/changes/add-tauri-page-host/proposal.md；只覆盖阶段 1 首增量的单窗口页面承载、基础视口、截图与原地预览可行性，其余范围不自动获批。
+  阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；Tauri 已确定，项目 / 设备记忆、持久反馈与补拍留后续增量，阶段 2 保留 Agent 自动交接与处理闭环。
   用户要求检验竞争力：圈画、快捷反馈、设备预览和反馈闭环本身已有先例，不据此声称差异化；核查见 docs/research/2026-11-10-integrated-review-differentiation.md。
   旧阶段封存见 docs/research/2026-11-09-phase-closure.md；旧资料可查，不自动恢复旧闸门、四模块架构、缩减算法、实验规模或三端桌面发行承诺。
 
@@ -41,6 +41,7 @@ context: |
   - 开发环境 macOS arm64 / zsh / Node ≥ 20，当前会话可使用独立 Node；CI runner 为 Ubuntu。
   - 桌面载体采用 Tauri；Rust 原生层与 TypeScript strict 前端配合，前端使用 pnpm。workspace、具体版本、UI 框架、核心与 CLI 的语言边界由实现设计定稿。
   - 优先验证系统 WebView 的页面承载、视口、截图、批注和权限隔离，不默认附带 Chromium 或 Node.js；若另需浏览器或运行时，先写清用途、总分发体积与写盘范围，不静默改变载体。
+  - 已读取 API：多 WebView 的 Window::add_child 目前要求 unstable 功能；macOS WKWebView 不支持 data_directory，自定义 data store identifier 不等于可指定目录。首个 change 单列非持久会话及真实写盘验证，不以 API 设置成功冒充便携通过。
   - 优先复用成熟浏览器、批注与检查能力；Playwright / CDP 等尚未选定为产品接入实现。
   - 本地与 CI 共用 node scripts/check-repo.mjs 公共门禁；构建、类型、业务测试、lint、spec 检查待产品骨架建立后接入同一条链。
   - MIT；产出默认中文，根目录登记的对外文档同轮同步英文，产品文案按 i18n/ 口径演进。

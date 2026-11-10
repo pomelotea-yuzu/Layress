@@ -2,7 +2,7 @@
 
 > 本文默认以中文维护。
 
-> **当前接手说明（2026-11-10）**：Tauri 载体已由用户确定（D25），[第一阶段计划](../product/2026-11-10-stage-one-plan.md)其余范围待审阅，尚未开始实现；当前待定项见下节。其后的旧阶段挂账与旧批准条件不作为当前执行指引，不要求先逐条销账才能推进新阶段。
+> **当前接手说明（2026-11-10）**：Tauri 已确定（D25），首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)已建立，尚未编码；[阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围仍待逐步确定。旧阶段挂账与旧批准条件不作为当前执行指引，不要求先逐条销账才能推进新阶段。
 
 > 这里只放**还没有结论**的事。已有结论的进 [`decisions.md`](decisions.md)，已知的坑进
 > [`engineering.md`](engineering.md) / [`runtime-probe.md`](runtime-probe.md)。
@@ -12,8 +12,8 @@
 
 | 事项 | 当前建议 | 归谁定夺 | 必须定下来的时点 |
 |---|---|---|---|
-| 阶段 1 其余范围 | Tauri 已选定；同一反馈下手动补拍与前后查看仍为提案，完整 Agent 闭环留阶段 2，细节见[计划](../product/2026-11-10-stage-one-plan.md) | 用户审阅范围，具体实现由 change 定稿 | 启动阶段 1 实现时 |
-| WebView 承载、采集与便携路径 | 按系统 WebView 验证页面、实际视口、截图、批注叠层与权限；逐端核查会话 / 缓存 / 临时目录，不沿用 Electron 接口假设 | 实现 change 的 design 与实测证据 | 首个页面承载增量；新增平台之前逐端验证 |
+| 阶段 1 后续范围 | 首个页面承载 change 已立项；项目 / 设备记忆、持久反馈、手动补拍等留后续增量，完整 Agent 闭环留阶段 2 | 用户讨论后续范围，对应 change 细化实现 | 进入对应后续增量时，不阻塞首个 change 建档 |
+| WebView 承载、采集与便携路径 | 已落入[首个 change 设计](../../openspec/changes/add-tauri-page-host/design.md)：多 WebView 的 unstable 功能、macOS 数据目录限制、非持久会话与真实写盘分别验证；不能把 API 设置当通过 | 实现 change 的 design 与实测证据 | 首个页面承载增量；新增平台之前逐端验证 |
 | 首轮验证与体积 | 建议 macOS arm64 首验、通用设备预设；应用包、系统 WebView 依赖及可能新增运行时合计说明，真实体积和模拟能力需实测 | 用户审阅平台范围，实现者记录能力与体积 | 首个实现增量核查承载能力，阶段收尾交付测量 |
 
 ## 旧阶段挂账（历史）

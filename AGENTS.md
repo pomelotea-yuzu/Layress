@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **Tauri 载体已确认，第一阶段计划其余范围待审阅，尚未开始实现**（2026-11-10）。用户明确转 Tauri 并要求同步文档；[产品依据](docs/product/product.md)、[阶段计划](docs/product/2026-11-10-stage-one-plan.md)、中英入口与 D25 同轮更新。保留单窗口体验，改按系统 WebView 验证采集、视口、权限和便携存储；未建 workspace、未装依赖 |
-| 活动 change | 无（本轮只更新文档；Tauri 已选定，具体版本、页面承载与采集方案留实现 change；Agent 自动交接与处理闭环仍留阶段 2） |
-| 代码 | 无产品源码；现有资产为目录骨架、文档索引与仓库门禁脚本，尚未建立 workspace；本轮没有新增 Tauri / Rust / 前端代码 |
-| 发行 | 无产品发行；本轮只做本地文档更新，不 push、不打 tag，未查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **第一阶段首个 change 已立项，尚未开始编码**（2026-11-10）。用户要求起第一个 change，范围为 Tauri 单窗口页面承载、基础视口控制、截图与原地批注可行性；见[活动 change](openspec/changes/add-tauri-page-host/proposal.md)。本轮建立方案、规格增量、任务与证据计划，未建 workspace、未装产品依赖；其余阶段范围不自动视为已批准 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（规划就绪，实施与实机验收均未执行；完整项目 / 设备管理、持久反馈和 Agent 闭环留后续增量） |
+| 代码 | 无产品源码；本轮新增首个 change 文档，尚无 Tauri / Rust / 前端实现、workspace 或产品依赖 |
+| 发行 | 无产品发行；本轮只做本地 change 文档，不 push、不打 tag，未查询 npm 或远程。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；

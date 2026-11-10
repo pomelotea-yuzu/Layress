@@ -29,7 +29,7 @@ Supported target applications and agent connections must be verified individuall
 
 ## 📌 Current status
 
-- No installable product, npm release or tag; no product source, workspace or active technical change.
+- No installable product, npm release or tag; no product source or workspace. The first active change, [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md), has been created; coding has not started.
 - The [product direction and usage](docs/product/product.md), Tauri desktop framework and [formal development roadmap](docs/product/roadmap.md) are confirmed. The rest of the [stage-one plan](docs/product/2026-11-10-stage-one-plan.md) remains under review; implementation has not started.
 - Existing assets include documentation, directory ownership, public research and engineering knowledge, plus hygiene, link and bilingual gates.
 - GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) is the primary repository; Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) is the mirror. Remote synchronization must be checked live; agents do not push.
@@ -77,7 +77,7 @@ Disposable output belongs only in `artifacts/`; runtime data and logs belong in 
 ## 🤝 Contributing
 
 Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md). Registered public documents are updated in both languages together; internal documentation defaults to Chinese.
-The Tauri stage-one plan is currently under review; stage 2 follows later. Selecting the desktop framework and writing a plan do not mean implementation has started.
+The first Tauri page-hosting change has been created. The rest of stage 1 and stage 2 will be discussed separately; creating change documents does not mean implementation is complete.
 
 ## 📄 License and commitments
 

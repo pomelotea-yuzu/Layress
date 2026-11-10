@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；2026-11-10 用户已确定 Tauri 桌面工作台，[第一阶段计划](../product/2026-11-10-stage-one-plan.md)其余范围待审阅，未开始实现。不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；2026-11-10 已建立首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)，只覆盖 Tauri 页面承载首增量，尚未编码。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 
@@ -87,13 +87,15 @@ openspec/
 
 一个 change 的生命周期：
 
-1. `openspec/changes/<name>/tasks.md` 拆步骤；`design.md` 写方案、取舍与被否路线。
+1. `openspec/changes/<name>/proposal.md` 写范围与影响，`design.md` 写方案与取舍，`specs/<capability>/spec.md` 写规格增量，`tasks.md` 拆实施步骤；schema / 日期记在 `.openspec.yaml`，先准备可执行方案，再按授权实施。
 2. 按任务实施，每步留判据；实机证据记在 `evidence-index.md`（截图默认留本地，见洁净度）。
 3. 收口后归档 `openspec/changes/archive/<YYYY-MM-DD>-<name>/`，delta 合入 `specs/`。
 4. **权威性排序**：源码 > `changes/archive/` > `specs/` > `docs/` > `AGENTS.md`。
    判断进度只认前两者，文档一律可能是旧的。
 
 纯文档修订、错别字、链接修复不必立项。
+
+本会话尚未找到 OpenSpec CLI；可先按 `spec-driven` 结构准备 change，本轮不安装工具。未运行 CLI 校验需明示，仓库文档门禁不等于 OpenSpec 语义校验；CLI 可用时补做对应校验，不得写成已经通过。
 
 ## 文档与命名
 

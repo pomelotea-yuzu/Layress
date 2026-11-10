@@ -1,15 +1,24 @@
 # openspec/changes/ · 活动变更
 
 > 归属说明。这里放**正在进行**的 change，一个目录一个 change，动词开头的 kebab-case 命名。
-> 当前没有活动 change：产品方向与[六阶段路线图](../../docs/product/roadmap.md)已确认，用户要求先讨论阶段 1–2 的细分设计，尚未启动实现；旧首验方案的待批准状态不是当前闸门。
+> 当前活动 change：[add-tauri-page-host](add-tauri-page-host/proposal.md)（2026-11-10 建立）。首增量为 Tauri 单窗口页面承载、基础视口、真实采集与原地预览；尚未开始编码或实机验证，其余阶段范围不自动获批。
+
+## 活动入口与归属
+
+| change | 范围与入口 |
+|---|---|
+| `add-tauri-page-host/` | [提案](add-tauri-page-host/proposal.md)、[设计](add-tauri-page-host/design.md)、[任务](add-tauri-page-host/tasks.md)、[证据计划](add-tauri-page-host/evidence-index.md)；其 `specs/desktop-page-host/` 存放[待实现规格增量](add-tauri-page-host/specs/desktop-page-host/spec.md)，归档前不冒充主规格 |
 
 ## 结构
 
 ```
 changes/
 └─ <verb-led-kebab-name>/
-   ├─ tasks.md            拆步骤，每步带判据；完成状态只在这里维护
+   ├─ .openspec.yaml      schema 与建立日期
+   ├─ proposal.md         为什么做、范围、能力与影响
    ├─ design.md           方案、取舍、被否掉的路线与原因
+   ├─ specs/<capability>/spec.md  待实现规格增量，归档后合入主规格
+   ├─ tasks.md            拆步骤，每步带判据；完成状态只在这里维护
    └─ evidence-index.md   实机/数据证据索引（判据 → 证据位置）
 ```
 

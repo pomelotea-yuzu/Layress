@@ -1,7 +1,7 @@
 # openspec/specs/ · 主规格
 
 > 归属说明。这里放**已合入的能力口径**：一条需求配它的判据场景，长期有效。
-> 当前为空——还没有已归档的 change，因此也没有已合入的口径。
+> 当前没有主规格——尚无已归档 change。[首个活动 change](../changes/add-tauri-page-host/proposal.md)已有待实现的 `desktop-page-host` 规格增量，留在 change 内，不能提前合入这里。
 
 ## 命名与结构
 
@@ -10,8 +10,7 @@ specs/
 └─ <capability>/spec.md      能力名用 kebab-case，与 change 归档后的实际范围一致
 ```
 
-候选能力名（首个 change 立项时确认，不要提前扩）：`stress-conditions`、`geometry-scan`、
-`action-reachability`、`condition-reduction`、`evidence-replay`、`report-format`、`data-storage`、`cli-interface`。
+首个活动 change 的能力名为 `desktop-page-host`；后续名称按实际增量确认，不恢复封存阶段的扫描 / 缩减等候选能力表，也不预建空规格。
 
 ## 进入门槛
 

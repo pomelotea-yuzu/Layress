@@ -36,6 +36,7 @@
 
 ## 存储与便携（便携优先 · 不写系统用户目录）
 
+- [2026-11-10][P1] WKWebView 不支持 `data_directory`，`data_store_identifier` 也不是任意路径，非持久模式不证明无运行期写入 ⇒ 把跨平台 API 名称当作一致的存储能力会误判便携通过 ⇒ 首个 change 分别记录平台限制、非持久会话设置和实际写盘观测，不静默使用系统持久目录 ⇒ 证据：[首个 change 设计与官方 API 核查](../../openspec/changes/add-tauri-page-host/design.md)，仅文档核对，尚未实机验证。
 - [2026-11-10][P1] 桌面载体转 Tauri 后仍容易套用统一 Chromium 与 Electron 路径覆盖假设 ⇒ Tauri 复用平台 WebView，引擎、控制与存储路径不同 ⇒ 按实际引擎验证视口 / 截图 / 模拟，另核会话、缓存与临时目录，未验证不声明便携或真机兼容 ⇒ 证据：D25、[阶段计划的技术依据](../product/2026-11-10-stage-one-plan.md)与官方 Tauri 架构 / WebView 文档；本项目尚未实测。
 - [2026-11-03][P0] 号称便携的产品仍在系统用户目录长垃圾 ⇒ 只把"数据目录"挪到产品旁不够：Windows `os.tmpdir()` = `%TEMP%` = `C:\Users\<user>\AppData\Local\Temp`，macOS 落在 `/private/var/folders/…`，Linux 落在 `/tmp` 或 XDG 缓存；Electron `app.getPath('userData')` 与 Chromium `sessionData`/`Cache`/`GPUCache` 三端默认同样落在系统用户目录 ⇒ 三处必须一起覆盖：`app.setPath('userData', <数据根>/userdata)`、`session.setPath('sessionData', ...)`、自建临时目录并显式传给 `--user-data-dir`；**禁止把 `os.tmpdir()` 当默认值用** ⇒ 来源：前置项目 `.gitignore` 已记录"一次性工作目录（含 Electron sessionData 缓存等临时文件）"这一坑；**Layress 待实测确认**。
 - [2026-11-03][P0] 目标目录不可写时静默回落到用户目录 ⇒ 常见写法是"写不进就 `%APPDATA%` / `~/Library` / XDG 兜底"，直接违反不变量 I12，且用户完全不知道数据去了哪 ⇒ 启动做可写探测；不可写就明确报错并要求 `--data-dir`，**不允许回落**。

@@ -29,7 +29,7 @@ Tauri 使用系统 WebView，具体采集与模拟能力按平台实测公布，
 
 ## 📌 当前状态
 
-- 没有可安装产品、npm 发行包或 tag；没有产品源码、workspace 或活动技术 change。
+- 没有可安装产品、npm 发行包或 tag；没有产品源码或 workspace。首个活动 change [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)已建立，尚未编码。
 - 当前已敲定[产品方向与使用方式](docs/product/product.md)、Tauri 载体和[正式开发路线图](docs/product/roadmap.md)；[第一阶段计划](docs/product/2026-11-10-stage-one-plan.md)其余范围待审阅，尚未开始实现。
 - 仓库现有资产包括文档、目录归属、公开调研与工程知识、洁净度 / 链接 / 双语门禁。
 - GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)为主仓库，Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)为镜像；远程同步状态以实时命令为准，智能体不 push。
@@ -77,7 +77,7 @@ node scripts/check-repo.mjs --staged   # 按实际提交快照检查，pre-commi
 ## 🤝 贡献
 
 请读 [`CONTRIBUTING.md`](CONTRIBUTING.md) 与 [`AGENTS.md`](AGENTS.md)。对外登记文档同轮同步中英，内部文档默认中文。
-当前审阅 Tauri 单应用的第一阶段计划，阶段 2 后续讨论；载体确定与规划成文不等于已经启动实现。
+Tauri 单应用的首个页面承载 change 已建立；第一阶段后续范围与阶段 2 另行讨论，建档不等于已经完成实现。
 
 ## 📄 许可与承诺
 

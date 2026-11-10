@@ -7,6 +7,7 @@
 > 背景：[新阶段讨论](2026-11-09-agent-ui-review-direction.md) · [受众与常用流程调研](../research/2026-11-09-audience-and-workflow-research.md) · 决策 D22 / D25。
 > 开发阶段与设计入口见[开发路线图](roadmap.md)；阶段 1 细分设计讨论中，尚未开始实现。
 > 第一阶段具体范围、实施顺序与完成标准见[计划提案](2026-11-10-stage-one-plan.md)；载体已确定为 Tauri，其余范围尚未逐项确认。
+> 首个活动 change：[add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)，2026-11-10 按用户指令建立，覆盖页面承载首增量，尚未编码或实测。
 
 ## 产品与形态
 
