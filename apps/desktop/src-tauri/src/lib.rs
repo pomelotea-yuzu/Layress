@@ -17,13 +17,14 @@ use tauri::webview::{
 };
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, State, Url, WebviewUrl,
-    WindowEvent,
+    Window, WindowEvent,
 };
 
 const TOOL_LABEL: &str = "main";
 const PAGE_LABEL: &str = "page";
-/// 工具条高度（逻辑像素），前端 TOOLBAR_H 必须与此一致
-const TOOLBAR_H: f64 = 88.0;
+/// 工具条高度（逻辑像素），前端 #bar 的 CSS 高度必须与此一致；
+/// 布局为互不重叠的两块：工具条 [0, TOOLBAR_H]，被测页面 [TOOLBAR_H, 窗口底]。
+const TOOLBAR_H: f64 = 96.0;
 /// 视口上报脚本写入 document.title 的哨兵前缀（零宽空格 + 标记）。
 /// 被测页面无 IPC 能力，借 title 变化回传真实视口（wry macOS 支持 title 观测）。
 const TITLE_PREFIX: &str = "\u{200b}LW ";
@@ -117,6 +118,37 @@ fn emit_viewport(app: &AppHandle<tauri::Wry>) {
             fully_visible,
         },
     );
+}
+
+/// 依据窗口尺寸重排两块 WebView：工具条固定在顶部，页面占其余区域。
+/// 显式边界、互不重叠，避免任何坐标解释差异导致的层间穿透。
+fn relayout(window: &Window<tauri::Wry>, app: &AppHandle<tauri::Wry>) {
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let Ok(inner) = window.inner_size() else {
+        return;
+    };
+    let win_w = inner.width as f64 / scale;
+    let win_h = inner.height as f64 / scale;
+
+    if let Some(tool) = app.get_webview(TOOL_LABEL) {
+        let _ = tool.set_bounds(tauri::Rect {
+            position: LogicalPosition::new(0.0, 0.0).into(),
+            size: LogicalSize::new(win_w, TOOLBAR_H).into(),
+        });
+    }
+    let configured = app
+        .state::<PageHost>()
+        .configured
+        .lock()
+        .ok()
+        .and_then(|c| *c);
+    if let Some(page) = app.get_webview(PAGE_LABEL) {
+        let size = configured.unwrap_or((win_w, win_h - TOOLBAR_H));
+        let _ = page.set_bounds(tauri::Rect {
+            position: LogicalPosition::new(0.0, TOOLBAR_H).into(),
+            size: LogicalSize::new(size.0, size.1).into(),
+        });
+    }
 }
 
 // ── 被测页面 WebView 生命周期 ─────────────────────────────────────
@@ -391,9 +423,10 @@ pub fn run() {
             let window = tauri::window::WindowBuilder::new(app, "main")
                 .title("Layress")
                 .inner_size(1280.0, 800.0)
+                .min_inner_size(520.0, 400.0)
                 .build()?;
 
-            // 工具层：铺满窗口底层并随窗口自适应；非持久会话
+            // 工具层：仅顶部条带（与页面互不重叠）；非持久会话
             let inner = window.inner_size()?;
             let scale = window.scale_factor().unwrap_or(1.0);
             let _tool = window.add_child(
@@ -401,10 +434,9 @@ pub fn run() {
                     TOOL_LABEL,
                     WebviewUrl::App("index.html".into()),
                 )
-                .incognito(true)
-                .auto_resize(),
+                .incognito(true),
                 LogicalPosition::new(0.0, 0.0),
-                LogicalSize::new(inner.width as f64 / scale, inner.height as f64 / scale),
+                LogicalSize::new(inner.width as f64 / scale, TOOLBAR_H),
             )?;
 
             let _ = APP.set(app.handle().clone());
@@ -413,28 +445,8 @@ pub fn run() {
             let win = window.clone();
             window.on_window_event(move |event| {
                 if let WindowEvent::Resized(_) = event {
-                    // 未显式设定视口时页面跟随窗口；已设定时只核对可见性，不改视口（E04）
-                    let configured = handle
-                        .state::<PageHost>()
-                        .configured
-                        .lock()
-                        .ok()
-                        .and_then(|c| *c);
-                    if configured.is_none() {
-                        if let Some(page) = handle.get_webview(PAGE_LABEL) {
-                            let scale = win.scale_factor().unwrap_or(1.0);
-                            if let Ok(inner) = win.inner_size() {
-                                let _ = page.set_bounds(tauri::Rect {
-                                    position: LogicalPosition::new(0.0, TOOLBAR_H).into(),
-                                    size: LogicalSize::new(
-                                        inner.width as f64 / scale,
-                                        (inner.height as f64 / scale) - TOOLBAR_H,
-                                    )
-                                    .into(),
-                                });
-                            }
-                        }
-                    }
+                    // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）
+                    relayout(&win, &handle);
                     emit_viewport(&handle);
                 }
             });

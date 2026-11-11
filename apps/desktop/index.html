@@ -5,26 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Layress</title>
     <style>
-      /* 工具层铺满窗口作底层，只有顶部工具条区域可见（被测页面覆盖其余部分） */
+      /* 工具条独立条带：高度必须与 Rust 侧 TOOLBAR_H=96 一致，内容不得溢出（否则会被页面区域盖住） */
       html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; }
       #bar {
-        height: 88px;
+        height: 96px;
         box-sizing: border-box;
-        padding: 6px 10px;
+        padding: 5px 10px;
         display: flex;
         flex-direction: column;
         gap: 4px;
+        overflow: hidden;
         background: #eef1f3;
         border-bottom: 1px solid #cfd8dc;
       }
-      .row { display: flex; align-items: center; gap: 6px; min-height: 30px; }
-      input[type="text"] { font-size: 13px; padding: 4px 8px; box-sizing: border-box; }
-      button { font-size: 13px; padding: 4px 10px; white-space: nowrap; }
-      #url-input { flex: 1; }
+      .row { display: flex; align-items: center; gap: 6px; height: 26px; min-height: 26px; }
+      input[type="text"] { font-size: 13px; padding: 2px 8px; box-sizing: border-box; height: 26px; }
+      button { font-size: 13px; padding: 2px 10px; white-space: nowrap; height: 26px; }
+      #url-input { flex: 1; min-width: 0; }
       .num { width: 64px; }
-      #status-line { font-size: 12px; color: #37474f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      #viewport-line { font-size: 12px; color: #546e7a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      #request-line { font-size: 12px; color: #b71c1c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .status { font-size: 12px; line-height: 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #status-line { color: #37474f; }
+      #viewport-line { color: #546e7a; }
+      #request-line { color: #b71c1c; }
     </style>
   </head>
   <body>

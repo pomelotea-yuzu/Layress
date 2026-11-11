@@ -6,8 +6,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-/** 与 Rust 侧 TOOLBAR_H 一致（逻辑像素） */
-const TOOLBAR_H = 88;
+/** 与 Rust 侧 TOOLBAR_H 一致（逻辑像素），也等于 #bar 的 CSS 高度 */
+const TOOLBAR_H = 96;
 
 interface MeasuredViewport {
   w: number;
