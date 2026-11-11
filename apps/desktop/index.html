@@ -4,9 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Layress</title>
+    <style>
+      /* 工具层铺满窗口作底层，只有顶部工具条区域可见（被测页面覆盖其余部分） */
+      html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; }
+      #bar {
+        height: 88px;
+        box-sizing: border-box;
+        padding: 6px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: #eef1f3;
+        border-bottom: 1px solid #cfd8dc;
+      }
+      .row { display: flex; align-items: center; gap: 6px; min-height: 30px; }
+      input[type="text"] { font-size: 13px; padding: 4px 8px; box-sizing: border-box; }
+      button { font-size: 13px; padding: 4px 10px; white-space: nowrap; }
+      #url-input { flex: 1; }
+      .num { width: 64px; }
+      #status-line { font-size: 12px; color: #37474f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #viewport-line { font-size: 12px; color: #546e7a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #request-line { font-size: 12px; color: #b71c1c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="bar">
+      <div class="row">
+        <input id="url-input" type="text" placeholder="输入 http(s) 地址" />
+        <button id="btn-go" type="button">前往</button>
+        <button id="btn-refresh" type="button">刷新</button>
+        <button id="btn-sample" type="button">打开样例页</button>
+      </div>
+      <div class="row">
+        <label for="width-input">宽</label>
+        <input id="width-input" class="num" type="text" placeholder="宽" />
+        <label for="height-input">高</label>
+        <input id="height-input" class="num" type="text" placeholder="高" />
+        <button id="btn-size" type="button">应用尺寸</button>
+      </div>
+      <div class="row">
+        <span id="status-line"></span>
+        <span id="viewport-line"></span>
+        <span id="request-line"></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -15,6 +15,35 @@
 - **工程落点**：根 `package.json` + `pnpm-workspace.yaml`（apps/*、packages/*、allowBuilds 审批表）；`apps/desktop/`（TS strict 前端骨架 + `src-tauri/`）；门禁收紧见 [engineering](../../../docs/knowledge/engineering.md)（图片后缀默认拦截，应用图标走 allowlist 理由豁免）。
 - **对应证据表状态**：E01 / E12 / E14 的工具链与构建部分已有本机记录；E01 的**运行与人工操作、E02–E11、E13 及 E12 的 CI 侧**仍未执行，下表状态不变。
 
+## 任务 2.x 实现（2026-11-11，运行级 / 人工验证未执行）
+
+**代码落点**：`apps/desktop/src-tauri/src/lib.rs`（单窗口双 WebView 编排）、`fixture.rs` + `fixtures/sample-page.html` / `sub-page.html`（内嵌本地样例服务）、前端 `src/main.ts`（工具条 UI）。
+
+**机器级事实（本机回显，退出码 0）**：
+
+- `cargo check`：双 WebView 编排（`add_child` + incognito + 导航 / 加载 / 标题 / 新窗口 / 下载 / 权限回调）编译通过。
+- `pnpm build:desktop`（tsc strict + vite）：工具层 UI 编译通过（产物 2.28 KB HTML + 4.36 KB JS）。
+- 真实启动：`pnpm tauri dev` 全量编译 341 crates 后 `Running target/debug/layress-desktop`，进程持续存活、无 panic；样例服务监听 `127.0.0.1:52355`（随机端口，仅回环）。
+- 样例服务路由（curl 实测）：`/` 200 HTML、`/sub` 200、`/download` 带 `Content-Disposition: attachment`、未知路径 404。
+
+**实现要点（对应任务）**：
+
+- 2.1：配置不定义窗口；`setup` 中 `WindowBuilder` 建唯一主窗口，工具层（label "main"，auto_resize 铺底）与被测层（label "page"）均 `incognito`；capability 仅列 "main"，"page" 无任何命令 / 事件权限。
+- 2.2：`validate_url`（scheme 白名单 http/https + 主机校验）→ TCP 可达性预检（3s 超时，失败报错不触碰当前页面）→ 已存在页面原地 `navigate`（保留会话）否则 `add_child` 创建；加载状态经 `on_page_load` 回报。
+- 2.3：样例页含点击计数、输入回显、滚动块、alert/confirm/prompt、同源路由链接；`on_new_window` → `Deny`、`on_download` → `false`、`on_permission_request` → `Deny`，均为明确拒绝并经事件上报工具条。
+- 2.4：宽高设定写入状态并 `set_bounds` 固定页面视口；真实视口经初始化脚本写 title 哨兵（`innerWidth/innerHeight/devicePixelRatio`）→ `on_document_title_changed` 解析回传；未设定尺寸时页面跟随窗口，设定后窗口缩小保留视口并提示「容纳不下」。
+
+**仍未执行（不得视为通过）**：
+
+- E01：窗口内人工操作样例页（点击 / 输入 / 滚动 / 弹窗 / 路由）——应用已启动，待人工核对。
+- E02：被测页面调用原生命令的实际拒绝结果（样例页已内置探测显示区）。
+- E03：无效 scheme / 不可达地址在 UI 的实际拒绝表现（TCP 预检逻辑已实现，未实测）。
+- E04：两个尺寸的视口核对、窗口缩小时的可见性提示（逻辑已实现，未实测）。
+- E13：新窗口 / 下载 / 权限请求的实际拒绝反馈（回调已实现，未实测）。
+- 样例页 title 哨兵在真实页面的上报是否可靠（wry macOS 支持，未实测）。
+
+**限制**：无 back/forward（tauri 2.12.5 Webview 未暴露历史接口）；窗口 layer 顺序（工具铺底 / 页面覆盖）待人工确认。
+
 ## Agent 审阅与提交状态
 
 2026-11-10 用户要求撤回最近的工具记录提交 `4b64372`，已保留全部文件改动，共享 OpenSpec 安装与下述校验事实仍有效。

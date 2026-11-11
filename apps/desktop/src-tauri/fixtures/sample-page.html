@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Layress 样例页</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 16px; color: #2d3436; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  section { border: 1px solid #d5dbdd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  h2 { font-size: 14px; margin: 0 0 8px; color: #636e72; }
+  button, input { font-size: 13px; padding: 4px 10px; margin-right: 8px; }
+  .viewport { display: grid; grid-template-columns: repeat(2, max-content); gap: 2px 16px; font-size: 13px; }
+  .viewport b { font-weight: 600; }
+  #scrollbox { height: 120px; overflow: auto; border: 1px solid #d5dbdd; border-radius: 6px; padding: 8px; }
+  #scrollbox p { margin: 4px 0; }
+  output { font-size: 13px; color: #0984e3; }
+</style>
+</head>
+<body>
+<h1>Layress 样例页（本地夹具，仅供首增量验收）</h1>
+
+<section>
+  <h2>实际视口与引擎（E04）</h2>
+  <div class="viewport" id="vp"></div>
+</section>
+
+<section>
+  <h2>点击 / 输入 / 会话状态（E01、E08）</h2>
+  <button id="counter" type="button">点击计数：0</button>
+  <input id="keep" type="text" placeholder="输入后切走再回来应保留">
+  <output id="echo"></output>
+</section>
+
+<section>
+  <h2>滚动（E01）</h2>
+  <div id="scrollbox">
+    <p>滚动块 1</p><p>滚动块 2</p><p>滚动块 3</p><p>滚动块 4</p>
+    <p>滚动块 5</p><p>滚动块 6</p><p>滚动块 7</p><p>滚动块 8</p>
+    <p>滚动块 9</p><p>滚动块 10 —— 滚动到底</p>
+  </div>
+</section>
+
+<section>
+  <h2>页面内弹窗（E01）</h2>
+  <button id="alert" type="button">alert</button>
+  <button id="confirm" type="button">confirm</button>
+  <button id="prompt" type="button">prompt</button>
+  <output id="dialog-out"></output>
+</section>
+
+<section>
+  <h2>路由 / 链接（E01）</h2>
+  <a href="/sub">跳转子页（同源导航）</a>
+</section>
+
+<section>
+  <h2>额外入口负例（E13，应被明确拒绝）</h2>
+  <button id="openwin" type="button">window.open 新窗口（应拒绝）</button>
+  <button id="geo" type="button">请求地理位置（应拒绝）</button>
+  <a id="dl" href="/download">触发下载（应拒绝）</a>
+  <output id="entry-out"></output>
+</section>
+
+<section>
+  <h2>原生命令边界（E02，应全部 undefined / 报错）</h2>
+  <output id="bridge"></output>
+</section>
+
+<script>
+(function () {
+  function fill() {
+    document.getElementById('vp').innerHTML =
+      '<span>innerWidth</span><b>' + window.innerWidth + ' px</b>' +
+      '<span>innerHeight</span><b>' + window.innerHeight + ' px</b>' +
+      '<span>devicePixelRatio</span><b>' + window.devicePixelRatio + '</b>' +
+      '<span>userAgent</span><b style="max-width:340px;overflow-wrap:anywhere">' + navigator.userAgent + '</b>';
+  }
+  fill();
+  window.addEventListener('resize', fill);
+
+  var n = 0;
+  document.getElementById('counter').addEventListener('click', function () {
+    n += 1;
+    this.textContent = '点击计数：' + n;
+  });
+  document.getElementById('keep').addEventListener('input', function () {
+    document.getElementById('echo').textContent = '当前输入：' + this.value;
+  });
+
+  document.getElementById('alert').addEventListener('click', function () {
+    alert('页面内 alert 弹窗');
+    out('alert 已关闭');
+  });
+  document.getElementById('confirm').addEventListener('click', function () {
+    out('confirm 返回：' + confirm('页面内 confirm 弹窗'));
+  });
+  document.getElementById('prompt').addEventListener('click', function () {
+    out('prompt 返回：' + prompt('页面内 prompt 弹窗'));
+  });
+  function out(msg) { document.getElementById('dialog-out').textContent = msg; }
+
+  document.getElementById('openwin').addEventListener('click', function () {
+    var w = window.open('/sub', '_blank');
+    document.getElementById('entry-out').textContent = w ? '意外：新窗口被创建' : '新窗口未创建（已拒绝或未实现）';
+  });
+  document.getElementById('geo').addEventListener('click', function () {
+    if (!navigator.geolocation) { document.getElementById('entry-out').textContent = '无 geolocation API'; return; }
+    navigator.geolocation.getCurrentPosition(
+      function (p) { document.getElementById('entry-out').textContent = '意外：获得位置 ' + p.coords.latitude; },
+      function (e) { document.getElementById('entry-out').textContent = 'geolocation 被拒绝：' + e.code + ' ' + e.message; }
+    );
+  });
+
+  var bridge = [];
+  ['__TAURI_INTERNALS__', '__TAURI__', '__TAURI_IPC__', 'ipc'].forEach(function (k) {
+    try { bridge.push(k + '=' + typeof window[k]); } catch (e) { bridge.push(k + '=异常'); }
+  });
+  try {
+    window.__TAURI_INTERNALS__.invoke('page_navigate', { raw: 'https://example.invalid' });
+    bridge.push('invoke调用=意外成功');
+  } catch (e) {
+    bridge.push('invoke调用=被拒绝（' + (e && e.message ? e.message.slice(0, 40) : typeof e) + '）');
+  }
+  document.getElementById('bridge').textContent = bridge.join(' · ');
+})();
+</script>
+</body>
+</html>

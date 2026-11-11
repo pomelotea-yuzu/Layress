@@ -31,9 +31,9 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-tauri-page-host 任务 1.1–1.3 已实施**（2026-11-11）：工具链固定、权限 / 数据根 / 会话方案定稿、最小工程建立且构建通过；任务 2.x 起的页面承载、采集与写盘验证未开始，E01–E14 运行级证据仍未采集 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md) 1.1–1.3 已勾选，2.x–5.x 未执行；实施级决定见 [design](openspec/changes/add-tauri-page-host/design.md)「实施定稿」） |
-| 代码 | 根 pnpm workspace + `apps/desktop/` 最小骨架：TS strict 前端（Vite 7.3.8 / TS 5.9.3）+ Rust（tauri 2.12.5，`unstable` 多 WebView 功能）；`pnpm install` / `tsc+vite build` / `cargo check` 均通过；**无页面承载功能，仅构建链路** |
+| 阶段 | **add-tauri-page-host 任务 1.1–1.3 与 2.x 实现完成**（2026-11-11）：编译、真实启动（`tauri dev` 无 panic）与样例服务 curl 核对通过；**运行级 / 人工验证（E01–E04、E13）未执行**，任务 checkbox 按口径不勾选 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md) 1.x 实现完成，2.x 实现完成待人工验证；3.x–5.x 未开始；实现证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
+| 代码 | `apps/desktop/`：单窗口双 WebView（工具层 "main" 铺底 + 被测层 "page" 覆盖，均 incognito、无 page 能力）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵测量、新窗口 / 下载 / 权限拒绝、内嵌样例服务 |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
