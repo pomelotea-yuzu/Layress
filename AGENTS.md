@@ -31,9 +31,9 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-tauri-page-host 任务 1.1–1.3 与 2.x 实现完成**（2026-11-11）：编译、真实启动（`tauri dev` 无 panic）与样例服务 curl 核对通过；**运行级 / 人工验证（E01–E04、E13）未执行**，任务 checkbox 按口径不勾选 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md) 1.x 实现完成，2.x 实现完成待人工验证；3.x–5.x 未开始；实现证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
-| 代码 | `apps/desktop/`：单窗口双 WebView（工具层 "main" 铺底 + 被测层 "page" 覆盖，均 incognito、无 page 能力）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵测量、新窗口 / 下载 / 权限拒绝、内嵌样例服务 |
+| 阶段 | **add-tauri-page-host 任务 1.x 与 2.1/2.3/2.4 完成，含用户人工复验**（2026-11-11）：双 WebView 承载、导航、视口、额外入口拒绝均实测通过；2.2 的无效地址负例人工未测不勾选；3.x（采集与预览）未开始 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.1/2.3/2.4 已勾选，2.2 与 3.x–5.x 未完成；人工复验结果见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
+| 代码 | `apps/desktop/`：单窗口双 WebView（互不重叠显式布局，工具条 96px + 页面区）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵测量、视口边界细边框（工具标记，采集前须关闭）、新窗口 / 下载 / 权限拒绝、内嵌样例服务 |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；

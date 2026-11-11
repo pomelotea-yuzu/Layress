@@ -51,7 +51,7 @@
 
 当前产品依据：[产品方向与使用方式](product/product.md)——本地界面验收助手；2026-11-10 用户确定 Tauri 桌面工作台，保留单窗口体验、共用任务事实与 Agent 非交互调用要求，尚未实现。
 正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；[第一阶段计划](product/2026-11-10-stage-one-plan.md)已转 Tauri，其余范围待审阅，近期具体、远期留白，尚未开始实现。
-首个活动 change：[add-tauri-page-host](../openspec/changes/add-tauri-page-host/proposal.md)——其目录与 `specs/desktop-page-host/` 分别承接首增量执行文档与待实现规格，归属见[活动 change 索引](../openspec/changes/README.md)；任务 1.1–1.3 已实施（工具链固定 + `apps/desktop/` 最小骨架），页面承载在 2.x+ 实现。
+首个活动 change：[add-tauri-page-host](../openspec/changes/add-tauri-page-host/proposal.md)——其目录与 `specs/desktop-page-host/` 分别承接首增量执行文档与待实现规格，归属见[活动 change 索引](../openspec/changes/README.md)；任务 1.x 与 2.1/2.3/2.4 已完成并经人工复验（2026-11-11），2.2 负例与 3.x 起未完成。
 调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
 平台分布背景：[开发者操作系统分布](research/2026-11-10-developer-os-distribution.md)——三类外圈数据的来源分级、题目口径冲突与未定稿的适配顺序建议；不是目标用户统计，也不恢复旧三端发行承诺。
 新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
