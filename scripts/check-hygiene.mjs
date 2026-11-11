@@ -36,6 +36,9 @@ const FORBIDDEN_PREFIX = ['.env.'];
 const FORBIDDEN_EXT = new Set([
   '.msi', '.exe', '.dll', '.node', '.pdb', '.lib', '.7z', '.rar', '.iso', '.zip',
   '.gz', '.tgz', '.tar', '.dmg', '.deb', '.rpm', '.AppImage', '.mp4', '.webm',
+  // 图片默认拦截（2026-11-11 用户口径：过程性截图 / 中间产物不入库）。
+  // 必需的图片（如 Tauri 应用图标）逐条登记 .git-hygiene-allowlist 并写理由。
+  '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico', '.icns', '.tiff',
 ]);
 
 const SECRET_RULES = [
@@ -319,6 +322,8 @@ function selftest() {
       setup: ({ stage }) => stage('.githooks/pre-commit', '#!/bin/sh\nexit 0\n') },
     { name: '归档后缀反例', file: 'sample.zip', rule: '二进制/归档后缀',
       setup: ({ stage }) => stage('sample.zip', safe) },
+    { name: '图片后缀反例', file: 'shot.png', rule: '二进制/归档后缀',
+      setup: ({ stage }) => stage('shot.png', safe) },
     { name: '索引体积反例', file: 'large.txt', rule: '体积超限',
       setup: ({ stage, write }) => { stage('large.txt', 'x'.repeat(MAX_BYTES + 1)); write('large.txt', safe); } },
     { name: '工作区体积不影响安全索引',
