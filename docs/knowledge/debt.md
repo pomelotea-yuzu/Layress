@@ -2,7 +2,7 @@
 
 > 本文默认以中文维护。
 
-> **当前接手说明（2026-11-10）**：Tauri 已确定（D25），首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)已建立，尚未编码；[阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围仍待逐步确定。旧阶段挂账与旧批准条件不作为当前执行指引，不要求先逐条销账才能推进新阶段。
+> **当前接手说明（2026-11-11）**：Tauri 已确定（D25），首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)任务 1.1–1.3 已实施（工具链固定 + `apps/desktop/` 最小骨架，构建检查通过），页面承载在 2.x+；[阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围仍待逐步确定。旧阶段挂账与旧批准条件不作为当前执行指引，不要求先逐条销账才能推进新阶段。
 
 > 这里只放**还没有结论**的事。已有结论的进 [`decisions.md`](decisions.md)，已知的坑进
 > [`engineering.md`](engineering.md) / [`runtime-probe.md`](runtime-probe.md)。

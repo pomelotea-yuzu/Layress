@@ -11,8 +11,12 @@
 - **开发机（2026-11-08 起）**：macOS arm64 / zsh / Node ≥ 20；CI runner 为 ubuntu。门禁脚本只用
   `node:path` 与 git 子进程，三端通用，**本地与云端跑同一条命令链**。开发机平台 ≠ 产品目标平台：
   旧 D15 与旧首验平台已封存，当前支持范围由设计与实测确定。
-- Node ≥ 20；包管理器 pnpm（workspace 建立后在根 `package.json` 固定 `packageManager` 字段）。
-- Tauri 采用 Rust 原生层与 TypeScript 前端；具体 Rust / Tauri 版本、系统 WebView 依赖和构建步骤在实现 change 确定，本轮未安装、不编造可运行命令。后续 Rust 与前端检查一起接入现有公共入口，不另设只在本机运行的门禁链。
+- Node ≥ 20；包管理器 pnpm（workspace 已建立，根 `package.json` 固定 `packageManager: pnpm@12.18.0`；
+  依赖构建脚本经 `pnpm-workspace.yaml` 的 `allowBuilds` 审批，只放行 esbuild）。
+- Tauri 采用 Rust 原生层与 TypeScript 前端。2026-11-11 任务 1.3 落地：`apps/desktop/` 骨架
+  （tauri 2.12.5 `unstable` / @tauri-apps 2.12.4 / Vite 7.3.8 / TS 5.9.3 strict），`pnpm build:desktop`
+  与 `cargo check`（在 `apps/desktop/src-tauri/` 下）为当前代码检查入口；**尚未接入公共门禁链**（任务 5.1），
+  提交前须单独实跑并记录退出码。Rust 工具链安装与镜像口径见 [`../knowledge/engineering.md`](../knowledge/engineering.md)。
 - 每个克隆一次：`git config core.hooksPath .githooks`。不挂 hook，洁净度问题会推迟到 CI 才暴露。
 
 ```bash
@@ -27,8 +31,9 @@ node scripts/check-i18n.mjs --links
 node scripts/check-i18n.mjs
 node scripts/check-i18n.mjs --selftest
 
-# workspace 落地后的目标命令链（尚未建立，见 docs/knowledge/debt.md）
-# pnpm check:build && pnpm check:typecheck && pnpm check:test \
+# workspace 已建立（2026-11-11）；目标命令链在任务 5.1 接入公共入口前，须单独实跑：
+# pnpm build:desktop && (cd apps/desktop/src-tauri && cargo check)
+# 最终形态：pnpm check:build && pnpm check:typecheck && pnpm check:test \
 #   && pnpm check:lint && pnpm check:i18n && pnpm check:spec && pnpm check:hygiene
 ```
 

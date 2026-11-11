@@ -51,7 +51,7 @@
 
 当前产品依据：[产品方向与使用方式](product/product.md)——本地界面验收助手；2026-11-10 用户确定 Tauri 桌面工作台，保留单窗口体验、共用任务事实与 Agent 非交互调用要求，尚未实现。
 正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；[第一阶段计划](product/2026-11-10-stage-one-plan.md)已转 Tauri，其余范围待审阅，近期具体、远期留白，尚未开始实现。
-首个活动 change：[add-tauri-page-host](../openspec/changes/add-tauri-page-host/proposal.md)——其目录与 `specs/desktop-page-host/` 分别承接首增量执行文档与待实现规格，归属见[活动 change 索引](../openspec/changes/README.md)；已立项，尚未编码。
+首个活动 change：[add-tauri-page-host](../openspec/changes/add-tauri-page-host/proposal.md)——其目录与 `specs/desktop-page-host/` 分别承接首增量执行文档与待实现规格，归属见[活动 change 索引](../openspec/changes/README.md)；任务 1.1–1.3 已实施（工具链固定 + `apps/desktop/` 最小骨架），页面承载在 2.x+ 实现。
 调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
 平台分布背景：[开发者操作系统分布](research/2026-11-10-developer-os-distribution.md)——三类外圈数据的来源分级、题目口径冲突与未定稿的适配顺序建议；不是目标用户统计，也不恢复旧三端发行承诺。
 新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
@@ -83,6 +83,8 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 ```
 
 ## 路径变更记录
+
+- **2026-11-11 首增量任务 1.1–1.3 实施**：新增根 `package.json` / `pnpm-workspace.yaml` 与 `apps/desktop/`（Tauri 2.12.5 unstable + TS strict 骨架），目录归属登记于 [`apps/desktop/README.md`](../apps/desktop/README.md)；`check-hygiene.mjs` 图片后缀收紧入黑名单、应用图标走 allowlist。同步 change 的 design / evidence / tasks、workflow、接手状态卡、config、engineering 经验与 debt 时效。任务 2.x 起未执行；无路径迁移，构建产物与缓存不入库。
 
 - **2026-11-10 开发者操作系统分布背景核查**：新增 [`research/2026-11-10-developer-os-distribution.md`](research/2026-11-10-developer-os-distribution.md)，同步调研与文档索引；按受众调研口径标注来源等级、官方页面与二手转述的题目口径冲突及未执行项，平台适配顺序仅为建议、未定稿。状态卡四行真值未变，未改产品依据与活动 change，无路径迁移，未开始产品实现。
 

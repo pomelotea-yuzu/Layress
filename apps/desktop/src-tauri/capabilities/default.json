@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "仅本地工具界面获得核心命令能力；被测页面 WebView 的标签不在此列表，将无任何能力",
+  "local": true,
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

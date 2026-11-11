@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **首个 change 的 review 文档意见已处理，用户已授权本地提交，尚未开始产品编码**（2026-11-10）。用户明确 D26：编写 Agent 写完 change，由用户切换另一 Agent 产出 review.md，再回原编写 Agent 处理意见与检查，完成后即可提交，无需重复确认。本轮同步最终流程并提交已有文档改动，18 项实施任务仍未执行 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[review](openspec/changes/add-tauri-page-host/review.md)规划意见已落实；OpenSpec strict 与完整暂存快照门禁以本轮实跑为准；E01–E14 产品运行与人工验收未执行） |
-| 代码 | 无产品源码；本轮仅同步审阅流程、提交 change 修订与共享工具记录，不新增 Tauri / Rust / 前端实现 |
-| 发行 | 无产品发行；本轮按用户指令本地提交，不 push、不打 tag，未查询远程同步；共享 OpenSpec 安装保留。同步状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **add-tauri-page-host 任务 1.1–1.3 已实施**（2026-11-11）：工具链固定、权限 / 数据根 / 会话方案定稿、最小工程建立且构建通过；任务 2.x 起的页面承载、采集与写盘验证未开始，E01–E14 运行级证据仍未采集 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md) 1.1–1.3 已勾选，2.x–5.x 未执行；实施级决定见 [design](openspec/changes/add-tauri-page-host/design.md)「实施定稿」） |
+| 代码 | 根 pnpm workspace + `apps/desktop/` 最小骨架：TS strict 前端（Vite 7.3.8 / TS 5.9.3）+ Rust（tauri 2.12.5，`unstable` 多 WebView 功能）；`pnpm install` / `tsc+vite build` / `cargo check` 均通过；**无页面承载功能，仅构建链路** |
+| 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
@@ -65,15 +65,20 @@
 门禁脚本只用 `node:path` 与 git 子进程，三端通用；**本地与云端跑同一条命令链**。
 ⚠️ 开发机 ≠ 产品目标平台：旧 D15 与旧首验平台已随阶段封存，当前平台和适配范围按产品设计与实测另定。
 
-**尚未建立 pnpm workspace**（本轮口径：结构 + 索引 + 门禁 + i18n）。当前公共门禁入口：
+**pnpm workspace 已建立（2026-11-11，首个 change 任务 1.3）**：根 `package.json` + `pnpm-workspace.yaml`（apps/*、packages/*），`apps/desktop/` 为 Tauri 骨架（tauri 2.12.5 unstable / Vite 7.3.8 / TS 5.9.3 strict）。当前可跑：
 
 ```bash
+pnpm install                      # 首次 / 依赖变更后（esbuild 构建脚本经 allowBuilds 审批）
+pnpm build:desktop                # tsc --noEmit + vite build（前端类型与产物检查）
+cargo check                       # 在 apps/desktop/src-tauri/ 下（需 Rust 工具链）
+pnpm tauri dev                    # 开发运行（GUI，须本机交互验证）
+
 node scripts/check-repo.mjs --all       # 洁净度 + 全库链接 + 双语配对 + 两类自测
 node scripts/check-repo.mjs --staged    # pre-commit：按实际索引快照跑同一条链
 node scripts/check-i18n.mjs --links     # 单查全库 Markdown 本地目标路径
 ```
 
-洁净度的正文、体积与豁免配置均读索引；单项自测与提交快照仅写入 `artifacts/` 并自动清理。
+构建 / 类型检查尚未接入 `check-repo.mjs` 公共入口（属任务 5.1），当前须单独跑 `pnpm build:desktop` 与 `cargo check`。
 工作区排查用 `--all`；部分暂存的提交以 `--staged` 为准。
 
 每个克隆做一次（不做就等于没有门禁）：

@@ -22,6 +22,28 @@
 上述 `latest` 页面不是依赖锁定版本。实施时选择并固定具体 Tauri / Rust / 前端依赖，重新核对对应版本 API；记录 `unstable` 功能依赖与更新代价。
 建档时 PATH 未找到 `openspec`、`cargo`、`rustc` 或 `pnpm`，这不是整机安装状态结论。随后用户授权在仓库外共享安装 OpenSpec 1.17.0，已完成严格规格校验，入口见[工作流](../../../docs/development/workflow.md)；Rust / pnpm 等产品工具链与上述 API 运行仍未验证。
 
+## 实施定稿（任务 1.1–1.3，2026-11-11）
+
+工具链核对与最小工程已落地，本节记录实施级决定；「已定稿」指口径与代码落点，运行行为仍以 tasks / evidence 的实测为准。
+
+**固定依赖与工具链（E01 / E12 / E14）**：
+
+- 本机：macOS 27.2.1 (arm64)、Apple clang 21.0.0（Xcode CLT 已装）、rustc/cargo 1.99.1（rustup minimal profile）、Node 22.22.2（当前 PATH 来自 WorkBuddy 内置运行时，脆弱性已登记 engineering）、pnpm 12.18.0（corepack）。
+- Rust：`tauri = 2.12.5`（2.x 最新稳定，启用 `unstable` 多 WebView 功能）、`tauri-build 2`（解析至 2.7.4）；Tauri 3.0 仍在 alpha（3.0.0-alpha.6），不采用。
+- 前端：`@tauri-apps/api` / `@tauri-apps/cli` 2.12.4、TypeScript 5.9.3（strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes）、Vite 7.3.8；不引入 UI 框架。vite 8 / TS 7 为刚发布新大版本，骨架阶段不用。
+- 许可：tauri / tauri-build / @tauri-apps/* = MIT OR Apache-2.0，Vite = MIT，TypeScript = Apache-2.0；本项目 MIT 兼容。完整第三方声明核查仍是发行前欠账（debt）。
+- 锁定：`pnpm-lock.yaml`（根）与 `src-tauri/Cargo.lock`（应用工程）入库；`target/`、`dist/`、`gen/` 不入库。
+
+**数据根解析（I12 / I13，E09）**：优先级 `--data-dir` / `LAYRESS_DATA_DIR` > 可执行文件目录旁 `.layress/`；启动横幅、日志与后续报告头部显示解析结果与可写检查；不可写明确报错，不回落系统用户目录。开发运行时 exe 在 `src-tauri/target/debug/`，数据根随产物目录走，`target/` 已被忽略。此为定稿口径，代码在任务 4.1 实现。
+
+**权限边界（E02 / E13）**：Tauri v2 capabilities — 本地工具 WebView（label `main`，加载 devUrl/dist）持有 `core:default`；被测页面 WebView 使用独立 label，**不出现在任何 capability 的 windows 列表** ⇒ 无任何原生命令能力。导航只放行 HTTP(S)（`on_navigation` 拦截其他 scheme）；新窗口、下载、设备权限请求在 Rust 层明确拒绝并反馈（任务 2.3 / 4.3 实现并留负例证据）。不给页面暴露通用原生桥。
+
+**会话与写盘（E10）**：首轮工具与被测 WebView 均用非持久会话（macOS `incognito` ⇒ 非持久 data store）；不设 `data_directory`（WKWebView 不支持）。跨重启登录态丢失是已知代价，界面如实说明；非持久 ≠ 零写盘，真实写盘观测按 E10 方法执行。
+
+**快照候选（E05）**：macOS WKWebView 原生 `takeSnapshot` 经 wry / objc 桥接为首选候选；Tauri 无现成跨平台截图命令，实施时先核实 wry 是否暴露该方法，不假定可用，失败再评估其余候选并如实记录。
+
+**为何不是替代方案**：iframe 拿不到独立进程 / 会话隔离与真实视口控制，也不能承载跨域站点；默认系统持久存储直接违反 I12。普通 `Window` 双窗口搬运会破坏"同一工作区原地预览"的目标形态。
+
 ## 窗口与权限边界
 
 一个原生主窗口内包含本地可信工具 WebView 与独立的被测页面 WebView。Rust 层协调页面位置、尺寸、导航、采集和生命周期。

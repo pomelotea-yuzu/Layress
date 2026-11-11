@@ -1,17 +1,17 @@
 # 任务：Tauri 单窗口页面承载
 
-> 状态：**全部实施任务未执行**。本轮仅建立 change 文档，不以文档完成代替实现完成。
+> 状态：**任务 1.1–1.3 已实施（2026-11-11，工具链固定 + 最小工程构建通过）；2.x 起未执行**。
 > 按顺序推进，每步在 [evidence-index](evidence-index.md)关联实际证据；视觉 / 交互人工复核与机器检查分列。
 
 ## 审阅流程状态（不计入实施任务）
 
-规划审阅已产出，见 [review](review.md)；意见处置和检查结果在该文件维护，不使用任务 checkbox 计入 apply 实施进度。另一 Agent 的 review 已由原编写 Agent 读取并处理，用户已明确修改完成后即可本地提交，提交前按[工作流](../../../docs/development/workflow.md)运行必要检查。以下 checkbox 全部只代表实施工作，当前均未执行。
+规划审阅已产出，见 [review](review.md)；意见处置和检查结果在该文件维护，不使用任务 checkbox 计入 apply 实施进度。另一 Agent 的 review 已由原编写 Agent 读取并处理，用户已明确修改完成后即可本地提交，提交前按[工作流](../../../docs/development/workflow.md)运行必要检查。以下 checkbox 全部只代表实施工作。
 
 ## 1. 固定最小技术方案
 
-- [ ] 1.1 核对本机工具链与系统版本、固定 Tauri / Rust / 前端依赖；记录多 WebView `unstable` 功能及 API 限制，不声称其他平台已验证。（E01、E12、E14）
-- [ ] 1.2 确定工具与目标 WebView 的权限边界、启动数据根、非持久会话与原生快照候选；证据能说明为何不是普通 iframe 或默认系统存储。（E02、E05、E09、E10、E13）
-- [ ] 1.3 登记最小工程目录、依赖许可、构建与缓存落点，再创建根工程和 `apps/desktop/`；产物不入库。（E12）
+- [x] 1.1 核对本机工具链与系统版本、固定 Tauri / Rust / 前端依赖；记录多 WebView `unstable` 功能及 API 限制，不声称其他平台已验证。（E01、E12、E14）— 2026-11-11 完成，记录见 [evidence-index](evidence-index.md)「工具链核对与最小工程」与 [design](design.md)「实施定稿」；仅构建验证，未运行
+- [x] 1.2 确定工具与目标 WebView 的权限边界、启动数据根、非持久会话与原生快照候选；证据能说明为何不是普通 iframe 或默认系统存储。（E02、E05、E09、E10、E13）— 2026-11-11 定稿见 [design](design.md)「实施定稿」；运行级证据（负例、写盘观测）仍待 2.x–4.x
+- [x] 1.3 登记最小工程目录、依赖许可、构建与缓存落点，再创建根工程和 `apps/desktop/`；产物不入库。（E12）— 2026-11-11 完成：根 workspace + `apps/desktop/`（TS strict + tauri 2.12.5 unstable），`pnpm install` / `tsc+vite build` / `cargo check` 退出码均 0；许可与锁文件落点见 evidence-index。产物与缓存不入库，应用图标经 allowlist 理由豁免入库
 
 ## 2. 单窗口操作页面
 

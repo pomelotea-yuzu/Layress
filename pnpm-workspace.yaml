@@ -1,0 +1,9 @@
+# pnpm workspace：apps/ 应用入口 + packages/ 共用能力（划分见 AGENTS.md §八）
+packages:
+  - apps/*
+  - packages/*
+
+# 构建脚本审批表（pnpm ≥12 语法，旧字段 onlyBuiltDependencies 已不生效）
+# 只放行确有必要的依赖，新增须写明原因；false = 显式拒绝
+allowBuilds:
+  esbuild: true   # vite 依赖：安装后校验/下载平台二进制，不跑则 dev/build 失败

@@ -12,6 +12,9 @@
 - [2026-11-09][P1] 迁机 macOS 后仍把「自有、已打包、开发冻结的 Electron 应用」当可复用基线，用户确认该应用**没有 Mac 版本** ⇒ D16 只改了「首验实机平台」口径，没核基线对象是否随开发机可用；「自有 + 已打包 + 冻结」不等于「当前机器上跑得起来」 ⇒ 迁机 / 换机必须同时核三件事：基线对象可启动性、探针栈可用性、证据原件是否随机器迁移；不可用时把对象与平台**一起**列欠账，不默认 Mac 能跑、也不假装 Windows 仍成立 ⇒ 证据：用户 2026-11-09 确认；[`debt.md`](debt.md)「首验实机平台口径」行、[`../engineering/plans/2026-11-07-agent-native-evidence-gate.md`](../engineering/plans/2026-11-07-agent-native-evidence-gate.md) §五。
 - [2026-11-08][P1] 文档状态卡里写死 `git fetch github && git log --oneline github/main..main`，换克隆直接报错 ⇒ 远程名是**本机 git 配置**而非仓库事实：当前 Mac 克隆只有单个 `origin`（Gitee fetch/push + GitHub push URL），`github`／`gitee` 这两个名字并不存在 ⇒ 查未推提交一律用不依赖远程名的 `git fetch --all && git log --oneline '@{u}'..main`，文档注明「远程名以 `git remote -v` 为准」；远程配置归用户，智能体不改 ⇒ 证据：本轮 `git remote -v` 回显与状态卡命令失效；同一根因下 `git push github main && git push gitee main` 同样失效，工作流已一并改为先查 `git remote -v`。
 - [2026-11-10][P2] 整目录移动 git 仓库后，当前会话的 shell 立刻报 `Working directory does not exist`，而文档读写工具仍正常 ⇒ Bash 类工具的 cwd 绑定会话启动时的工作区绝对路径，IDE 工作区与本机记忆索引同样按路径绑定；`.git` 内部全为相对路径，仓库本身无损，失效的是仓库外的本机绑定 ⇒ 移动后先在新路径实跑 git 与门禁，并在 IDE 重新打开工作区；会话内还要跑 shell 时临时让旧路径可进入、收尾删净，本机日志写入改指新路径 ⇒ 证据：2026-11-10 目录归位实跑回显、D27 与[`AGENTS.md`](../../AGENTS.md) §二。
+- [2026-11-11][P2] 当前会话 PATH 里的 Node 来自 WorkBuddy 内置运行时（`~/.workbuddy/binaries/node/…`，v22.22.2）⇒ 应用自带运行时随应用更新 / 卸载而变，构建链会静默依赖它 ⇒ 有独立构建需求时改用独立安装并固定版本，门禁 `engines.node >=20` 只兜版本不兜来源 ⇒ 证据：2026-11-11 `node -v` 与 `which npm` 回显；与 2026-11-09 条目同一主题。
+- [2026-11-11][P2] rustup 镜像安装：rsproxy 的 `rustup-init.sh` 脚本下载 rustup-init 报 404，直连二进制时又遇 504，脚本路径与镜像稳定性都不可假设 ⇒ 直接下载 `rustup/dist/<target>/rustup-init` 二进制再运行，镜像换 USTC（`mirrors.ustc.edu.cn/rust-static`）成功；crates 索引用 rsproxy sparse 另配 ⇒ 证据：2026-11-11 安装回显，rustc/cargo 1.99.1 就绪，`cargo check` 通过。
+- [2026-11-11][P1] corepack 首次调用 pnpm 会交互确认下载，非交互会话直接挂起直到超时被杀 ⇒ 设 `COREPACK_ENABLE_DOWNLOAD_PROMPT=0` 后一次性放行 ⇒ CI / 智能体等非交互环境启用 corepack 必须带该环境变量 ⇒ 证据：2026-11-11 首次调用挂起（SIGTERM），设置后成功启用 pnpm 12.18.0。
 
 ## 门禁
 
@@ -19,6 +22,8 @@
 - [2026-11-03][P0] CI 显示全绿但门禁根本没跑 ⇒ Gitee Go 的 `commands` 逐条执行、**单条失败不短路**，前面红了整体仍判绿；且 `build@nodejs` 插件可能静默跳过自带的 Node 安装，容器里没有可用 `node` ⇒ 所有校验用 `&&` 链成**一条**命令，由最终退出码判败；Node 在命令里自装，`nodeVersion` 字段只当必填占位 ⇒ 来源：前置项目首跑实证，本仓 [`.workflow/ci.yml`](../../.workflow/ci.yml) 已按此写。
 - [2026-11-03][P1] 豁免清单会变成考古现场 ⇒ 提交进去的 glob 后来没有一个文件命中，没人敢删 ⇒ `check-hygiene.mjs --all` 把零命中的豁免报成警告，删掉即可 ⇒ 只在 `--all` 判定，staged 模式本次提交没碰到该文件属正常。
 - [2026-11-08][P0] 开发机迁到 macOS 后 pre-commit 门禁形同未挂 ⇒ `.githooks/pre-commit` 在索引里的 mode 是 `100644`，Windows 不依赖执行位，Git on macOS / Linux 直接静默跳过（commit 时只给一行 ignoredHook 提示），本地洁净度链只剩 CI 兜底 ⇒ 改为 `100755` 入库，并在 `check-hygiene.mjs` 加「hook 缺可执行位」断言 + 反证用例；**新增 hook 一律核对索引 mode** ⇒ 证据：`git ls-tree HEAD .githooks/pre-commit` 原为 100644，修复后 `git hook run pre-commit` 实跑通过。
+- [2026-11-11][P1] pnpm ≥11/12 下 `package.json` 的 `pnpm.onlyBuiltDependencies` 与 workspace 旧键 `onlyBuiltDependencies` 不再授予构建权限，`ERR_PNPM_IGNORED_BUILDS` 反复出现 ⇒ 授权表改用 `pnpm-workspace.yaml` 的 `allowBuilds` 映射（`esbuild: true`）；且 pnpm 会自动写入 `allowBuilds: esbuild: set this to true or false` 占位段，与手写段冲突报 duplicate key ⇒ 首次安装报错后检查 `pnpm-workspace.yaml` 是否被写入占位键，合并为单个 `allowBuilds` 段再重装 ⇒ 证据：2026-11-11 三次 install 失败到修复成功的回显，esbuild postinstall 正常执行。
+- [2026-11-11][P1] 图片文件（截图、过程产物）此前不在 `check-hygiene.mjs` 后缀黑名单，工作区里任何 `.png` 都能被 add 进索引 ⇒ 用户 2026-11-11 明确口径：只放行必要图片，过程性的要拦 ⇒ `FORBIDDEN_EXT` 增加 `.png/.jpg/.jpeg/.gif/.bmp/.webp/.ico/.icns/.tiff`，确需入库的图片（Tauri 应用图标）逐条在 `.git-hygiene-allowlist` 写理由豁免，并补「图片后缀反例」自测 ⇒ 证据：本轮 `check-hygiene.mjs --selftest` 与 `check-repo.mjs --all` 回显；`docs/reviews/**` 与 `artifacts/**` 的截图仍被 `.gitignore` 双重拦截。
 
 ## 测试
 
@@ -51,7 +56,7 @@
 - [2026-11-10][P1] 共享安装只指定 npm prefix 仍可能让 OpenSpec 配置、缓存和临时资料落入系统用户目录 ⇒ 安装前缀与 CLI 的 XDG / 临时目录是不同控制面 ⇒ 共享启动入口统一设置 XDG、TMPDIR、npm cache / logs，并关闭遥测与自动更新，项目内只留调用说明 ⇒ 证据：OpenSpec 1.17.0 安装源码核对、实际共享入口与[工作流](../development/workflow.md)。
 - [2026-11-10][P2] npm 11.20.0 同时把 userconfig 和 globalconfig 指向 `/dev/null` 时安装报 double-loading config ⇒ npm 不接受两个配置层复用同一文件路径 ⇒ 在授权工具根提供两个独立配置文件，再显式指定 prefix / cache / logs ⇒ 证据：本轮首次安装报错与随后 57 个包安装成功，OpenSpec `--version` 输出 1.17.0。
 - [2026-11-10][P1] OpenSpec `status` 返回 `isComplete: true` 容易被当成实施完成 ⇒ 该命令描述规划文档状态，任务未必已勾选 ⇒ 以 tasks 与实机证据判断实现，规格校验与规划完成分别记录 ⇒ 证据：[首个 change 校验记录](../../openspec/changes/add-tauri-page-host/evidence-index.md)，本轮实施任务仍全部未执行。
-- （待填）首个 `pnpm install` 之后，把实际遇到的解析/锁定/离线打包坑写在这里。
+- [2026-11-11][P2] 首个 `pnpm install` 与 cargo 依赖解析本身无额外坑（锁文件一次成型，`Cargo.lock` 107 KB 在体积门禁内）；依赖构建审批坑见上方门禁节 `allowBuilds` 条目，cargo 镜像见环境节 rustup 条目 ⇒ 首次引入 workspace 的解析结论：默认 registry（npmjs）与 rsproxy sparse 均可直连，暂不需仓库级镜像配置 ⇒ 证据：2026-11-11 `pnpm install` / `cargo check` 退出码 0。
 
 ## 知识库与交接
 

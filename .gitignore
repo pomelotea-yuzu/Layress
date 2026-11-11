@@ -20,6 +20,13 @@ build/
 release/
 release-*/
 
+# ── Rust / Tauri 构建缓存与生成物（cargo 可重新生成，有价值的东西不在这里）──
+# target/ = Cargo 编译缓存与产物（apps/desktop/src-tauri/target/）；产物体积大、机器相关。
+# src-tauri/gen/ = tauri-build 生成的 schema 与平台文件，随构建重生成。
+# Cargo.lock 入库（应用工程锁定依赖），不在此排除。
+target/
+**/src-tauri/gen/
+
 # ── 运行时数据（便携优先：数据跟着产品走，三端都不落系统用户目录）──
 # .layress/ = 默认数据根与日志根。扫描 run、探针输出、缓存、临时文件全在这里。
 # 它是本仓唯一允许的"运行期垃圾场"；要留证据先迁进 docs/reviews/ 或 datasets/。

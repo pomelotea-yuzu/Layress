@@ -3,6 +3,18 @@
 > 日期：2026-11-10。change 已建立并补做 OpenSpec 严格校验；**尚无产品构建、运行、截图、便携写盘或人工体验通过记录**。
 > 实施完成状态只在 [tasks](tasks.md) 维护。下表是待采集的证据归属，不是测试报告。
 
+## 工具链核对与最小工程（任务 1.1–1.3，2026-11-11）
+
+- **本机**：macOS 27.2.1 (arm64)；Apple clang 21.0.0（Xcode CLT）；rustc/cargo **1.99.1**（rustup minimal，经 USTC 镜像安装，crates 走 rsproxy sparse）；Node **22.22.2**（当前 PATH 指向 WorkBuddy 内置运行时，见 engineering 登记）；pnpm **12.18.0**（corepack 启用）。
+- **依赖固定**：`tauri = 2.12.5`（`unstable` 功能，多 WebView 前置）+ `tauri-build 2`（2.7.4）；`@tauri-apps/api` / `cli` 2.12.4；TypeScript 5.9.3（strict）；Vite 7.3.8。锁定文件 `pnpm-lock.yaml` / `Cargo.lock` 入库；`target/`、`dist/`、`gen/` 不入库。
+- **实跑命令与退出码**（2026-11-11 本机回显）：
+  - `pnpm install`：退出码 0，esbuild postinstall 按 `allowBuilds` 放行执行成功。
+  - `pnpm build:desktop`（= `tsc --noEmit && vite build`）：退出码 0，产物 `dist/index.html` 0.32 KB + JS 1.28 KB。
+  - `cargo check`（`apps/desktop/src-tauri/`）：退出码 0，tauri 2.12.5 + unstable 编译通过，dev profile 28.39s。
+- **许可核对**：tauri / tauri-build / @tauri-apps/* = MIT OR Apache-2.0；Vite = MIT；TypeScript = Apache-2.0；与本项目 MIT 兼容。完整第三方声明仍是发行前欠账（debt）。
+- **工程落点**：根 `package.json` + `pnpm-workspace.yaml`（apps/*、packages/*、allowBuilds 审批表）；`apps/desktop/`（TS strict 前端骨架 + `src-tauri/`）；门禁收紧见 [engineering](../../../docs/knowledge/engineering.md)（图片后缀默认拦截，应用图标走 allowlist 理由豁免）。
+- **对应证据表状态**：E01 / E12 / E14 的工具链与构建部分已有本机记录；E01 的**运行与人工操作、E02–E11、E13 及 E12 的 CI 侧**仍未执行，下表状态不变。
+
 ## Agent 审阅与提交状态
 
 2026-11-10 用户要求撤回最近的工具记录提交 `4b64372`，已保留全部文件改动，共享 OpenSpec 安装与下述校验事实仍有效。
