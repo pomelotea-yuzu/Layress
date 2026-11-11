@@ -50,6 +50,10 @@
 - 修复：改为显式互不重叠布局（工具条 `[0, TOOLBAR_H]`、页面 `[TOOLBAR_H, 窗口底]`，Resized 时双显式
   set_bounds）；TOOLBAR_H 与 CSS 高度统一为 96px 且 `overflow: hidden`；加窗口最小尺寸 520×400。
   修复后重编译启动正常；**待用户复验确认**，确认前不视为通过。
+- 2026-11-11 追加（用户建议）：应用设定视口后，页面边界注入 1px 固定定位描边（`html.__layress_frame_on::after`，
+  pointer-events:none），按「设定视口且小于舞台」动态开关（page_set_size / Resized / 页面加载完成三个时机同步）。
+  该边框是**工具辅助标记**：任务 3.x 采集真实画面时必须先关闭再截图；严格 CSP 页面可能拦截注入样式导致边框不显示
+  （如实记录，不视为采集失败）。待用户复验。
 
 **限制**：无 back/forward（tauri 2.12.5 Webview 未暴露历史接口）。
 

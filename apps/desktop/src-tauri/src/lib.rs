@@ -31,6 +31,12 @@ const TITLE_PREFIX: &str = "\u{200b}LW ";
 const REACHABILITY_TIMEOUT: Duration = Duration::from_secs(3);
 
 const MEASURE_SCRIPT: &str = r#"(function(){
+  // 视口边框样式（工具辅助标记，pointer-events:none 不拦截页面交互）；
+  // 仅当 Rust 侧判定"设定视口小于舞台"时加 html.__layress_frame_on 类才显示
+  var st = document.createElement("style");
+  st.id = "__layress_frame_style";
+  st.textContent = 'html.__layress_frame_on::after{content:"";position:fixed;inset:0;pointer-events:none;box-sizing:border-box;border:1px solid rgba(96,112,128,.9);z-index:2147483647}';
+  (document.documentElement || document).appendChild(st);
   function __layressReport(){
     try {
       document.title = "\u200bLW " + JSON.stringify({
@@ -151,6 +157,37 @@ fn relayout(window: &Window<tauri::Wry>, app: &AppHandle<tauri::Wry>) {
     }
 }
 
+/// 页面视口边框：设定视口且小于舞台时开启，让页面边界与白色背景可区分。
+/// 边框是注入 DOM 的固定定位描边（pointer-events:none），属工具辅助标记，
+/// 任务 3.x 采集真实画面时必须先关闭再截图，不得混入页面现场。
+fn sync_page_frame(app: &AppHandle<tauri::Wry>) {
+    let state = app.state::<PageHost>();
+    let configured = state.configured.lock().ok().and_then(|c| *c);
+    let on = match (configured, app.get_window("main")) {
+        (Some((w, h)), Some(window)) => {
+            window
+                .inner_size()
+                .ok()
+                .map(|inner| {
+                    let scale = window.scale_factor().unwrap_or(1.0);
+                    let stage_w = inner.width as f64 / scale;
+                    let stage_h = inner.height as f64 / scale - TOOLBAR_H;
+                    w + 0.5 < stage_w || h + 0.5 < stage_h
+                })
+                .unwrap_or(false)
+        }
+        _ => false, // 跟随窗口模式：页面铺满舞台，无需边框
+    };
+    if let Some(page) = app.get_webview(PAGE_LABEL) {
+        let js = if on {
+            "document.documentElement.classList.add('__layress_frame_on');"
+        } else {
+            "document.documentElement.classList.remove('__layress_frame_on');"
+        };
+        let _ = page.eval(js.to_string());
+    }
+}
+
 // ── 被测页面 WebView 生命周期 ─────────────────────────────────────
 
 /// 创建或复用被测页面 WebView 并导航到目标地址。
@@ -209,6 +246,8 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
                 },
             );
             if phase == "loaded" {
+                // 导航会重置 DOM，加载完成后按当前状态重新应用视口边框
+                sync_page_frame(&app);
                 emit_viewport(&app);
             }
         })
@@ -372,6 +411,7 @@ fn page_set_size(app: AppHandle<tauri::Wry>, width: f64, height: f64) -> Result<
         })
         .map_err(|e| format!("调整页面视口失败：{e}"))?;
     }
+    sync_page_frame(&app);
     emit_viewport(&app);
     Ok(())
 }
@@ -447,6 +487,7 @@ pub fn run() {
                 if let WindowEvent::Resized(_) = event {
                     // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）
                     relayout(&win, &handle);
+                    sync_page_frame(&handle);
                     emit_viewport(&handle);
                 }
             });
