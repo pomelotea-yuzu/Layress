@@ -155,6 +155,13 @@ Rust `capture_delay` 只在 debug 生效、上限 15 s、默认 0，产品路径
 不被加载 / 视口事件覆盖），新增元素一律可选获取，并在 HTML/JS 不同步时于启动时给出明确重启指引；
 `#status-line` 改为 flex 优先。**该 UI 修复本身尚未经用户 GUI 复验，任务 3.2 仍不勾选。**
 
+**第二轮反馈（2026-11-12 追加）**：用户按修复后的步骤操作仍反馈「没有黄色的条」。核对：Vite devUrl 返回的 HTML、
+磁盘 `index.html` 与 `dist/index.html` 均含 `capture-toast` / `slow-capture`；二进制内不含前端资源
+（dev 模式走 devUrl），排除二进制缓存。旧窗口启动时间早于 11:20 的 UI 改动，且 CSP `default-src 'self'`
+挡掉 Vite HMR websocket，页面不会自动重载 ⇒ 工具层 WebView 仍是改动前的 DOM，不是代码没生效、也不是用户操作错。
+已杀净旧 pnpm / vite / 应用进程并重新起完整 `pnpm tauri dev`（回显 VITE ready + `Running target/debug/layress-desktop`）。
+**UI 修复与 3.2 负例仍待用户在新窗口确认，不勾选**。
+
 **仍未执行（单列，不得视为通过）**：E06 的 GUI 人工负例与本次 UI 修复的可见性确认；弹窗会话单独触发；2.2 无效地址负例；
 4.1 不可写负例、4.2 写盘观测、4.3 原生命令 / 文件 / 进程访问负例、4.4 退出清理；
 5.x 构建 / 类型 / 测试接入公共门禁、规格正反场景与归档；Windows / Linux、真实移动设备、

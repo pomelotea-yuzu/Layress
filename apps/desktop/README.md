@@ -66,6 +66,11 @@ cd ~/Developer/project/layress/apps/desktop \
 若启动时状态行显示 `⚠ 工具界面 HTML 与脚本不同步…`，说明工具层 WebView 仍是旧页面，
 必须 Ctrl+C 后重新运行启动命令，不能只靠热更新。
 
+**改过前端 HTML/JS 后必须完整重启**：`tauri.conf.json` 的 CSP `default-src 'self'` 会挡掉 Vite dev 的
+HMR websocket，`@vite/client` 无法推送页面重载，工具层 WebView 会一直保留启动那一刻的 DOM。
+只关窗口、或在改动前「重启过」都不算；要杀净 `pnpm tauri dev` / vite / 应用进程再起。
+可用 `curl -s http://localhost:5173/ | grep capture-toast` 与磁盘 `index.html` 对照确认服务的是新版。
+
 「关闭应用窗口」这一路无法同时观察结果，退出清理留任务 4.4 单独验证。
 机器侧已用 `LAYRESS_PROBE_CAPTURE=race` 在慢采窗口内自动刷新验证过「失效且 PNG 数不变」，
 但那不替代人工在 GUI 上确认。
