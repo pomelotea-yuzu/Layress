@@ -913,7 +913,7 @@ fn status_bar_set(app: AppHandle<tauri::Wry>, text: String, level: String) -> Re
         .get_webview(STATUS_LABEL)
         .ok_or_else(|| "底部状态栏未就绪".to_string())?;
     let level = match level.as_str() {
-        "ok" | "error" => level,
+        "ok" | "error" | "pending" => level,
         _ => "info".to_string(),
     };
     let text_js = serde_json::to_string(&text).map_err(|e| format!("状态文本序列化失败：{e}"))?;

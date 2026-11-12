@@ -164,7 +164,7 @@ function eventData<T>(p: PageEventPayload): T | null {
   return p.data === undefined || p.data === null ? null : (p.data as T);
 }
 
-type ToastLevel = "info" | "ok" | "error";
+type ToastLevel = "info" | "pending" | "ok" | "error";
 
 /** 采集结果 → 窗口最底部的独立状态栏 WebView（status.html，无能力、无脚本）。
  *  不再占用工具层 DOM，因此不会遮住工具栏；状态栏未就绪时静默降级，不改变采集结果。 */
@@ -321,7 +321,7 @@ async function capture(): Promise<void> {
   const seq = captureSeq;
   hidePreview();
   statusLine.textContent = "采集请求已提交 …";
-  showCaptureToast("采集请求已提交 …", "info");
+  showCaptureToast("采集请求已提交 …", "pending");
   // 慢采开关只在开发构建生效：留出人工可操作的窗口，验证竞态失效（E06 运行级负例）。
   const delayMs = slowCapture?.checked ? 5000 : 0;
   try {
@@ -518,7 +518,8 @@ async function subscribeEvents(): Promise<void> {
         const c = eventData<{ phase: string; id: string; message: string }>(p);
         if (!c) break;
         const failed = c.phase === "failed" || c.phase === "invalidated" || c.phase === "cancelled";
-        const level: ToastLevel = failed ? "error" : c.phase === "completed" ? "ok" : "info";
+        const level: ToastLevel =
+          failed ? "error" : c.phase === "completed" ? "ok" : "pending";
         // 每个采集阶段都进常驻条：started 的「慢采已开启 …ms」可直接证明参数生效。
         showCaptureToast(`[${c.phase}] ${c.message || c.id}`, level);
         if (failed) {
