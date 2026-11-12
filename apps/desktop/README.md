@@ -36,7 +36,17 @@ cargo test --lib      # 采集状态机 / 哨兵键名 / PNG 与 base64 纯逻�
 LAYRESS_PROBE_CAPTURE=1 pnpm tauri dev
 ```
 
-Rust 工具链若不在 PATH，命令前加 `PATH="$HOME/.cargo/bin:$PATH"`。
+**真终端启动（重要）**：WorkBuddy 会话用内置 Node 运行时（`pnpm` 是 corepack shim），
+真终端的 PATH 通常既没有 `pnpm` 也没有 `~/.cargo/bin`；系统自带 node / npm 不够用。
+在任意目录直接粘贴这一行（已用干净 PATH 环境实跑验证：node 22.22.2 / pnpm 12.18.0 /
+cargo 1.99.1 / tauri-cli 2.12.4）：
+
+```bash
+cd ~/Developer/project/layress/apps/desktop \
+  && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" pnpm tauri dev
+```
+
+不要只写 `cd apps/desktop`——那条命令默认当前目录已经是仓库根。
 
 ## 口径
 
