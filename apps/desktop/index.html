@@ -28,9 +28,18 @@
       #slow-wrap { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap; color: #455a64; }
       #slow-wrap input { margin: 0; }
       .status { font-size: 12px; line-height: 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      #status-line { color: #37474f; }
-      #viewport-line { color: #546e7a; }
-      #request-line { color: #b71c1c; }
+      #status-line { color: #37474f; flex: 1 1 0; min-width: 0; }
+      #viewport-line { color: #546e7a; flex: 0 1 auto; }
+      #request-line { color: #b71c1c; flex: 0 1 auto; }
+      /* 采集结果常驻条：只由采集阶段更新，不被导航 / 视口 / 加载事件覆盖，
+         也不会被工具条第三行的长文本挤没；完整文本放 title 里。 */
+      #capture-toast { display: none; position: fixed; top: 96px; left: 0; right: 0; z-index: 30;
+        box-sizing: border-box; padding: 4px 10px; font-size: 12px; line-height: 18px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+        background: #fff8e1; color: #5d4037; border-bottom: 1px solid #e0c46a; }
+      #capture-toast.show { display: block; }
+      #capture-toast.ok { background: #e8f5e9; color: #2e7d32; border-bottom-color: #81c784; }
+      #capture-toast.error { background: #ffebee; color: #b71c1c; border-bottom-color: #e57373; }
 
       /* 原地静态预览：与被测页面共用同一块工作区，不新开窗口 */
       #preview { display: none; position: fixed; inset: 96px 0 0 0; z-index: 10;
@@ -84,6 +93,8 @@
         <span id="request-line" class="status"></span>
       </div>
     </div>
+
+    <div id="capture-toast" role="status" aria-live="polite"></div>
 
     <div id="preview">
       <div id="preview-head">

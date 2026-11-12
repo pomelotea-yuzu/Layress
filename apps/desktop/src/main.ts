@@ -123,8 +123,11 @@ const coordInfo = assertElement<HTMLDivElement>("coord-info");
 const dataRootLine = assertElement<HTMLDivElement>("data-root-line");
 const btnModeOriginal = assertElement<HTMLButtonElement>("btn-mode-original");
 const btnModeFit = assertElement<HTMLButtonElement>("btn-mode-fit");
-const slowCapture = assertElement<HTMLInputElement>("slow-capture");
-const slowWrap = assertElement<HTMLSpanElement>("slow-wrap");
+// 开发期新增元素一律可选获取：HTML 与 JS 不同步（Vite HMR、旧窗口未重载）时，
+// 顶层 assertElement 抛异常会让整个工具界面脚本停摆，按钮和状态行全部失效。
+const slowCapture = document.getElementById("slow-capture") as HTMLInputElement | null;
+const slowWrap = document.getElementById("slow-wrap") as HTMLSpanElement | null;
+const captureToast = document.getElementById("capture-toast") as HTMLDivElement | null;
 
 let currentMeta: CaptureMeta | null = null;
 let lastCapture: CaptureMeta | null = null;
@@ -160,6 +163,16 @@ function clamp(v: number, min: number, max: number): number {
 
 function eventData<T>(p: PageEventPayload): T | null {
   return p.data === undefined || p.data === null ? null : (p.data as T);
+}
+
+type ToastLevel = "info" | "ok" | "error";
+
+/** 采集结果常驻条：只由采集阶段更新，不被导航 / 加载 / 视口事件覆盖，也不被第三行挤没。 */
+function showCaptureToast(text: string, level: ToastLevel): void {
+  if (!captureToast) return;
+  captureToast.textContent = text;
+  captureToast.title = text; // 单行省略时悬停可看完整失败原因与数据根路径
+  captureToast.className = level === "info" ? "show" : `show ${level}`;
 }
 
 // ── 导航与视口（任务 2.x）────────────────────────────────────────
@@ -308,19 +321,36 @@ async function capture(): Promise<void> {
   const seq = captureSeq;
   hidePreview();
   statusLine.textContent = "采集请求已提交 …";
+  showCaptureToast("采集请求已提交 …", "info");
   // 慢采开关只在开发构建生效：留出人工可操作的窗口，验证竞态失效（E06 运行级负例）。
-  const delayMs = slowCapture.checked ? 5000 : 0;
+  const delayMs = slowCapture?.checked ? 5000 : 0;
   try {
     const outcome = await invoke<CaptureOutcome>("capture_start", { delayMs });
-    if (seq !== captureSeq) return; // 已被更新的请求替代，旧响应不得改写界面
+    if (seq !== captureSeq) {
+      // 旧请求被新采集替代：不改写当前画面，但结果必须留痕，不能静默忽略。
+      showCaptureToast(
+        `旧请求 ${outcome.meta.id} 已完成但被新采集替代，未作为当前结果显示`,
+        "info",
+      );
+      return;
+    }
     showPreview(outcome);
     statusLine.textContent = `✓ 采集完成：${outcome.meta.id}`;
+    showCaptureToast(
+      `✓ 采集完成 ${outcome.meta.id} · ${outcome.meta.image.width_px}×${outcome.meta.image.height_px} px · 产物 ${outcome.meta.image.file}`,
+      "ok",
+    );
   } catch (e) {
-    if (seq !== captureSeq) return;
     hidePreview();
+    const detail = String(e);
     const old = lastCapture ? `；上次成功 ${lastCapture.id} 仅作旧现场，不代表本次成功` : "";
     const root = lastRoot ? `；可到 ${lastRoot.path}/captures/ 核对本次没有新文件` : "";
-    statusLine.textContent = `✗ 本次采集失败：${String(e)}${old}${root}`;
+    const stale = seq !== captureSeq ? "（旧请求，已被新采集替代）" : "";
+    const text = `✗ 本次采集失败${stale}：${detail}${old}${root}`;
+    // 常驻条先写，保证即使状态行被后续事件覆盖、或旧请求被忽略，失败仍然可见。
+    showCaptureToast(text, "error");
+    if (seq !== captureSeq) return;
+    statusLine.textContent = text;
   }
 }
 
@@ -486,9 +516,14 @@ async function subscribeEvents(): Promise<void> {
       }
       case "Capture": {
         const c = eventData<{ phase: string; id: string; message: string }>(p);
-        if (c && (c.phase === "failed" || c.phase === "invalidated" || c.phase === "cancelled")) {
+        if (!c) break;
+        const failed = c.phase === "failed" || c.phase === "invalidated" || c.phase === "cancelled";
+        const level: ToastLevel = failed ? "error" : c.phase === "completed" ? "ok" : "info";
+        // 每个采集阶段都进常驻条：started 的「慢采已开启 …ms」可直接证明参数生效。
+        showCaptureToast(`[${c.phase}] ${c.message || c.id}`, level);
+        if (failed) {
           statusLine.textContent = `✗ ${c.message}`;
-        } else if (c && c.phase === "started") {
+        } else if (c.phase === "started") {
           statusLine.textContent = `采集 ${c.id}：${c.message}`;
         }
         break;
@@ -510,7 +545,7 @@ async function subscribeEvents(): Promise<void> {
 
 async function main(): Promise<void> {
   // 慢采是开发期复验开关，正式构建不显示；Rust 侧也只在 debug 构建接受延迟。
-  if (!import.meta.env.DEV) slowWrap.style.display = "none";
+  if (!import.meta.env.DEV && slowWrap) slowWrap.style.display = "none";
   const check = coordSelfTest();
   previewCheck.textContent = check.passed ? `坐标自检 ✓ ${check.detail}` : `坐标自检 ✗ ${check.detail}`;
   previewCheck.classList.toggle("bad", !check.passed);
@@ -518,6 +553,11 @@ async function main(): Promise<void> {
   await subscribeEvents();
   await loadInitialState();
   viewportLine.textContent = "视口：尚未打开页面";
+  // 旧窗口 + 刚更新的脚本会出现「HTML 还是旧版」：此时慢采开关与结果条都不存在，
+  // 与其让用户看到空白状态行，不如直接给出重启指引。
+  if (!captureToast || !slowCapture || !slowWrap) {
+    statusLine.textContent = "⚠ 工具界面 HTML 与脚本不同步：请 Ctrl+C 后重新运行 pnpm tauri dev（完整重启）";
+  }
 }
 
 void main();
