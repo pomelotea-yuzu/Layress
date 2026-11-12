@@ -988,6 +988,68 @@ fn maybe_run_capture_probe(app: &AppHandle<tauri::Wry>) {
 #[cfg(not(debug_assertions))]
 fn maybe_run_capture_probe(_app: &AppHandle<tauri::Wry>) {}
 
+/// 开发期工具层可见性探针：`LAYRESS_PROBE_TOOL=1` 时把采集结果条点亮并截取工具层 WebView，
+/// 用来证明提示确实落在 96px 高的工具层视口内（而不是被视口裁掉）。仅 debug 构建生效。
+#[cfg(debug_assertions)]
+fn maybe_run_tool_probe(app: &AppHandle<tauri::Wry>) {
+    if std::env::var_os("LAYRESS_PROBE_TOOL").is_none() {
+        return;
+    }
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        std::thread::sleep(Duration::from_secs(5));
+        let Some(tool) = handle.get_webview(TOOL_LABEL) else {
+            eprintln!("[layress][toolprobe] 工具层未就绪");
+            return;
+        };
+        if let Ok(bounds) = tool.bounds() {
+            eprintln!("[layress][toolprobe] 工具层 bounds={bounds:?}");
+        }
+        if let Some(window) = handle.get_window("main") {
+            eprintln!(
+                "[layress][toolprobe] 窗口 inner={:?} scale={:?}",
+                window.inner_size().ok(),
+                window.scale_factor().ok()
+            );
+        }
+        // 同时自报 DOM 诊断，避免「看不到」时无法区分是元素缺失、eval 失效还是被裁切。
+        let show = "(function(){var t=document.getElementById('capture-toast');\
+var s=document.getElementById('status-line');\
+var info='toast='+(!!t)+' status='+(!!s)+' innerH='+window.innerHeight+\
+' body='+document.body.innerHTML.length+' href='+location.href;\
+document.title='[layress-probe] '+info;\
+if(s){s.textContent=info;}\
+if(t){t.textContent=info;t.title=info;t.className='show';}})();";
+        let _ = tool.eval(show.to_string());
+        std::thread::sleep(Duration::from_millis(600));
+        match snapshot_png(&tool) {
+            Ok(png) => {
+                if let Some(root) = handle.state::<PageHost>().data_root.get().cloned() {
+                    let path = root.path.join("tool-probe.png");
+                    match std::fs::write(&path, &png) {
+                        Ok(()) => eprintln!(
+                            "[layress][toolprobe] 工具层截图：{}（{} 字节）",
+                            path.display(),
+                            png.len()
+                        ),
+                        Err(e) => eprintln!("[layress][toolprobe] 截图写入失败：{e}"),
+                    }
+                }
+            }
+            Err(e) => eprintln!("[layress][toolprobe] 工具层截图失败：{e}"),
+        }
+        // 截图后清掉探针文字，交付给用户的窗口保持干净。
+        let _ = tool.eval(
+            "(function(){var t=document.getElementById('capture-toast');\
+if(t){t.textContent='';t.title='';t.className='';}})();"
+                .to_string(),
+        );
+    });
+}
+
+#[cfg(not(debug_assertions))]
+fn maybe_run_tool_probe(_app: &AppHandle<tauri::Wry>) {}
+
 // ── 启动 ─────────────────────────────────────────────────────────
 
 pub fn run() {
@@ -1072,13 +1134,20 @@ pub fn run() {
                     TOOL_LABEL,
                     WebviewUrl::App("index.html".into()),
                 )
-                .incognito(true),
+                .incognito(true)
+                // 开发期探针借标题变化把工具层 DOM 诊断回报到 stderr（不影响产品路径）。
+                .on_document_title_changed(|_webview, title| {
+                    if let Some(info) = title.strip_prefix("[layress-probe] ") {
+                        eprintln!("[layress][toolprobe] {info}");
+                    }
+                }),
                 LogicalPosition::new(0.0, 0.0),
                 LogicalSize::new(inner.width as f64 / scale, TOOLBAR_H),
             )?;
 
             let _ = APP.set(app.handle().clone());
             maybe_run_capture_probe(app.handle());
+            maybe_run_tool_probe(app.handle());
 
             let handle = app.handle().clone();
             window.on_window_event(move |event| match event {

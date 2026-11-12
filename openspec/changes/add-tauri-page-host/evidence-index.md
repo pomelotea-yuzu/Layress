@@ -162,6 +162,16 @@ Rust `capture_delay` 只在 debug 生效、上限 15 s、默认 0，产品路径
 已杀净旧 pnpm / vite / 应用进程并重新起完整 `pnpm tauri dev`（回显 VITE ready + `Running target/debug/layress-desktop`）。
 **UI 修复与 3.2 负例仍待用户在新窗口确认，不勾选**。
 
+**第三轮反馈与真根因（2026-11-12）**：用户在新窗口仍反馈「还是没出现你说的黄条」。
+改用 `LAYRESS_PROBE_TOOL=1` 对工具层 WebView 自身做 DOM 回报 + `takeSnapshot` 截图，日志给出
+`toast=true status=true innerH=64 body=2551 href=http://localhost:5173/`、
+`bounds=Logical(1280×96)`、窗口 `Physical(2560×1600)`、`scale=2.0`：
+新版 HTML 确实加载、结果条元素确实存在，但**工具层 CSS 视口只有 64px**，`#bar` 高 96px 且
+`overflow:hidden`，第三行状态文字与锚在 `#bar` 底部的结果条一起被裁掉；
+不是 z-index 遮挡、不是 HTML 版本、也不是 CSP。修复为 `position:fixed; bottom:0`（贴视口底），
+复跑探针截图已能清晰读出黄色诊断条文字，属机器 + 目视实证。
+**该修复仍待用户在真实采集流程中确认，任务 3.2 不勾选**；工具条第三行状态信息不可见已登记为 UI 欠账。
+
 **仍未执行（单列，不得视为通过）**：E06 的 GUI 人工负例与本次 UI 修复的可见性确认；弹窗会话单独触发；2.2 无效地址负例；
 4.1 不可写负例、4.2 写盘观测、4.3 原生命令 / 文件 / 进程访问负例、4.4 退出清理；
 5.x 构建 / 类型 / 测试接入公共门禁、规格正反场景与归档；Windows / Linux、真实移动设备、

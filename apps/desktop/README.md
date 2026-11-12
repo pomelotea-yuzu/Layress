@@ -54,7 +54,8 @@ cd ~/Developer/project/layress/apps/desktop \
 真实采集约 43 ms，直接点「采集」后人工来不及触发导航。**代码改动后先重启应用**（Ctrl+C 再跑上面的命令），然后：
 
 1. 打开样例页，勾上工具条第二行的「慢采 5s」。
-2. 点「采集」：**工具条下方会出现黄色「采集结果条」**，显示 `[started] 慢采已开启：… 5000 ms …`。
+2. 点「采集」：**工具条底部会出现黄色「采集结果条」**（贴 WebView 视口底，会盖住第二行下半部分，
+   但 `pointer-events:none`，按钮仍可点），显示 `[started] 慢采已开启：… 5000 ms …`。
    这条是判断慢采是否生效的依据；没有它说明还在旧窗口，请 Ctrl+C 完整重启。
 3. 在这 5 秒内任选其一：点「刷新」、点「取消」、或再点一次「采集」。
 4. 预期：结果条变红，显示 `[invalidated] …` / `[cancelled] …`，最终显示
@@ -70,6 +71,11 @@ cd ~/Developer/project/layress/apps/desktop \
 HMR websocket，`@vite/client` 无法推送页面重载，工具层 WebView 会一直保留启动那一刻的 DOM。
 只关窗口、或在改动前「重启过」都不算；要杀净 `pnpm tauri dev` / vite / 应用进程再起。
 可用 `curl -s http://localhost:5173/ | grep capture-toast` 与磁盘 `index.html` 对照确认服务的是新版。
+
+**工具层视口的已知限制**：Rust 给工具层的 bounds 是 `Logical(1280×96)`、窗口 scale 2，
+但页面实测 `window.innerHeight=64`；`#bar` 高 96px 且 `overflow:hidden`，因此第三行状态 / 视口 / 请求文字
+长期被裁不可见。采集反馈一律看贴视口底部的结果条，不要依赖第三行。
+开发期可用 `LAYRESS_PROBE_TOOL=1 pnpm tauri dev` 对工具层自身截图（数据根 `tool-probe.png`）自证结果条可见。
 
 「关闭应用窗口」这一路无法同时观察结果，退出清理留任务 4.4 单独验证。
 机器侧已用 `LAYRESS_PROBE_CAPTURE=race` 在慢采窗口内自动刷新验证过「失效且 PNG 数不变」，
