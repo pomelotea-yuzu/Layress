@@ -31,21 +31,12 @@
       #status-line { color: #37474f; flex: 1 1 0; min-width: 0; }
       #viewport-line { color: #546e7a; flex: 0 1 auto; }
       #request-line { color: #b71c1c; flex: 0 1 auto; }
-      /* 采集结果常驻条：贴**视口**底部（fixed + bottom:0），不锚在 96px 的 #bar 上。
-         工具层 WebView 非预览态实测 CSS 视口只有 64px，#bar 有 overflow:hidden，
-         任何 top:96px / #bar 内 bottom:0 的元素都会被裁掉；贴视口底部才一定可见。
-         半透明 + pointer-events:none，显示时仍能看见并点到底下的按钮。
-         只由采集阶段更新，不被导航 / 视口 / 加载事件覆盖；完整文本放 title 里。 */
-      #capture-toast { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 20px; z-index: 30;
-        box-sizing: border-box; padding: 1px 10px; font-size: 12px; line-height: 18px;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
-        background: rgba(255,248,225,.96); color: #5d4037; }
-      #capture-toast.show { display: block; }
-      #capture-toast.ok { background: #e8f5e9; color: #2e7d32; border-bottom-color: #81c784; }
-      #capture-toast.error { background: #ffebee; color: #b71c1c; border-bottom-color: #e57373; }
+      /* 采集结果条已移到窗口最底部的独立状态栏 WebView（status.html），
+         不再占用工具层 DOM：工具层 CSS 视口只有 64px，任何浮层都会遮住工具栏。 */
 
-      /* 原地静态预览：与被测页面共用同一块工作区，不新开窗口 */
-      #preview { display: none; position: fixed; inset: 96px 0 0 0; z-index: 10;
+      /* 原地静态预览：与被测页面共用同一块工作区，不新开窗口；
+         bottom 留出状态栏的 28px（对应 Rust STATUS_H=42 逻辑 px）。 */
+      #preview { display: none; position: fixed; inset: 96px 0 28px 0; z-index: 10;
         background: #fff; flex-direction: column; font-size: 12px; color: #37474f; }
       #preview.show { display: flex; }
       #preview-head, #preview-foot { flex: none; box-sizing: border-box; padding: 6px 10px;
@@ -96,8 +87,6 @@
         <span id="request-line" class="status"></span>
       </div>
     </div>
-
-    <div id="capture-toast" role="status" aria-live="polite"></div>
 
     <div id="preview">
       <div id="preview-head">

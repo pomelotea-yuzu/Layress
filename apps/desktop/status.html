@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Layress 底部状态栏</title>
+    <style>
+      /* 独立状态栏：无脚本、无 Tauri 能力，文本由 Rust 的 status_bar_set 注入。
+         颜色语义：默认灰=进行中/提示，绿=采集成功，红=失效或失败。 */
+      html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; overflow: hidden; }
+      #bar { height: 100%; box-sizing: border-box; display: flex; align-items: center;
+        padding: 0 10px; font-size: 12px; white-space: nowrap;
+        background: #eceff1; color: #37474f; border-top: 1px solid #cfd8dc; }
+      #bar.ok { background: #e8f5e9; color: #2e7d32; }
+      #bar.error { background: #ffebee; color: #b71c1c; }
+      #msg { overflow: hidden; text-overflow: ellipsis; }
+    </style>
+  </head>
+  <body>
+    <div id="bar"><span id="msg">就绪</span></div>
+  </body>
+</html>

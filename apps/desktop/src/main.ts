@@ -127,7 +127,6 @@ const btnModeFit = assertElement<HTMLButtonElement>("btn-mode-fit");
 // 顶层 assertElement 抛异常会让整个工具界面脚本停摆，按钮和状态行全部失效。
 const slowCapture = document.getElementById("slow-capture") as HTMLInputElement | null;
 const slowWrap = document.getElementById("slow-wrap") as HTMLSpanElement | null;
-const captureToast = document.getElementById("capture-toast") as HTMLDivElement | null;
 
 let currentMeta: CaptureMeta | null = null;
 let lastCapture: CaptureMeta | null = null;
@@ -167,12 +166,13 @@ function eventData<T>(p: PageEventPayload): T | null {
 
 type ToastLevel = "info" | "ok" | "error";
 
-/** 采集结果常驻条：只由采集阶段更新，不被导航 / 加载 / 视口事件覆盖，也不被第三行挤没。 */
+/** 采集结果 → 窗口最底部的独立状态栏 WebView（status.html，无能力、无脚本）。
+ *  不再占用工具层 DOM，因此不会遮住工具栏；状态栏未就绪时静默降级，不改变采集结果。 */
 function showCaptureToast(text: string, level: ToastLevel): void {
-  if (!captureToast) return;
-  captureToast.textContent = text;
-  captureToast.title = text; // 单行省略时悬停可看完整失败原因与数据根路径
-  captureToast.className = level === "info" ? "show" : `show ${level}`;
+  void invoke("status_bar_set", { text, level }).catch(() => {
+    // 只影响提示呈现，不改变采集结果。
+  });
+  statusLine.textContent = text; // 工具层状态行留一份兜底（第三行受 64px 视口限制，不依赖它）
 }
 
 // ── 导航与视口（任务 2.x）────────────────────────────────────────
@@ -555,7 +555,7 @@ async function main(): Promise<void> {
   viewportLine.textContent = "视口：尚未打开页面";
   // 旧窗口 + 刚更新的脚本会出现「HTML 还是旧版」：此时慢采开关与结果条都不存在，
   // 与其让用户看到空白状态行，不如直接给出重启指引。
-  if (!captureToast || !slowCapture || !slowWrap) {
+  if (!slowCapture || !slowWrap) {
     statusLine.textContent = "⚠ 工具界面 HTML 与脚本不同步：请 Ctrl+C 后重新运行 pnpm tauri dev（完整重启）";
   }
 }

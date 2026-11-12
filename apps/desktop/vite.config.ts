@@ -10,5 +10,12 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     sourcemap: true,
+    // 两个 WebView 入口：可信工具界面与窗口底部独立状态栏（后者无脚本）。
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        status: "status.html",
+      },
+    },
   },
 });

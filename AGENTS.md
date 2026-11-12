@@ -31,9 +31,9 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-tauri-page-host 任务 1.x、2.1/2.3/2.4 与 3.x 全部完成，含用户人工复验**（2026-11-11 / 11-12）：原生快照、版本化元数据、两模式坐标、返回会话，以及慢采开关下的 GUI 竞态负例均实测通过；2.2 无效地址负例未测，4.x–5.x 未开始。用户另要求把采集结果条从工具栏浮层移到窗口最底下，形态待确认 |
+| 阶段 | **add-tauri-page-host 任务 1.x、2.1/2.3/2.4 与 3.x 全部完成，含用户人工复验**（2026-11-11 / 11-12）：原生快照、版本化元数据、两模式坐标、返回会话，以及慢采开关下的 GUI 竞态负例均实测通过；结果条已按用户选择移到窗口最底部独立状态栏（三 WebView）；2.2 无效地址负例未测，4.x–5.x 未开始 |
 | 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.1/2.3/2.4 + 3.1/3.2/3.3 已勾选；2.2 与 4.x–5.x 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
-| 代码 | `apps/desktop/`：单窗口双 WebView（互不重叠布局）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵、视口边框、新窗口 / 下载 / 权限拒绝、内嵌样例服务；3.x 新增：WKWebView 原生快照（仅被测视图）、`layress.capture/v1` 元数据落盘、采集竞态状态机与 6 项单测、原地静态预览（工具层铺满 + 被测层仅平移不改尺寸）、原图坐标换算自检与参照块、数据根最小解析、开发期探针与「慢采 5s」复验开关、贴视口底部的采集结果条 |
+| 代码 | `apps/desktop/`：单窗口三 WebView（工具条 / 被测页面 / 底部状态栏，互不重叠）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵、视口边框、新窗口 / 下载 / 权限拒绝、内嵌样例服务；3.x 新增：WKWebView 原生快照（仅被测视图）、`layress.capture/v1` 元数据落盘、采集竞态状态机与 6 项单测、原地静态预览（工具层铺满 + 被测层仅平移不改尺寸）、原图坐标换算自检与参照块、数据根最小解析、开发期探针与「慢采 5s」复验开关、窗口底部独立状态栏（`status.html` + `status_bar_set`，Vite 双入口） |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；

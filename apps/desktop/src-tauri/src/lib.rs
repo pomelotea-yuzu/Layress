@@ -27,9 +27,18 @@ use tauri::{
 
 const TOOL_LABEL: &str = "main";
 const PAGE_LABEL: &str = "page";
-/// 工具条高度（逻辑像素），前端 #bar 的 CSS 高度必须与此一致；
-/// 布局为互不重叠的两块：工具条 [0, TOOLBAR_H]，被测页面 [TOOLBAR_H, 窗口底]。
+const STATUS_LABEL: &str = "status";
+/// 工具条高度（逻辑像素）；布局为互不重叠的三块：
+/// 工具条 [0, TOOLBAR_H]、被测页面 [TOOLBAR_H, 窗口底 - STATUS_H]、状态栏 [窗口底 - STATUS_H, 窗口底]。
 const TOOLBAR_H: f64 = 96.0;
+/// 窗口底部独立状态栏高度（逻辑像素）。工具层 WebView 实测 CSS 视口只有 64px，
+/// 放不进任何结果条，所以采集反馈走这块独立视图，不再浮在工具栏上。
+const STATUS_H: f64 = 42.0;
+
+/// 页面区可用高度（逻辑 px）：窗口去掉顶部工具条与底部状态栏。
+fn stage_height(win_h: f64) -> f64 {
+    (win_h - TOOLBAR_H - STATUS_H).max(0.0)
+}
 /// 预览时被测层平移出可视区的额外间距；尺寸保持不变，不触发页面 resize。
 const PREVIEW_OFFSCREEN_GAP: f64 = 2000.0;
 /// 视口上报脚本写入 document.title 的哨兵前缀（零宽空格 + 标记）。
@@ -162,8 +171,8 @@ fn emit_viewport(app: &AppHandle<tauri::Wry>) {
         }
         Err(_) => return,
     };
-    let bounds = configured.unwrap_or((win_w, win_h - TOOLBAR_H));
-    let fully_visible = win_w + 0.5 >= bounds.0 && win_h - TOOLBAR_H + 0.5 >= bounds.1;
+    let bounds = configured.unwrap_or((win_w, stage_height(win_h)));
+    let fully_visible = win_w + 0.5 >= bounds.0 && stage_height(win_h) + 0.5 >= bounds.1;
     emit(
         app,
         PageEvent::Viewport {
@@ -185,14 +194,14 @@ fn current_viewport(app: &AppHandle<tauri::Wry>) -> CapturedViewport {
                 let scale = window.scale_factor().unwrap_or(1.0);
                 let w = inner.width as f64 / scale;
                 let h = inner.height as f64 / scale;
-                let b = configured.unwrap_or((w, h - TOOLBAR_H));
-                (w, h, w + 0.5 >= b.0 && h - TOOLBAR_H + 0.5 >= b.1)
+                let b = configured.unwrap_or((w, stage_height(h)));
+                (w, h, w + 0.5 >= b.0 && stage_height(h) + 0.5 >= b.1)
             }
             Err(_) => (0.0, 0.0, false),
         },
         None => (0.0, 0.0, false),
     };
-    let bounds = configured.unwrap_or((win_w, win_h - TOOLBAR_H));
+    let bounds = configured.unwrap_or((win_w, stage_height(win_h)));
     CapturedViewport {
         configured,
         bounds,
@@ -227,7 +236,7 @@ fn apply_layout(app: &AppHandle<tauri::Wry>, preview: bool) {
         .ok()
         .and_then(|c| *c);
     if let Some(page) = app.get_webview(PAGE_LABEL) {
-        let size = configured.unwrap_or((win_w, win_h - TOOLBAR_H));
+        let size = configured.unwrap_or((win_w, stage_height(win_h)));
         let position_x = if preview {
             win_w + PREVIEW_OFFSCREEN_GAP
         } else {
@@ -236,6 +245,13 @@ fn apply_layout(app: &AppHandle<tauri::Wry>, preview: bool) {
         let _ = page.set_bounds(tauri::Rect {
             position: LogicalPosition::new(position_x, TOOLBAR_H).into(),
             size: LogicalSize::new(size.0, size.1).into(),
+        });
+    }
+    // 状态栏常驻窗口最底部，预览态也不移走；它后于工具层创建，位于其上层。
+    if let Some(status) = app.get_webview(STATUS_LABEL) {
+        let _ = status.set_bounds(tauri::Rect {
+            position: LogicalPosition::new(0.0, (win_h - STATUS_H).max(0.0)).into(),
+            size: LogicalSize::new(win_w, STATUS_H).into(),
         });
     }
 }
@@ -264,7 +280,7 @@ fn sync_page_frame(app: &AppHandle<tauri::Wry>) {
                 .map(|inner| {
                     let scale = window.scale_factor().unwrap_or(1.0);
                     let stage_w = inner.width as f64 / scale;
-                    let stage_h = inner.height as f64 / scale - TOOLBAR_H;
+                    let stage_h = stage_height(inner.height as f64 / scale);
                     w + 0.5 < stage_w || h + 0.5 < stage_h
                 })
                 .unwrap_or(false),
@@ -344,7 +360,7 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
         let scale = window.scale_factor().unwrap_or(1.0);
         let win_w = inner.width as f64 / scale;
         let win_h = inner.height as f64 / scale;
-        configured.unwrap_or((win_w, win_h - TOOLBAR_H))
+        configured.unwrap_or((win_w, stage_height(win_h)))
     };
 
     if let Some(page) = app.get_webview(PAGE_LABEL) {
@@ -889,6 +905,26 @@ fn capture_delay(_delay_ms: Option<u64>) -> Duration {
     Duration::ZERO
 }
 
+/// 采集结果条：可信工具层调用，Rust 转发到**无能力**的底部状态栏 WebView。
+/// 状态栏 HTML 无脚本、不出现在任何 capability 里，只接受这里注入的文本与级别。
+#[tauri::command]
+fn status_bar_set(app: AppHandle<tauri::Wry>, text: String, level: String) -> Result<(), String> {
+    let status = app
+        .get_webview(STATUS_LABEL)
+        .ok_or_else(|| "底部状态栏未就绪".to_string())?;
+    let level = match level.as_str() {
+        "ok" | "error" => level,
+        _ => "info".to_string(),
+    };
+    let text_js = serde_json::to_string(&text).map_err(|e| format!("状态文本序列化失败：{e}"))?;
+    let level_js = serde_json::to_string(&level).map_err(|e| format!("状态级别序列化失败：{e}"))?;
+    let js = format!(
+        "(function(){{var b=document.getElementById('bar');var m=document.getElementById('msg');\
+if(m)m.textContent={text_js};if(b)b.className={level_js};}})();"
+    );
+    status.eval(js).map_err(|e| format!("状态栏更新失败：{e}"))
+}
+
 /// 采集前的最近一次成功现场，供「旧图只作旧现场」显示；失败不覆盖它。
 #[tauri::command]
 fn capture_latest(app: AppHandle<tauri::Wry>) -> Result<Option<CaptureMeta>, String> {
@@ -988,67 +1024,62 @@ fn maybe_run_capture_probe(app: &AppHandle<tauri::Wry>) {
 #[cfg(not(debug_assertions))]
 fn maybe_run_capture_probe(_app: &AppHandle<tauri::Wry>) {}
 
-/// 开发期工具层可见性探针：`LAYRESS_PROBE_TOOL=1` 时把采集结果条点亮并截取工具层 WebView，
-/// 用来证明提示确实落在 96px 高的工具层视口内（而不是被视口裁掉）。仅 debug 构建生效。
+/// 开发期状态栏可见性探针：`LAYRESS_PROBE_TOOL=1` 时点亮底部状态栏并截取该 WebView，
+/// 用来证明结果条确实显示在窗口最底部且不与工具栏重叠。仅 debug 构建生效。
 #[cfg(debug_assertions)]
-fn maybe_run_tool_probe(app: &AppHandle<tauri::Wry>) {
+fn maybe_run_status_probe(app: &AppHandle<tauri::Wry>) {
     if std::env::var_os("LAYRESS_PROBE_TOOL").is_none() {
         return;
     }
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
         std::thread::sleep(Duration::from_secs(5));
-        let Some(tool) = handle.get_webview(TOOL_LABEL) else {
-            eprintln!("[layress][toolprobe] 工具层未就绪");
+        let Some(status) = handle.get_webview(STATUS_LABEL) else {
+            eprintln!("[layress][statusprobe] 底部状态栏未就绪");
             return;
         };
-        if let Ok(bounds) = tool.bounds() {
-            eprintln!("[layress][toolprobe] 工具层 bounds={bounds:?}");
+        if let Ok(bounds) = status.bounds() {
+            eprintln!("[layress][statusprobe] 状态栏 bounds={bounds:?}");
         }
-        if let Some(window) = handle.get_window("main") {
-            eprintln!(
-                "[layress][toolprobe] 窗口 inner={:?} scale={:?}",
-                window.inner_size().ok(),
-                window.scale_factor().ok()
-            );
-        }
-        // 同时自报 DOM 诊断，避免「看不到」时无法区分是元素缺失、eval 失效还是被裁切。
-        let show = "(function(){var t=document.getElementById('capture-toast');\
-var s=document.getElementById('status-line');\
-var info='toast='+(!!t)+' status='+(!!s)+' innerH='+window.innerHeight+\
+        // DOM 自报 + 走真实命令链路（status_bar_set → eval → 状态栏 DOM）点亮状态栏，
+        // 这样截图验证的是产品路径，而不是探针自己写 DOM。
+        let report = "(function(){var b=document.getElementById('bar');\
+var m=document.getElementById('msg');\
+var info='bar='+(!!b)+' msg='+(!!m)+' innerH='+window.innerHeight+\
 ' body='+document.body.innerHTML.length+' href='+location.href;\
-document.title='[layress-probe] '+info;\
-if(s){s.textContent=info;}\
-if(t){t.textContent=info;t.title=info;t.className='show';}})();";
-        let _ = tool.eval(show.to_string());
+document.title='[layress-probe] '+info;})();";
+        let _ = status.eval(report.to_string());
+        if let Err(e) = status_bar_set(
+            handle.clone(),
+            "[probe] 底部状态栏可见性自检：看到这条说明结果条在窗口最底部且不遮工具栏".to_string(),
+            "ok".to_string(),
+        ) {
+            eprintln!("[layress][statusprobe] status_bar_set 失败：{e}");
+        }
         std::thread::sleep(Duration::from_millis(600));
-        match snapshot_png(&tool) {
+        match snapshot_png(&status) {
             Ok(png) => {
                 if let Some(root) = handle.state::<PageHost>().data_root.get().cloned() {
-                    let path = root.path.join("tool-probe.png");
+                    let path = root.path.join("status-probe.png");
                     match std::fs::write(&path, &png) {
                         Ok(()) => eprintln!(
-                            "[layress][toolprobe] 工具层截图：{}（{} 字节）",
+                            "[layress][statusprobe] 状态栏截图：{}（{} 字节）",
                             path.display(),
                             png.len()
                         ),
-                        Err(e) => eprintln!("[layress][toolprobe] 截图写入失败：{e}"),
+                        Err(e) => eprintln!("[layress][statusprobe] 截图写入失败：{e}"),
                     }
                 }
             }
-            Err(e) => eprintln!("[layress][toolprobe] 工具层截图失败：{e}"),
+            Err(e) => eprintln!("[layress][statusprobe] 状态栏截图失败：{e}"),
         }
-        // 截图后清掉探针文字，交付给用户的窗口保持干净。
-        let _ = tool.eval(
-            "(function(){var t=document.getElementById('capture-toast');\
-if(t){t.textContent='';t.title='';t.className='';}})();"
-                .to_string(),
-        );
+        // 截图后恢复「就绪」，交付给用户的窗口保持干净。
+        let _ = status_bar_set(handle.clone(), "就绪".to_string(), "info".to_string());
     });
 }
 
 #[cfg(not(debug_assertions))]
-fn maybe_run_tool_probe(_app: &AppHandle<tauri::Wry>) {}
+fn maybe_run_status_probe(_app: &AppHandle<tauri::Wry>) {}
 
 // ── 启动 ─────────────────────────────────────────────────────────
 
@@ -1064,7 +1095,8 @@ pub fn run() {
             capture_start,
             capture_cancel,
             capture_latest,
-            preview_exit
+            preview_exit,
+            status_bar_set
         ])
         .setup(|app| {
             // 样例服务：失败则明确记录，工具层显示不可用，不静默降级
@@ -1145,9 +1177,27 @@ pub fn run() {
                 LogicalSize::new(inner.width as f64 / scale, TOOLBAR_H),
             )?;
 
+            // 底部状态栏：独立 WebView，窗口最底部一条；不与工具条 / 被测页面重叠。
+            // 无 capability、页面无脚本，文本只由 status_bar_set 命令注入。
+            let win_h = inner.height as f64 / scale;
+            let _status = window.add_child(
+                tauri::webview::WebviewBuilder::new(
+                    STATUS_LABEL,
+                    WebviewUrl::App("status.html".into()),
+                )
+                .incognito(true)
+                .on_document_title_changed(|_webview, title| {
+                    if let Some(info) = title.strip_prefix("[layress-probe] ") {
+                        eprintln!("[layress][statusprobe] {info}");
+                    }
+                }),
+                LogicalPosition::new(0.0, (win_h - STATUS_H).max(0.0)),
+                LogicalSize::new(inner.width as f64 / scale, STATUS_H),
+            )?;
+
             let _ = APP.set(app.handle().clone());
             maybe_run_capture_probe(app.handle());
-            maybe_run_tool_probe(app.handle());
+            maybe_run_status_probe(app.handle());
 
             let handle = app.handle().clone();
             window.on_window_event(move |event| match event {
