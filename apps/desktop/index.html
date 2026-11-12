@@ -25,6 +25,8 @@
       button.active { background: #37474f; color: #fff; }
       #url-input { flex: 1; min-width: 0; }
       .num { width: 64px; }
+      #slow-wrap { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap; color: #455a64; }
+      #slow-wrap input { margin: 0; }
       .status { font-size: 12px; line-height: 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       #status-line { color: #37474f; }
       #viewport-line { color: #546e7a; }
@@ -72,6 +74,9 @@
         <button id="btn-size" type="button">应用尺寸</button>
         <button id="btn-capture" type="button">采集</button>
         <button id="btn-cancel" type="button">取消</button>
+        <span id="slow-wrap" title="开发期复验用：勾选后采集在拿到截图后额外等待 5 秒，期间点「刷新」/「取消」/ 再次「采集」可验证本次结果失效且不写盘。仅开发构建生效">
+          <input id="slow-capture" type="checkbox" /><label for="slow-capture">慢采 5s</label>
+        </span>
       </div>
       <div class="row">
         <span id="status-line" class="status"></span>

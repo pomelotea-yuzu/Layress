@@ -605,7 +605,10 @@ fn page_state(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String> {
 /// 采集当前被测页面：只对 PAGE_LABEL 的原生 WebView 取快照，绑定页面身份与条件，
 /// 落盘成功后进入原地静态预览。任何失效 / 失败都明确返回，旧图不冒充本次成功。
 #[tauri::command]
-async fn capture_start(app: AppHandle<tauri::Wry>) -> Result<CaptureOutcome, String> {
+async fn capture_start(
+    app: AppHandle<tauri::Wry>,
+    delay_ms: Option<u64>,
+) -> Result<CaptureOutcome, String> {
     // 预览中重新采集：先恢复原布局，但绝不销毁 / 重载被测视图。
     let in_preview = app
         .state::<PageHost>()
@@ -636,7 +639,16 @@ async fn capture_start(app: AppHandle<tauri::Wry>) -> Result<CaptureOutcome, Str
     let active_id = active.id;
     let generation = active.generation;
     let id = format!("cap-{}-{active_id}", unix_ms());
-    emit_capture(&app, "started", &id, "正在采集被测 WebView 的真实画面 …");
+    let delay = capture_delay(delay_ms);
+    let start_msg = if delay.is_zero() {
+        "正在采集被测 WebView 的真实画面 …".to_string()
+    } else {
+        format!(
+            "慢采已开启：快照完成后再等 {} ms，此期间点「刷新」/「取消」/ 再次「采集」可验证失效（未写盘）",
+            delay.as_millis()
+        )
+    };
+    emit_capture(&app, "started", &id, start_msg);
 
     let viewport = current_viewport(&app);
     let measured = app
@@ -655,6 +667,12 @@ async fn capture_start(app: AppHandle<tauri::Wry>) -> Result<CaptureOutcome, Str
     let png_result = tauri::async_runtime::spawn_blocking(move || snapshot_png(&snapshot_page))
         .await
         .map_err(|e| format!("采集任务异常结束：{e}"))?;
+
+    // 开发期慢采：延迟刻意卡在「已拿到 PNG，但还没校验身份、没写盘、没显示」之间，
+    // 人工此时导航 / 取消 / 再发一次采集，结果必须被判失效且不落盘（E06 运行级负例）。
+    if !delay.is_zero() {
+        let _ = tauri::async_runtime::spawn_blocking(move || std::thread::sleep(delay)).await;
+    }
 
     set_capturing(&app, false);
     sync_page_frame(&app);
@@ -856,6 +874,21 @@ fn preview_exit(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String>
     Ok(serde_json::json!({ "url": url }))
 }
 
+/// 开发期「慢采」延迟：只在 debug 构建生效，上限 15s，默认 0（产品路径零影响）。
+/// 用途：让人工在采集未完成时触发导航 / 取消 / 新请求，验证 E06 的运行级负例；
+/// 43ms 的真实采集速度下人工根本来不及操作，没有这个开关就只能靠纯逻辑单测。
+#[cfg(debug_assertions)]
+fn capture_delay(delay_ms: Option<u64>) -> Duration {
+    delay_ms
+        .map(|v| Duration::from_millis(v.min(15_000)))
+        .unwrap_or(Duration::ZERO)
+}
+
+#[cfg(not(debug_assertions))]
+fn capture_delay(_delay_ms: Option<u64>) -> Duration {
+    Duration::ZERO
+}
+
 /// 采集前的最近一次成功现场，供「旧图只作旧现场」显示；失败不覆盖它。
 #[tauri::command]
 fn capture_latest(app: AppHandle<tauri::Wry>) -> Result<Option<CaptureMeta>, String> {
@@ -874,8 +907,21 @@ fn capture_latest(app: AppHandle<tauri::Wry>) -> Result<Option<CaptureMeta>, Str
 /// 目的是无人值守核实「WKWebView 原生快照 → PNG → 数据根」这条链路在真机上可用，
 /// 不参与产品默认路径，也不代替 E05–E08 的人工验收。
 #[cfg(debug_assertions)]
+fn count_capture_pngs(root: &std::path::Path) -> usize {
+    std::fs::read_dir(root.join("captures"))
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .filter(|e| e.path().extension().is_some_and(|x| x == "png"))
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+#[cfg(debug_assertions)]
 fn maybe_run_capture_probe(app: &AppHandle<tauri::Wry>) {
-    if std::env::var_os("LAYRESS_PROBE_CAPTURE").is_none() {
+    let mode = std::env::var("LAYRESS_PROBE_CAPTURE").unwrap_or_default();
+    if mode.is_empty() {
         return;
     }
     let handle = app.clone();
@@ -891,7 +937,40 @@ fn maybe_run_capture_probe(app: &AppHandle<tauri::Wry>) {
             return;
         }
         std::thread::sleep(Duration::from_secs(2));
-        match capture_start(handle.clone()).await {
+
+        // race 模式：慢采期间刷新页面，核对结果失效且没有新 PNG 落盘（E06 运行级负例）。
+        if mode == "race" {
+            let root = handle.state::<PageHost>().data_root.get().cloned();
+            let before = root.as_ref().map(|r| count_capture_pngs(&r.path)).unwrap_or(0);
+            let racer = handle.clone();
+            let task = tauri::async_runtime::spawn(async move {
+                capture_start(racer, Some(3000)).await
+            });
+            let _ = tauri::async_runtime::spawn_blocking(|| {
+                std::thread::sleep(Duration::from_millis(300));
+            })
+            .await;
+            if let Err(e) = page_refresh(handle.clone()) {
+                eprintln!("[layress][probe] race 刷新失败：{e}");
+            }
+            match task.await {
+                Ok(Ok(_)) => eprintln!("[layress][probe] race 失败：采集本应失效却成功了"),
+                Ok(Err(e)) => {
+                    let after = root
+                        .as_ref()
+                        .map(|r| count_capture_pngs(&r.path))
+                        .unwrap_or(0);
+                    let verdict = if after == before { "通过" } else { "失败（有新增 PNG）" };
+                    eprintln!(
+                        "[layress][probe] race {verdict}：采集已失效（{e}）；captures PNG 数 {before} → {after}"
+                    );
+                }
+                Err(e) => eprintln!("[layress][probe] race 任务异常：{e}"),
+            }
+            return;
+        }
+
+        match capture_start(handle.clone(), None).await {
             Ok(outcome) => eprintln!(
                 "[layress][probe] 采集成功 id={} url={} 图片={}x{} 字节={} 数据根={}",
                 outcome.meta.id,

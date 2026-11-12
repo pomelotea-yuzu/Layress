@@ -123,6 +123,8 @@ const coordInfo = assertElement<HTMLDivElement>("coord-info");
 const dataRootLine = assertElement<HTMLDivElement>("data-root-line");
 const btnModeOriginal = assertElement<HTMLButtonElement>("btn-mode-original");
 const btnModeFit = assertElement<HTMLButtonElement>("btn-mode-fit");
+const slowCapture = assertElement<HTMLInputElement>("slow-capture");
+const slowWrap = assertElement<HTMLSpanElement>("slow-wrap");
 
 let currentMeta: CaptureMeta | null = null;
 let lastCapture: CaptureMeta | null = null;
@@ -306,8 +308,10 @@ async function capture(): Promise<void> {
   const seq = captureSeq;
   hidePreview();
   statusLine.textContent = "采集请求已提交 …";
+  // 慢采开关只在开发构建生效：留出人工可操作的窗口，验证竞态失效（E06 运行级负例）。
+  const delayMs = slowCapture.checked ? 5000 : 0;
   try {
-    const outcome = await invoke<CaptureOutcome>("capture_start");
+    const outcome = await invoke<CaptureOutcome>("capture_start", { delayMs });
     if (seq !== captureSeq) return; // 已被更新的请求替代，旧响应不得改写界面
     showPreview(outcome);
     statusLine.textContent = `✓ 采集完成：${outcome.meta.id}`;
@@ -315,7 +319,8 @@ async function capture(): Promise<void> {
     if (seq !== captureSeq) return;
     hidePreview();
     const old = lastCapture ? `；上次成功 ${lastCapture.id} 仅作旧现场，不代表本次成功` : "";
-    statusLine.textContent = `✗ 本次采集失败：${String(e)}${old}`;
+    const root = lastRoot ? `；可到 ${lastRoot.path}/captures/ 核对本次没有新文件` : "";
+    statusLine.textContent = `✗ 本次采集失败：${String(e)}${old}${root}`;
   }
 }
 
@@ -504,6 +509,8 @@ async function subscribeEvents(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // 慢采是开发期复验开关，正式构建不显示；Rust 侧也只在 debug 构建接受延迟。
+  if (!import.meta.env.DEV) slowWrap.style.display = "none";
   const check = coordSelfTest();
   previewCheck.textContent = check.passed ? `坐标自检 ✓ ${check.detail}` : `坐标自检 ✗ ${check.detail}`;
   previewCheck.classList.toggle("bad", !check.passed);
