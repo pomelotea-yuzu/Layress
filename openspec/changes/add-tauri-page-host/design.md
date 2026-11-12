@@ -100,3 +100,52 @@ CI Ubuntu 能执行的检查不能被写成 macOS 原生快照已经验证；mac
 首轮采用临时会话与基本宽高控制，换取尽早核实承载、截图、原地预览和权限；设备库、会话恢复与完整反馈分别在后续增量实现。
 Tauri 多 WebView 的不稳定 API、原生快照和 macOS 写盘限制是本次需要解决的技术问题，不是要求重新证明市场空白的前置闸门。
 本 change 完成后才进入项目 / 设备记忆等下一增量；完整验收要求见 [spec](specs/desktop-page-host/spec.md)，完成状态只在 [tasks](tasks.md) 维护。
+
+## 任务 3.x 实施定稿（2026-11-12）
+
+本节记录代码级决定；**实施完成状态以 [tasks](tasks.md) 的勾选与人工复验为准**，机器检查与人工验收分列。
+
+**真实截图（E05）**：`tauri::Webview::with_webview` 在 macOS 取得 WKWebView 指针，
+调用 `takeSnapshotWithConfiguration:completionHandler:`（配置传 nil ⇒ 只取该视图 bounds），
+回调的 `NSImage` 经 `TIFFRepresentation` → `NSBitmapImageRep` → `representationUsingType:PNG` 得到 PNG 字节。
+实现只用 `objc2 0.6.5` / `block2 0.6.2`（与 wry 0.57.2 间接依赖同版本），经 `msg_send!` 调用，
+不引入额外 WebKit / AppKit crate。快照天然不含工具层、其他窗口与屏幕背景；
+`takeSnapshot` 期间先移除工具注入的视口边框（工具标记），完成后恢复。
+非 macOS 平台明确返回「未实现」，**不**回退整屏截图、DOM 重绘或空白图。
+图片尺寸从 PNG IHDR 读取，不依赖平台返回的 points 尺寸。
+
+**版本化元数据**：`layress.capture/v1`，`apps/desktop/src-tauri/src/capture.rs` 强类型定义。
+含采集 id、页面标签与**实际 URL**、导航代号、开始 / 完成 Unix 毫秒、设定 / 边界 / 页面实测视口、
+PNG 尺寸与字节数、引擎与方法、滚动条件、`missing[]`（取不到或本次不验证的条件逐条写明）、数据根绝对路径。
+产物为数据根下 `captures/<id>.png` + `captures/<id>.json`；只有身份校验通过的采集才落盘。
+
+**竞态与旧图隔离（E06）**：`CaptureState` 用 `generation`（任何导航 / 刷新 / 视口变更 / 窗口关闭递增）
+与 `seq`（每次采集递增）标识请求，结果回来时须 `is_current` 才允许写盘与显示。
+导航意图、页面自身 `on_page_load Started`、视口变更、窗口 `Destroyed` 都作废在途采集；
+新采集请求自然替换旧请求；失败 / 取消只清在途状态，**不触碰 last**（旧图只作旧现场，界面单独标注）。
+状态机与 PNG 尺寸解析、base64 编码有 `cargo test --lib` 纯逻辑单测（5 项），
+但「采集期间真实导航 / 关闭」的运行级负例仍需 GUI 或探针实测，未执行项单列。
+
+**原地预览（E07 / E08）**：不新建顶层窗口，也不销毁被测视图。
+预览态把工具层 WebView 铺满窗口、把被测层**仅平移出可视区且保持尺寸不变**（只改 position）；
+工具层内显示静态 PNG、模式切换、临时矩形与元数据。尺寸不变 ⇒ 不触发页面 resize，返回时只恢复位置，
+页面会话、输入与弹窗不因工具切换被销毁或重载。初始化脚本为每个 document 生成 `session` 标识，
+经 title 哨兵回报；返回后重新上报一次，标识变化会提示「页面可能被重载」，但**不代替人工核对输入与弹窗**。
+页面脚本与请求在预览期间仍可继续运行，界面标为「已记录画面」，不声称业务暂停或动态数据仍一致。
+
+**坐标换算**：矩形唯一存原图像素坐标（`capture-start` 拖拽时由显示坐标除以 scale 归一），
+渲染时才乘 scale；`src/coords.ts` 提供纯函数与运行时往返自检（两种模式、多组缩放，结果直接显示在界面）。
+样例页加固定参照块（视口 CSS (24,24) 160×60），按 `imageW / 页面实测 w` 换算成原图坐标，
+在原始比例与适应区域下核对同一区域是否漂移。DPR 导致的像素 / CSS 差异由此显式暴露。
+
+**数据根**：3.x 必须先有明确落点才能写盘，因此先行实现最小解析与可写检查
+（`--data-dir` / `LAYRESS_DATA_DIR` > 可执行文件旁 `.layress/`）、启动横幅 / 事件 / UI 显示与
+「采集前再查一次可写」。这是任务 4.1 的**部分代码**，4.1 的不可写负例、写盘观测与完整验收仍未完成，不勾选。
+
+**开发期探针**：仅 debug 构建且显式 `LAYRESS_PROBE_CAPTURE=1` 时，自动打开样例页并采集一次，
+把结果打到 stderr，供无人值守核实原生快照链路；不参与默认路径，不代替人工验收。
+
+**已知限制（如实记录）**：title 哨兵会被页面自身 `<title>` 覆盖，已补 DOMContentLoaded / load 再报；
+严格 CSP 页面可能拦截注入样式（边框关闭与此同理）；内部容器滚动、跨 iframe 合成、动态画面原子性不在本次范围；
+PNG 经 base64 走 IPC 交给工具层，大图开销未测；非 macOS 平台无快照实现；
+预览态的遮挡与返回后的视觉一致性、两种比例下的人工落点仍需用户复验。

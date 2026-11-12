@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Layress</title>
     <style>
-      /* 工具条独立条带：高度必须与 Rust 侧 TOOLBAR_H=96 一致，内容不得溢出（否则会被页面区域盖住） */
-      html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; }
+      /* 工具条独立条带：高度必须与 Rust 侧 TOOLBAR_H=96 一致，内容不得溢出（否则会被页面区域盖住）。
+         预览态时工具 WebView 被铺满整个窗口，#preview 从 96px 起覆盖其余工作区。 */
+      html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; background: #fff; }
       #bar {
         height: 96px;
         box-sizing: border-box;
@@ -21,12 +22,38 @@
       .row { display: flex; align-items: center; gap: 6px; height: 26px; min-height: 26px; }
       input[type="text"] { font-size: 13px; padding: 2px 8px; box-sizing: border-box; height: 26px; }
       button { font-size: 13px; padding: 2px 10px; white-space: nowrap; height: 26px; }
+      button.active { background: #37474f; color: #fff; }
       #url-input { flex: 1; min-width: 0; }
       .num { width: 64px; }
       .status { font-size: 12px; line-height: 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       #status-line { color: #37474f; }
       #viewport-line { color: #546e7a; }
       #request-line { color: #b71c1c; }
+
+      /* 原地静态预览：与被测页面共用同一块工作区，不新开窗口 */
+      #preview { display: none; position: fixed; inset: 96px 0 0 0; z-index: 10;
+        background: #fff; flex-direction: column; font-size: 12px; color: #37474f; }
+      #preview.show { display: flex; }
+      #preview-head, #preview-foot { flex: none; box-sizing: border-box; padding: 6px 10px;
+        border-bottom: 1px solid #cfd8dc; background: #f5f7f8; }
+      #preview-head { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow: hidden; }
+      #preview-head .spacer { flex: 1; }
+      #preview-head .hint { color: #607d8b; white-space: nowrap; }
+      #preview-check { white-space: nowrap; color: #2e7d32; }
+      #preview-check.bad { color: #b71c1c; }
+      #preview-stage { flex: 1; min-height: 0; overflow: auto; background: #eceff1;
+        display: flex; align-items: flex-start; justify-content: flex-start; padding: 12px; box-sizing: border-box; }
+      #preview-canvas { position: relative; flex: none; background: #fff;
+        box-shadow: 0 0 0 1px #90a4ae; cursor: crosshair; }
+      #preview-img { display: block; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+      #rect-anchor, #rect-temp { display: none; position: absolute; pointer-events: none; box-sizing: border-box; }
+      #rect-anchor.show, #rect-temp.show { display: block; }
+      #rect-anchor { border: 2px dashed #1565c0; background: rgba(21,101,192,.10); }
+      #rect-temp { border: 2px solid #c62828; background: rgba(198,40,40,.12); }
+      #preview-foot { border-bottom: none; border-top: 1px solid #cfd8dc; line-height: 1.6; }
+      #capture-meta, #data-root-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #coord-info { color: #455a64; font-variant-numeric: tabular-nums; }
+      .warn { color: #b71c1c; }
     </style>
   </head>
   <body>
@@ -43,13 +70,42 @@
         <label for="height-input">高</label>
         <input id="height-input" class="num" type="text" placeholder="高" />
         <button id="btn-size" type="button">应用尺寸</button>
+        <button id="btn-capture" type="button">采集</button>
+        <button id="btn-cancel" type="button">取消</button>
       </div>
       <div class="row">
-        <span id="status-line"></span>
-        <span id="viewport-line"></span>
-        <span id="request-line"></span>
+        <span id="status-line" class="status"></span>
+        <span id="viewport-line" class="status"></span>
+        <span id="request-line" class="status"></span>
       </div>
     </div>
+
+    <div id="preview">
+      <div id="preview-head">
+        <strong>已记录画面 · 静态预览</strong>
+        <span class="hint">不是业务暂停，页面脚本可能继续运行</span>
+        <button id="btn-mode-original" type="button">原始比例</button>
+        <button id="btn-mode-fit" type="button">适应区域</button>
+        <button id="btn-anchor" type="button">对齐参照块</button>
+        <button id="btn-recapture" type="button">重新采集</button>
+        <span class="spacer"></span>
+        <span id="preview-check"></span>
+        <button id="btn-preview-back" type="button">返回页面</button>
+      </div>
+      <div id="preview-stage">
+        <div id="preview-canvas">
+          <img id="preview-img" alt="当前采集的静态画面" draggable="false" />
+          <div id="rect-anchor"></div>
+          <div id="rect-temp"></div>
+        </div>
+      </div>
+      <div id="preview-foot">
+        <div id="capture-meta"></div>
+        <div id="coord-info"></div>
+        <div id="data-root-line"></div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

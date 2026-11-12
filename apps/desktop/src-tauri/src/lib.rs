@@ -1,23 +1,28 @@
-//! Layress 桌面工作台核心编排（add-tauri-page-host 任务 2.x）。
+//! Layress 桌面工作台核心编排（add-tauri-page-host 任务 2.x–3.x）。
 //!
-//! 单窗口双 WebView：工具层（label "main"，本地可信页面，持有能力）铺满窗口作底层；
-//! 被测页面（label "page"）为上层覆盖视图，固定在工具条之下，无任何 Tauri 能力。
-//! 权限边界、数据根与会话口径见 change design「实施定稿」。
+//! 单窗口三块显式布局：可信工具层（"main"，持有能力）在顶部条带，
+//! 被测页面（"page"）固定在条带之下且无任何 Tauri 能力。
+//! 预览态把工具层铺满窗口、把被测层**只平移出可视区且尺寸不变**：
+//! 因此返回操作页面时不销毁、不重载、不改视口（E07 / E08）。
+//! 真实截图只取被测 WKWebView 自身（E05），采集身份与失效规则见 `capture.rs`。
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod capture;
 mod fixture;
 
-use serde::{Deserialize, Serialize};
+use capture::{
+    base64_encode, ensure_writable, persist, png_size, resolve_data_root, snapshot_png, unix_ms,
+    CaptureConditions, CaptureImage, CaptureMeta, CapturePage, CaptureState, CapturedViewport,
+    DataRoot, MeasuredViewport, SCHEMA,
+};
+use serde::Serialize;
 use std::net::TcpStream;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
-use tauri::webview::{
-    DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionResponse,
-};
+use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionResponse};
 use tauri::{
-    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, State, Url, WebviewUrl,
-    Window, WindowEvent,
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, State, Url, WebviewUrl, WindowEvent,
 };
 
 const TOOL_LABEL: &str = "main";
@@ -25,46 +30,63 @@ const PAGE_LABEL: &str = "page";
 /// 工具条高度（逻辑像素），前端 #bar 的 CSS 高度必须与此一致；
 /// 布局为互不重叠的两块：工具条 [0, TOOLBAR_H]，被测页面 [TOOLBAR_H, 窗口底]。
 const TOOLBAR_H: f64 = 96.0;
+/// 预览时被测层平移出可视区的额外间距；尺寸保持不变，不触发页面 resize。
+const PREVIEW_OFFSCREEN_GAP: f64 = 2000.0;
 /// 视口上报脚本写入 document.title 的哨兵前缀（零宽空格 + 标记）。
-/// 被测页面无 IPC 能力，借 title 变化回传真实视口（wry macOS 支持 title 观测）。
+/// 被测页面无 IPC 能力，借 title 变化回传真实视口与会话标识。
 const TITLE_PREFIX: &str = "\u{200b}LW ";
 const REACHABILITY_TIMEOUT: Duration = Duration::from_secs(3);
 
 const MEASURE_SCRIPT: &str = r#"(function(){
   // 视口边框样式（工具辅助标记，pointer-events:none 不拦截页面交互）；
-  // 仅当 Rust 侧判定"设定视口小于舞台"时加 html.__layress_frame_on 类才显示
+  // 仅当 Rust 侧判定"设定视口小于舞台"时加 html.__layress_frame_on 类才显示。
+  // 任务 3.x 采集期间会强制移除，避免工具标记混入真实画面。
   var st = document.createElement("style");
   st.id = "__layress_frame_style";
   st.textContent = 'html.__layress_frame_on::after{content:"";position:fixed;inset:0;pointer-events:none;box-sizing:border-box;border:1px solid rgba(96,112,128,.9);z-index:2147483647}';
   (document.documentElement || document).appendChild(st);
-  function __layressReport(){
+  // 每个 document 生成一次会话标识：页面被重载时会变化，用于核对预览切换是否重载（E08）。
+  // 这不是给页面用的原生桥，只是通过标题哨兵向 Rust 单向回报。
+  var session = Math.random().toString(36).slice(2) + "-" + Date.now().toString(36);
+  window.__layressReport = function(){
     try {
       document.title = "\u200bLW " + JSON.stringify({
-        w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio
+        w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio,
+        // 早期 document 里 scrollX/Y 可能为 undefined，显式归一为 0，
+        // 不能让「未滚动」被 JSON.stringify 省掉字段后误标成「未取得」。
+        scroll_x: Number(window.scrollX || window.pageXOffset || 0),
+        scroll_y: Number(window.scrollY || window.pageYOffset || 0),
+        session: session
       });
     } catch (e) {}
-  }
-  __layressReport();
-  window.addEventListener("resize", __layressReport);
+  };
+  window.__layressReport();
+  // 初始化脚本早于文档 <title>，页面自身的标题会覆盖哨兵；DOM 就绪后再报一次，
+  // 否则首轮不改视口时拿不到实测值（E04 / E07 的页面实测会显示缺失）。
+  document.addEventListener("DOMContentLoaded", window.__layressReport);
+  window.addEventListener("load", window.__layressReport);
+  window.addEventListener("resize", window.__layressReport);
+  window.addEventListener("scroll", window.__layressReport);
 })();"#;
 
 // ── 状态 ─────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct MeasuredViewport {
-    w: f64,
-    h: f64,
-    dpr: f64,
-}
 
 #[derive(Default)]
 struct PageHost {
     /// 用户显式设定的页面视口（逻辑 px）；None = 跟随窗口自适应
     configured: Mutex<Option<(f64, f64)>>,
-    /// 样例页面上报的真实视口
+    /// 样例页面上报的真实视口、滚动与会话标识
     measured: Mutex<Option<MeasuredViewport>>,
     /// 本地样例服务基址
     sample_base: OnceLock<String>,
+    /// 采集身份 / 竞态 / 旧现场 / 预览态
+    captures: Mutex<CaptureState>,
+    /// 启动解析一次的数据根
+    data_root: OnceLock<DataRoot>,
+    /// 数据根不可解析或不可写时的明确原因；不回落系统用户目录
+    data_root_error: Mutex<Option<String>>,
+    /// 采集进行中：此时视口边框必须关闭，不得混入截图
+    capturing: Mutex<bool>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,6 +111,22 @@ enum PageEvent {
     },
     /// 工具明确拒绝的操作（无效地址等），供状态条显示
     Denied { reason: String },
+    /// 采集阶段：started / completed / failed / invalidated / cancelled
+    Capture {
+        phase: String,
+        id: String,
+        message: String,
+        meta: Option<CaptureMeta>,
+    },
+    /// 预览切换：active=true 表示静态画面已覆盖工作区
+    Preview { active: bool },
+    /// 数据根解析与可写性（启动横幅与 UI 可见）
+    DataRoot {
+        path: String,
+        source: String,
+        writable: bool,
+        error: Option<String>,
+    },
 }
 
 /// 当前应用句柄。回调闭包拿不到 State/Manager 之外的应用引用，统一经此取。
@@ -98,7 +136,18 @@ fn emit(app: &AppHandle<tauri::Wry>, event: PageEvent) {
     let _ = app.emit_to(TOOL_LABEL, "page://event", event);
 }
 
-/// 计算并上报视口状态：页面实际边界 vs 用户设定 vs 窗口容纳情况。
+fn emit_capture(app: &AppHandle<tauri::Wry>, phase: &str, id: &str, message: impl Into<String>) {
+    emit(
+        app,
+        PageEvent::Capture {
+            phase: phase.to_string(),
+            id: id.to_string(),
+            message: message.into(),
+            meta: None,
+        },
+    );
+}
+
 fn emit_viewport(app: &AppHandle<tauri::Wry>) {
     let state = app.state::<PageHost>();
     let configured = state.configured.lock().ok().and_then(|c| *c);
@@ -126,9 +175,37 @@ fn emit_viewport(app: &AppHandle<tauri::Wry>) {
     );
 }
 
-/// 依据窗口尺寸重排两块 WebView：工具条固定在顶部，页面占其余区域。
-/// 显式边界、互不重叠，避免任何坐标解释差异导致的层间穿透。
-fn relayout(window: &Window<tauri::Wry>, app: &AppHandle<tauri::Wry>) {
+fn current_viewport(app: &AppHandle<tauri::Wry>) -> CapturedViewport {
+    let state = app.state::<PageHost>();
+    let configured = state.configured.lock().ok().and_then(|c| *c);
+    let measured = state.measured.lock().ok().and_then(|m| m.clone());
+    let (win_w, win_h, fully_visible) = match app.get_window("main") {
+        Some(window) => match window.inner_size() {
+            Ok(inner) => {
+                let scale = window.scale_factor().unwrap_or(1.0);
+                let w = inner.width as f64 / scale;
+                let h = inner.height as f64 / scale;
+                let b = configured.unwrap_or((w, h - TOOLBAR_H));
+                (w, h, w + 0.5 >= b.0 && h - TOOLBAR_H + 0.5 >= b.1)
+            }
+            Err(_) => (0.0, 0.0, false),
+        },
+        None => (0.0, 0.0, false),
+    };
+    let bounds = configured.unwrap_or((win_w, win_h - TOOLBAR_H));
+    CapturedViewport {
+        configured,
+        bounds,
+        measured,
+        fully_visible,
+    }
+}
+
+/// 依据窗口尺寸重排三块视图；预览态下工具层铺满窗口，被测层只平移、不改尺寸。
+fn apply_layout(app: &AppHandle<tauri::Wry>, preview: bool) {
+    let Some(window) = app.get_window("main") else {
+        return;
+    };
     let scale = window.scale_factor().unwrap_or(1.0);
     let Ok(inner) = window.inner_size() else {
         return;
@@ -137,9 +214,10 @@ fn relayout(window: &Window<tauri::Wry>, app: &AppHandle<tauri::Wry>) {
     let win_h = inner.height as f64 / scale;
 
     if let Some(tool) = app.get_webview(TOOL_LABEL) {
+        let tool_h = if preview { win_h } else { TOOLBAR_H };
         let _ = tool.set_bounds(tauri::Rect {
             position: LogicalPosition::new(0.0, 0.0).into(),
-            size: LogicalSize::new(win_w, TOOLBAR_H).into(),
+            size: LogicalSize::new(win_w, tool_h).into(),
         });
     }
     let configured = app
@@ -150,22 +228,37 @@ fn relayout(window: &Window<tauri::Wry>, app: &AppHandle<tauri::Wry>) {
         .and_then(|c| *c);
     if let Some(page) = app.get_webview(PAGE_LABEL) {
         let size = configured.unwrap_or((win_w, win_h - TOOLBAR_H));
+        let position_x = if preview {
+            win_w + PREVIEW_OFFSCREEN_GAP
+        } else {
+            0.0
+        };
         let _ = page.set_bounds(tauri::Rect {
-            position: LogicalPosition::new(0.0, TOOLBAR_H).into(),
+            position: LogicalPosition::new(position_x, TOOLBAR_H).into(),
             size: LogicalSize::new(size.0, size.1).into(),
         });
     }
 }
 
-/// 页面视口边框：设定视口且小于舞台时开启，让页面边界与白色背景可区分。
-/// 边框是注入 DOM 的固定定位描边（pointer-events:none），属工具辅助标记，
-/// 任务 3.x 采集真实画面时必须先关闭再截图，不得混入页面现场。
+fn relayout(app: &AppHandle<tauri::Wry>) {
+    // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）
+    let preview = app
+        .state::<PageHost>()
+        .captures
+        .lock()
+        .map(|s| s.preview)
+        .unwrap_or(false);
+    apply_layout(app, preview);
+}
+
+/// 页面视口边框：设定视口且小于舞台时开启；采集进行中强制关闭（工具标记不得入画）。
 fn sync_page_frame(app: &AppHandle<tauri::Wry>) {
     let state = app.state::<PageHost>();
+    let capturing = state.capturing.lock().map(|c| *c).unwrap_or(false);
     let configured = state.configured.lock().ok().and_then(|c| *c);
-    let on = match (configured, app.get_window("main")) {
-        (Some((w, h)), Some(window)) => {
-            window
+    let on = !capturing
+        && match (configured, app.get_window("main")) {
+            (Some((w, h)), Some(window)) => window
                 .inner_size()
                 .ok()
                 .map(|inner| {
@@ -174,10 +267,9 @@ fn sync_page_frame(app: &AppHandle<tauri::Wry>) {
                     let stage_h = inner.height as f64 / scale - TOOLBAR_H;
                     w + 0.5 < stage_w || h + 0.5 < stage_h
                 })
-                .unwrap_or(false)
-        }
-        _ => false, // 跟随窗口模式：页面铺满舞台，无需边框
-    };
+                .unwrap_or(false),
+            _ => false, // 跟随窗口模式：页面铺满舞台，无需边框
+        };
     if let Some(page) = app.get_webview(PAGE_LABEL) {
         let js = if on {
             "document.documentElement.classList.add('__layress_frame_on');"
@@ -186,6 +278,52 @@ fn sync_page_frame(app: &AppHandle<tauri::Wry>) {
         };
         let _ = page.eval(js.to_string());
     }
+}
+
+/// 任何使当前画面不再可靠归属原页面的事件，都作废在途采集（E06）。
+fn invalidate_capture(app: &AppHandle<tauri::Wry>, reason: &str) {
+    let cancelled = app
+        .state::<PageHost>()
+        .captures
+        .lock()
+        .ok()
+        .and_then(|mut s| s.invalidate());
+    if let Some(id) = cancelled {
+        emit_capture(app, "invalidated", &id.to_string(), reason);
+    }
+}
+
+/// 采集期标志只影响视口边框开关，独立成函数避免 State 临时借用拖到块尾。
+fn set_capturing(app: &AppHandle<tauri::Wry>, value: bool) {
+    let state = app.state::<PageHost>();
+    if let Ok(mut flag) = state.capturing.lock() {
+        *flag = value;
+    };
+}
+
+fn enter_preview(app: &AppHandle<tauri::Wry>) {
+    apply_layout(app, true);
+    emit(app, PageEvent::Preview { active: true });
+}
+
+fn exit_preview(app: &AppHandle<tauri::Wry>) -> Result<(), String> {
+    {
+        let state = app.state::<PageHost>();
+        let mut s = state
+            .captures
+            .lock()
+            .map_err(|_| "采集状态锁不可用".to_string())?;
+        s.exit_preview();
+    }
+    apply_layout(app, false);
+    sync_page_frame(app);
+    // 触发一次标题哨兵回报：若会话标识变化，说明页面被重载（E08 人工核对依据）。
+    if let Some(page) = app.get_webview(PAGE_LABEL) {
+        let _ = page.eval("window.__layressReport && window.__layressReport();".to_string());
+    }
+    emit_viewport(app);
+    emit(app, PageEvent::Preview { active: false });
+    Ok(())
 }
 
 // ── 被测页面 WebView 生命周期 ─────────────────────────────────────
@@ -238,6 +376,10 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
                 PageLoadEvent::Started => "loading",
                 PageLoadEvent::Finished => "loaded",
             };
+            // 页面自身发起的导航也会使在途采集失效，旧图不得绑定到新地址（E06）。
+            if phase == "loading" {
+                invalidate_capture(&app, "采集期间页面发生导航，本次结果已作废");
+            }
             emit(
                 &app,
                 PageEvent::Status {
@@ -364,6 +506,14 @@ async fn check_reachable(url: &Url) -> Result<(), String> {
 
 // ── 命令（工具层 → Rust） ────────────────────────────────────────
 
+#[derive(Debug, Clone, Serialize)]
+struct CaptureOutcome {
+    meta: CaptureMeta,
+    png_base64: String,
+    data_root: String,
+    data_root_source: String,
+}
+
 #[tauri::command]
 fn sample_url(state: State<'_, PageHost>) -> Result<String, String> {
     state
@@ -377,6 +527,7 @@ fn sample_url(state: State<'_, PageHost>) -> Result<String, String> {
 async fn page_navigate(app: AppHandle<tauri::Wry>, raw: String) -> Result<(), String> {
     let url = validate_url(&raw)?;
     check_reachable(&url).await?;
+    invalidate_capture(&app, "导航前已作废在途采集");
     ensure_and_navigate(&app, url)?;
     emit(&app, PageEvent::Url(raw.trim().to_string()));
     Ok(())
@@ -388,6 +539,7 @@ fn page_refresh(app: AppHandle<tauri::Wry>) -> Result<(), String> {
         .get_webview(PAGE_LABEL)
         .ok_or_else(|| "尚无被测页面".to_string())?;
     let current = page.url().map_err(|e| format!("读取当前地址失败：{e}"))?;
+    invalidate_capture(&app, "刷新前已作废在途采集");
     page.navigate(current).map_err(|e| format!("刷新失败：{e}"))
 }
 
@@ -396,6 +548,7 @@ fn page_set_size(app: AppHandle<tauri::Wry>, width: f64, height: f64) -> Result<
     if !(16.0..=4096.0).contains(&width) || !(16.0..=4096.0).contains(&height) {
         return Err("尺寸超出允许范围（16–4096）".to_string());
     }
+    invalidate_capture(&app, "视口变更已作废在途采集");
     {
         let state = app.state::<PageHost>();
         let mut cfg = state
@@ -404,13 +557,13 @@ fn page_set_size(app: AppHandle<tauri::Wry>, width: f64, height: f64) -> Result<
             .map_err(|_| "视口状态锁不可用".to_string())?;
         *cfg = Some((width, height));
     }
-    if let Some(page) = app.get_webview(PAGE_LABEL) {
-        page.set_bounds(tauri::Rect {
-            position: LogicalPosition::new(0.0, TOOLBAR_H).into(),
-            size: LogicalSize::new(width, height).into(),
-        })
-        .map_err(|e| format!("调整页面视口失败：{e}"))?;
-    }
+    let preview = app
+        .state::<PageHost>()
+        .captures
+        .lock()
+        .map(|s| s.preview)
+        .unwrap_or(false);
+    apply_layout(&app, preview);
     sync_page_frame(&app);
     emit_viewport(&app);
     Ok(())
@@ -426,6 +579,13 @@ fn page_state(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String> {
         .get_webview(PAGE_LABEL)
         .and_then(|p| p.url().ok())
         .map(|u| u.to_string());
+    let root = state.data_root.get().cloned();
+    let root_error = state.data_root_error.lock().ok().and_then(|e| e.clone());
+    let (in_preview, last) = state
+        .captures
+        .lock()
+        .map(|s| (s.preview, s.last.clone()))
+        .unwrap_or((false, None));
     Ok(serde_json::json!({
         "configured": configured,
         "measured": measured,
@@ -433,8 +593,321 @@ fn page_state(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String> {
         "sampleBase": state.sample_base.get().cloned(),
         "toolbarH": TOOLBAR_H,
         "pageOpen": url.is_some(),
+        "dataRoot": root.as_ref().map(|r| r.path.to_string_lossy().to_string()),
+        "dataRootSource": root.as_ref().map(|r| r.source.clone()),
+        "dataRootWritable": root.is_some() && root_error.is_none(),
+        "dataRootError": root_error,
+        "inPreview": in_preview,
+        "lastCapture": last,
     }))
 }
+
+/// 采集当前被测页面：只对 PAGE_LABEL 的原生 WebView 取快照，绑定页面身份与条件，
+/// 落盘成功后进入原地静态预览。任何失效 / 失败都明确返回，旧图不冒充本次成功。
+#[tauri::command]
+async fn capture_start(app: AppHandle<tauri::Wry>) -> Result<CaptureOutcome, String> {
+    // 预览中重新采集：先恢复原布局，但绝不销毁 / 重载被测视图。
+    let in_preview = app
+        .state::<PageHost>()
+        .captures
+        .lock()
+        .map(|s| s.preview)
+        .unwrap_or(false);
+    if in_preview {
+        exit_preview(&app)?;
+    }
+
+    let page = app
+        .get_webview(PAGE_LABEL)
+        .ok_or_else(|| "尚无被测页面，无法采集".to_string())?;
+    let url = page
+        .url()
+        .map_err(|e| format!("读取当前地址失败：{e}"))?
+        .to_string();
+    let active = {
+        let state = app.state::<PageHost>();
+        let mut s = state
+            .captures
+            .lock()
+            .map_err(|_| "采集状态锁不可用".to_string())?;
+        let a = s.begin();
+        a
+    };
+    let active_id = active.id;
+    let generation = active.generation;
+    let id = format!("cap-{}-{active_id}", unix_ms());
+    emit_capture(&app, "started", &id, "正在采集被测 WebView 的真实画面 …");
+
+    let viewport = current_viewport(&app);
+    let measured = app
+        .state::<PageHost>()
+        .measured
+        .lock()
+        .ok()
+        .and_then(|m| m.clone());
+    let started_at = unix_ms();
+
+    // 采集期间关闭工具注入的视口边框；完成后恢复。
+    set_capturing(&app, true);
+    sync_page_frame(&app);
+
+    let snapshot_page = page.clone();
+    let png_result = tauri::async_runtime::spawn_blocking(move || snapshot_png(&snapshot_page))
+        .await
+        .map_err(|e| format!("采集任务异常结束：{e}"))?;
+
+    set_capturing(&app, false);
+    sync_page_frame(&app);
+
+    // 完成条件核对：页面代号、请求号必须都还成立，否则旧结果一律丢弃。
+    let still_current = {
+        let state = app.state::<PageHost>();
+        let s = state
+            .captures
+            .lock()
+            .map_err(|_| "采集状态锁不可用".to_string())?;
+        let ok = s.is_current(&active);
+        ok
+    };
+    if !still_current {
+        emit_capture(
+            &app,
+            "invalidated",
+            &id,
+            "采集期间页面发生导航、关闭或被新请求替代：本次结果已丢弃，未写盘",
+        );
+        return Err("本次采集已失效：页面已切换或被新请求替代，结果已丢弃".to_string());
+    };
+
+    let png = match png_result {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            let _ = fail_capture(&app, &active);
+            emit_capture(&app, "failed", &id, format!("采集失败：{e}"));
+            return Err(format!("采集失败：{e}"));
+        }
+    };
+    let (width_px, height_px) = png_size(&png).ok_or_else(|| {
+        "采集失败：原生快照未返回有效 PNG".to_string()
+    })?;
+
+    let root = app
+        .state::<PageHost>()
+        .data_root
+        .get()
+        .cloned()
+        .ok_or_else(|| "数据根未解析，拒绝写盘".to_string())?;
+    if let Some(err) = app
+        .state::<PageHost>()
+        .data_root_error
+        .lock()
+        .ok()
+        .and_then(|e| e.clone())
+    {
+        let _ = fail_capture(&app, &active);
+        emit_capture(&app, "failed", &id, format!("数据根不可用：{err}"));
+        return Err(format!("数据根不可用，拒绝写盘：{err}"));
+    }
+    // 可写检查必须先于任何持久写入；失败不换目录、不兜底。
+    if let Err(e) = ensure_writable(&root.path) {
+        let _ = fail_capture(&app, &active);
+        emit_capture(&app, "failed", &id, format!("数据根不可写：{e}"));
+        return Err(format!("数据根不可写，拒绝写盘：{e}"));
+    }
+
+    let finished_at = unix_ms();
+    let missing = build_missing(&viewport, &measured);
+    let meta = CaptureMeta {
+        schema: SCHEMA.to_string(),
+        id: id.clone(),
+        status: "ok".to_string(),
+        page: CapturePage {
+            label: PAGE_LABEL.to_string(),
+            url,
+            generation,
+        },
+        started_at_unix_ms: started_at,
+        finished_at_unix_ms: finished_at,
+        viewport,
+        image: CaptureImage {
+            file: format!("captures/{id}.png"),
+            format: "png".to_string(),
+            width_px,
+            height_px,
+            bytes: png.len(),
+        },
+        conditions: CaptureConditions {
+            engine: "系统 WebView（macOS WKWebView）".to_string(),
+            method: "WKWebView takeSnapshotWithConfiguration（仅被测视图 bounds）".to_string(),
+            tool_frame_hidden: true,
+            scroll: measured
+                .as_ref()
+                .and_then(|m| m.scroll_y)
+                .map(|y| format!("窗口滚动 y={y}（内部容器滚动未取得）"))
+                .unwrap_or_else(|| "未取得".to_string()),
+            missing,
+        },
+        data_root: root.path.to_string_lossy().to_string(),
+    };
+
+    if let Err(e) = persist(&root.path, &meta, &png) {
+        let _ = fail_capture(&app, &active);
+        emit_capture(&app, "failed", &id, format!("采集落盘失败：{e}"));
+        return Err(format!("采集落盘失败：{e}"));
+    }
+
+    let finished = {
+        let state = app.state::<PageHost>();
+        let mut s = state
+            .captures
+            .lock()
+            .map_err(|_| "采集状态锁不可用".to_string())?;
+        s.finish(&active, meta.clone())
+    };
+    if !finished {
+        emit_capture(&app, "invalidated", &id, "落盘后身份校验失败：本次结果不显示");
+        return Err("落盘后身份校验失败：本次结果不显示".to_string());
+    }
+    enter_preview(&app);
+    emit(
+        &app,
+        PageEvent::Capture {
+            phase: "completed".to_string(),
+            id: id.clone(),
+            message: format!(
+                "采集完成：{}×{} px，产物位于数据根 captures/",
+                width_px, height_px
+            ),
+            meta: Some(meta.clone()),
+        },
+    );
+    Ok(CaptureOutcome {
+        meta,
+        png_base64: base64_encode(&png),
+        data_root: root.path.to_string_lossy().to_string(),
+        data_root_source: root.source,
+    })
+}
+
+fn fail_capture(app: &AppHandle<tauri::Wry>, active: &capture::ActiveCapture) -> bool {
+    app.state::<PageHost>()
+        .captures
+        .lock()
+        .map(|mut s| s.fail(active))
+        .unwrap_or(false)
+}
+
+/// 缺失条件逐条标注，不把「取不到」写成 0 或空值。
+fn build_missing(viewport: &CapturedViewport, measured: &Option<MeasuredViewport>) -> Vec<String> {
+    let mut missing = Vec::new();
+    match measured {
+        None => missing.push("页面视口 / DPR / 会话标识未上报（title 哨兵可能被页面覆盖）".to_string()),
+        Some(m) => {
+            if m.dpr <= 0.0 {
+                missing.push("DPR 未取得".to_string());
+            }
+            if m.scroll_y.is_none() {
+                missing.push("页面滚动位置未取得".to_string());
+            }
+            if m.session.is_none() {
+                missing.push("页面会话标识未取得".to_string());
+            }
+        }
+    }
+    if viewport.bounds.0 <= 0.0 || viewport.bounds.1 <= 0.0 {
+        missing.push("页面原生边界未取得".to_string());
+    }
+    missing.push("被测页面内部容器滚动、跨 iframe 合成与动态画面原子性不在本次采集可验证范围".to_string());
+    missing.push("视口边框关闭依赖注入脚本；严格 CSP 页面是否拦截注入未实测（拦截时边框本就不显示）".to_string());
+    missing
+}
+
+/// 取消当前在途采集（同一时刻只允许一个，新请求会自动替代旧请求）。
+#[tauri::command]
+fn capture_cancel(app: AppHandle<tauri::Wry>) -> Result<bool, String> {
+    let (ok, cancelled_id) = {
+        let state = app.state::<PageHost>();
+        let mut s = state
+            .captures
+            .lock()
+            .map_err(|_| "采集状态锁不可用".to_string())?;
+        let id = s.active.as_ref().map(|a| a.id);
+        let ok = id.map(|n| s.cancel(n)).unwrap_or(false);
+        (ok, id)
+    };
+    if ok {
+        emit_capture(
+            &app,
+            "cancelled",
+            &cancelled_id.unwrap_or(0).to_string(),
+            "本次采集已取消",
+        );
+    }
+    Ok(ok)
+}
+
+#[tauri::command]
+fn preview_exit(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String> {
+    exit_preview(&app)?;
+    let url = app
+        .get_webview(PAGE_LABEL)
+        .and_then(|p| p.url().ok())
+        .map(|u| u.to_string());
+    Ok(serde_json::json!({ "url": url }))
+}
+
+/// 采集前的最近一次成功现场，供「旧图只作旧现场」显示；失败不覆盖它。
+#[tauri::command]
+fn capture_latest(app: AppHandle<tauri::Wry>) -> Result<Option<CaptureMeta>, String> {
+    Ok(app
+        .state::<PageHost>()
+        .captures
+        .lock()
+        .map_err(|_| "采集状态锁不可用".to_string())?
+        .last
+        .clone())
+}
+
+// ── 开发期自测探针 ───────────────────────────────────────────────
+
+/// 仅 debug 构建且显式 `LAYRESS_PROBE_CAPTURE=1` 时执行：自动打开样例页 → 采集 → 打印结果。
+/// 目的是无人值守核实「WKWebView 原生快照 → PNG → 数据根」这条链路在真机上可用，
+/// 不参与产品默认路径，也不代替 E05–E08 的人工验收。
+#[cfg(debug_assertions)]
+fn maybe_run_capture_probe(app: &AppHandle<tauri::Wry>) {
+    if std::env::var_os("LAYRESS_PROBE_CAPTURE").is_none() {
+        return;
+    }
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        // 等工具层与样例服务就绪；探针不赶时间，避免与窗口创建竞态。
+        std::thread::sleep(Duration::from_secs(2));
+        let Some(base) = handle.state::<PageHost>().sample_base.get().cloned() else {
+            eprintln!("[layress][probe] 样例服务未就绪，探针失败");
+            return;
+        };
+        if let Err(e) = page_navigate(handle.clone(), format!("{base}/")).await {
+            eprintln!("[layress][probe] 导航失败：{e}");
+            return;
+        }
+        std::thread::sleep(Duration::from_secs(2));
+        match capture_start(handle.clone()).await {
+            Ok(outcome) => eprintln!(
+                "[layress][probe] 采集成功 id={} url={} 图片={}x{} 字节={} 数据根={}",
+                outcome.meta.id,
+                outcome.meta.page.url,
+                outcome.meta.image.width_px,
+                outcome.meta.image.height_px,
+                outcome.meta.image.bytes,
+                outcome.data_root
+            ),
+            Err(e) => eprintln!("[layress][probe] 采集失败：{e}"),
+        }
+    });
+}
+
+#[cfg(not(debug_assertions))]
+fn maybe_run_capture_probe(_app: &AppHandle<tauri::Wry>) {}
 
 // ── 启动 ─────────────────────────────────────────────────────────
 
@@ -446,7 +919,11 @@ pub fn run() {
             page_navigate,
             page_refresh,
             page_set_size,
-            page_state
+            page_state,
+            capture_start,
+            capture_cancel,
+            capture_latest,
+            preview_exit
         ])
         .setup(|app| {
             // 样例服务：失败则明确记录，工具层显示不可用，不静默降级
@@ -458,6 +935,48 @@ pub fn run() {
                     eprintln!("[layress] 样例服务启动失败：{e}");
                 }
             }
+
+            // 数据根：启动即解析并做可写检查，结果进日志、事件与 UI；不可写明确失败，不回落。
+            let (root, error) = match resolve_data_root() {
+                Ok(root) => match ensure_writable(&root.path) {
+                    Ok(()) => {
+                        eprintln!(
+                            "[layress] 数据根：{}（来源：{}，可写：是）",
+                            root.path.display(),
+                            root.source
+                        );
+                        (Some(root), None)
+                    }
+                    Err(e) => {
+                        eprintln!("[layress] 数据根不可写，采集将明确失败：{e}");
+                        (Some(root), Some(e))
+                    }
+                },
+                Err(e) => {
+                    eprintln!("[layress] 数据根解析失败，采集将明确失败：{e}");
+                    (None, Some(e))
+                }
+            };
+            if let Some(r) = &root {
+                let _ = app.state::<PageHost>().data_root.set(r.clone());
+            }
+            if let Some(e) = &error {
+                if let Ok(mut slot) = app.state::<PageHost>().data_root_error.lock() {
+                    *slot = Some(e.clone());
+                }
+            }
+            emit(
+                app.handle(),
+                PageEvent::DataRoot {
+                    path: root
+                        .as_ref()
+                        .map(|r| r.path.to_string_lossy().to_string())
+                        .unwrap_or_default(),
+                    source: root.map(|r| r.source).unwrap_or_default(),
+                    writable: error.is_none(),
+                    error,
+                },
+            );
 
             // 主窗口：配置不定义窗口，双 WebView 都在此创建（unstable 多 WebView）
             let window = tauri::window::WindowBuilder::new(app, "main")
@@ -480,16 +999,20 @@ pub fn run() {
             )?;
 
             let _ = APP.set(app.handle().clone());
+            maybe_run_capture_probe(app.handle());
 
             let handle = app.handle().clone();
-            let win = window.clone();
-            window.on_window_event(move |event| {
-                if let WindowEvent::Resized(_) = event {
-                    // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）
-                    relayout(&win, &handle);
+            window.on_window_event(move |event| match event {
+                WindowEvent::Resized(_) => {
+                    relayout(&handle);
                     sync_page_frame(&handle);
                     emit_viewport(&handle);
                 }
+                WindowEvent::Destroyed => {
+                    // 退出取消待完成采集，不让失效结果冒充成功（任务 3.2 / 4.4）
+                    invalidate_capture(&handle, "窗口关闭，在途采集已取消");
+                }
+                _ => {}
             });
 
             Ok(())

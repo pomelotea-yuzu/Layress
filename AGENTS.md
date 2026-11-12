@@ -31,9 +31,9 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-tauri-page-host 任务 1.x 与 2.1/2.3/2.4 完成，含用户人工复验**（2026-11-11）：双 WebView 承载、导航、视口、额外入口拒绝均实测通过；2.2 的无效地址负例人工未测不勾选；3.x（采集与预览）未开始 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.1/2.3/2.4 已勾选，2.2 与 3.x–5.x 未完成；人工复验结果见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
-| 代码 | `apps/desktop/`：单窗口双 WebView（互不重叠显式布局，工具条 96px + 页面区）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵测量、视口边界细边框（工具标记，采集前须关闭）、新窗口 / 下载 / 权限拒绝、内嵌样例服务 |
+| 阶段 | **add-tauri-page-host 任务 1.x 与 2.1/2.3/2.4 完成，含用户人工复验**（2026-11-11）；**3.x 代码实现 + 机器级真机探针完成**（2026-11-12）：原生快照取得真实 PNG 与版本化元数据、竞态单测通过；视觉 / 交互人工复验未执行，按 §六.4 不勾选；2.2 负例与 4.x–5.x 未开始 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.1/2.3/2.4 已勾选；3.x 代码完成待人工复验，2.2 与 4.x–5.x 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
+| 代码 | `apps/desktop/`：单窗口双 WebView（互不重叠布局）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵、视口边框、新窗口 / 下载 / 权限拒绝、内嵌样例服务；3.x 新增：WKWebView 原生快照（仅被测视图）、`layress.capture/v1` 元数据落盘、采集竞态状态机与 5 项单测、原地静态预览（工具层铺满 + 被测层仅平移不改尺寸）、原图坐标换算自检与参照块、数据根最小解析、开发期探针 |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
@@ -71,14 +71,16 @@
 pnpm install                      # 首次 / 依赖变更后（esbuild 构建脚本经 allowBuilds 审批）
 pnpm build:desktop                # tsc --noEmit + vite build（前端类型与产物检查）
 cargo check                       # 在 apps/desktop/src-tauri/ 下（需 Rust 工具链）
+cargo test --lib                  # 采集状态机 / PNG 与 base64 纯逻辑单测（5 项）
 pnpm tauri dev                    # 开发运行（GUI，须本机交互验证）
+LAYRESS_PROBE_CAPTURE=1 pnpm tauri dev   # 开发期无人值守采集探针，仅 debug 构建生效
 
 node scripts/check-repo.mjs --all       # 洁净度 + 全库链接 + 双语配对 + 两类自测
 node scripts/check-repo.mjs --staged    # pre-commit：按实际索引快照跑同一条链
 node scripts/check-i18n.mjs --links     # 单查全库 Markdown 本地目标路径
 ```
 
-构建 / 类型检查尚未接入 `check-repo.mjs` 公共入口（属任务 5.1），当前须单独跑 `pnpm build:desktop` 与 `cargo check`。
+构建 / 类型检查尚未接入 `check-repo.mjs` 公共入口（属任务 5.1），当前须单独跑 `pnpm build:desktop`、`cargo check` 与 `cargo test --lib`。
 工作区排查用 `--all`；部分暂存的提交以 `--staged` 为准。
 
 每个克隆做一次（不做就等于没有门禁）：

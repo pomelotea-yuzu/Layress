@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <title>Layress 样例页</title>
 <style>
-  body { font-family: -apple-system, sans-serif; margin: 16px; color: #2d3436; }
+  /* 顶部预留固定参照块的空间：它在视口 (24,24)，大小 160×60，用 CSS 像素描述，
+     供任务 3.3 在原始比例 / 适应区域两种展示下核对原图坐标不漂移（E07）。 */
+  body { font-family: -apple-system, sans-serif; margin: 16px; padding-top: 84px; color: #2d3436; }
+  #coord-anchor { position: fixed; left: 24px; top: 24px; width: 160px; height: 60px;
+    box-sizing: border-box; border: 2px dashed #8d6e63; border-radius: 6px;
+    background: #d7ccc8; color: #5d4037; font-size: 11px; line-height: 1.35;
+    padding: 6px 8px; z-index: 9999; }
   h1 { font-size: 18px; margin: 0 0 12px; }
   section { border: 1px solid #d5dbdd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
   h2 { font-size: 14px; margin: 0 0 8px; color: #636e72; }
@@ -17,6 +23,7 @@
 </style>
 </head>
 <body>
+<div id="coord-anchor">坐标参照块<br>CSS (24,24) · 160×60</div>
 <h1>Layress 样例页（本地夹具，仅供首增量验收）</h1>
 
 <section>

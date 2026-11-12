@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；2026-11-10 已建立首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)，只覆盖 Tauri 页面承载首增量，尚未编码。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖 Tauri 页面承载首增量：任务 1.x–2.x 已实施并经用户人工复验，3.x 采集与预览代码实现完成、机器级探针通过但视觉 / 交互人工复验未执行（2026-11-12）。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 
@@ -32,7 +32,7 @@ node scripts/check-i18n.mjs
 node scripts/check-i18n.mjs --selftest
 
 # workspace 已建立（2026-11-11）；目标命令链在任务 5.1 接入公共入口前，须单独实跑：
-# pnpm build:desktop && (cd apps/desktop/src-tauri && cargo check)
+# pnpm build:desktop && (cd apps/desktop/src-tauri && cargo check && cargo test --lib)
 # 最终形态：pnpm check:build && pnpm check:typecheck && pnpm check:test \
 #   && pnpm check:lint && pnpm check:i18n && pnpm check:spec && pnpm check:hygiene
 ```
@@ -118,12 +118,15 @@ Agent 审阅属**机器复核，不替代人工验收**：视觉 / 交互人工�
 当前开发机采用项目外共享工具目录 `tools/openspec/`，固定 `@fission-ai/openspec@1.17.0`，由用户指定位置；本机布局下从 Layress 根目录通过以下入口调用：
 
 ```bash
-../tools/openspec/openspec --version
-../tools/openspec/openspec validate add-tauri-page-host --strict --no-interactive --json
-../tools/openspec/openspec status --change add-tauri-page-host --json
+../../tools/openspec/openspec --version
+../../tools/openspec/openspec validate add-tauri-page-host --strict --no-interactive --json
+../../tools/openspec/openspec status --change add-tauri-page-host --json
 ```
 
-其他项目在自己的项目根目录使用同一个工具入口的实际路径，工作目录保持为被操作项目。上述相对路径仅适用于本机同级 `tools/` 布局，clone 仓库不会自动带来工具安装，不将本机绝对路径或依赖目录提交到仓库。
+其他项目在自己的项目根目录使用同一个工具入口的实际路径，工作目录保持为被操作项目。
+**D27 归位后**本机仓库在 `~/Developer/project/layress/`、工具根在 `~/Developer/tools/openspec/`，
+相对层级为两级（`../../tools/...`）；旧文档的 `../tools/...` 描述归位前布局，不再适用。
+clone 仓库不会自动带来工具安装，不将本机绝对路径或依赖目录提交到仓库。
 该版本要求 Node ≥ 22.12.0，本机 Node 26.13.0 已实跑；仓库原有门禁 Node ≥ 20 的要求不因此改写。本轮未安装 Tauri / Rust / pnpm 产品工具链。
 
 共享入口将 XDG 配置 / 缓存 / 数据、npm 缓存 / 日志与临时目录定位到工具根，设置 `OPENSPEC_TELEMETRY=0`、`DO_NOT_TRACK=1` 和 `OPENSPEC_NO_UPDATE_CHECK=1`；不做全局安装、不修改系统 PATH。使用该入口，直接调用原始 `node_modules/.bin/openspec` 会绕过这些目录与隐私设置。
