@@ -1301,8 +1301,20 @@ pub fn run() {
                     emit_viewport(&handle);
                 }
                 WindowEvent::Destroyed => {
-                    // 退出取消待完成采集，不让失效结果冒充成功（任务 3.2 / 4.4）
+                    // 退出取消待完成采集，不让失效结果冒充成功（任务 3.2 / 4.4）。
                     invalidate_capture(&handle, "窗口关闭，在途采集已取消");
+                    // 4.4：只清理本次启动的可写探针残留；持久截图 / 元数据按记录策略留在数据根。
+                    // 明确不删除数据根以外任何文件，重启后仍能读取上次现场。
+                    if let Some(root) = handle.state::<PageHost>().data_root.get() {
+                        let probe = root.path.join(".write-probe");
+                        if probe.exists() {
+                            let _ = std::fs::remove_file(&probe);
+                        }
+                        eprintln!(
+                            "[layress] 退出：数据根 {} 保留，未清理数据根外文件",
+                            root.path.display()
+                        );
+                    }
                 }
                 _ => {}
             });

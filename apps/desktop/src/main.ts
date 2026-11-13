@@ -431,6 +431,14 @@ async function loadInitialState(): Promise<void> {
       error: state.dataRootError,
     };
     renderDataRoot();
+    // 启动时事件可能早于订阅到达；这里按 page_state 再点亮一次数据根，保证 I13 的「启动可见」。
+    if (state.dataRoot) {
+      showStatusBar(
+        `数据根：${state.dataRoot}（来源：${state.dataRootSource ?? "未解析"}，` +
+          `${state.dataRootWritable ? "可写" : `不可写：${state.dataRootError ?? "原因未取得"}`}）`,
+        state.dataRootWritable ? "info" : "error",
+      );
+    }
     // 工具层重载后若 Rust 仍处于预览态，先恢复布局，避免卡在静态画面且没有图片数据。
     if (state.inPreview) {
       await invoke("preview_exit");
@@ -550,6 +558,12 @@ async function subscribeEvents(): Promise<void> {
         if (r) {
           lastRoot = r;
           renderDataRoot();
+          // I13 / 4.1：数据根解析结果必须在启动时可见。工具层第三行被 64px 视口裁掉，
+          // 因此和所有结果类反馈一样走底部独立状态栏（I15）；不可写直接给红条。
+          showStatusBar(
+            `数据根：${r.path}（来源：${r.source}，${r.writable ? "可写" : `不可写：${r.error ?? "原因未取得"}`}）`,
+            r.writable ? "info" : "error",
+          );
         }
         break;
       }

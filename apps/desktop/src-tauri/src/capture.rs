@@ -215,9 +215,13 @@ pub struct DataRoot {
 }
 
 /// 优先级：`--data-dir` > `LAYRESS_DATA_DIR` > 可执行文件目录旁 `.layress/`。
-/// 不依赖启动工作目录，不回落任何系统用户目录。
-pub fn resolve_data_root() -> Result<DataRoot, String> {
-    let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
+/// 不依赖启动工作目录，不回落任何系统用户目录（I13 / E09）。
+/// 抽成纯函数是为了让优先级与「不回落」口径有单测兜住，而不是只写在注释里。
+fn resolve_data_root_from(
+    args: &[std::ffi::OsString],
+    env_dir: Option<std::ffi::OsString>,
+    exe: &Path,
+) -> Result<DataRoot, String> {
     for (i, arg) in args.iter().enumerate() {
         let s = arg.to_string_lossy();
         if let Some(v) = s.strip_prefix("--data-dir=") {
@@ -238,7 +242,7 @@ pub fn resolve_data_root() -> Result<DataRoot, String> {
             return Err("--data-dir 缺少路径参数".to_string());
         }
     }
-    if let Some(v) = std::env::var_os("LAYRESS_DATA_DIR") {
+    if let Some(v) = env_dir {
         if !v.is_empty() {
             return Ok(DataRoot {
                 path: PathBuf::from(v),
@@ -246,7 +250,6 @@ pub fn resolve_data_root() -> Result<DataRoot, String> {
             });
         }
     }
-    let exe = std::env::current_exe().map_err(|e| format!("无法定位可执行文件：{e}"))?;
     let dir = exe
         .parent()
         .ok_or_else(|| "可执行文件没有父目录".to_string())?;
@@ -254,6 +257,12 @@ pub fn resolve_data_root() -> Result<DataRoot, String> {
         path: dir.join(".layress"),
         source: "可执行文件目录旁 .layress/".to_string(),
     })
+}
+
+pub fn resolve_data_root() -> Result<DataRoot, String> {
+    let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
+    let exe = std::env::current_exe().map_err(|e| format!("无法定位可执行文件：{e}"))?;
+    resolve_data_root_from(&args, std::env::var_os("LAYRESS_DATA_DIR"), &exe)
 }
 
 /// 任何持久写入之前先做真实可写检查；失败明确返回，不换目录。
@@ -500,5 +509,76 @@ mod tests {
         assert_eq!(base64_encode(b"fo"), "Zm8=");
         assert_eq!(base64_encode(b"foo"), "Zm9v");
         assert_eq!(base64_encode(b"foobar"), "Zm9vYmFy");
+    }
+
+    /// I13：优先级唯一、默认落点不依赖启动工作目录、不回落系统用户目录。
+    #[test]
+    fn 数据根解析优先级与不回落() {
+        use std::ffi::OsString;
+        let a = |s: &str| OsString::from(s);
+        let exe = Path::new("/opt/layress/bin/layress-desktop");
+        let cli = resolve_data_root_from(
+            &[a("layress"), a("--data-dir=/custom/root")],
+            Some(a("/env/root")),
+            exe,
+        )
+        .unwrap();
+        assert_eq!(cli.path, PathBuf::from("/custom/root"));
+        assert!(cli.source.contains("命令行"));
+        let spaced = resolve_data_root_from(
+            &[a("layress"), a("--data-dir"), a("/space/root")],
+            None,
+            exe,
+        )
+        .unwrap();
+        assert_eq!(spaced.path, PathBuf::from("/space/root"));
+        assert!(resolve_data_root_from(&[a("layress"), a("--data-dir")], None, exe).is_err());
+        let env = resolve_data_root_from(&[a("layress")], Some(a("/env/root")), exe).unwrap();
+        assert_eq!(env.path, PathBuf::from("/env/root"));
+        assert!(env.source.contains("环境变量"));
+        let default = resolve_data_root_from(&[a("layress")], None, exe).unwrap();
+        assert_eq!(default.path, PathBuf::from("/opt/layress/bin/.layress"));
+        for forbidden in [
+            "/Library/Application Support",
+            "/Library/Caches",
+            "/Library/Preferences",
+            "/Library/Logs",
+            "/.config",
+            "/.local/share",
+            "/.cache",
+        ] {
+            assert!(
+                !default.path.to_string_lossy().contains(forbidden),
+                "默认数据根回落了系统用户目录：{forbidden}"
+            );
+        }
+    }
+
+    /// E09：不可写数据根必须明确失败，不改写目标、不在别处静默兜底建目录。
+    /// 夹具放仓库垃圾场 `artifacts/`，用完即删，不向真实系统用户目录写测试垃圾（E10 方法第 2 条）。
+    #[test]
+    fn 数据根不可写时明确失败且不兜底() {
+        let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../artifacts")
+            .join(format!("unit-dataroot-{}", unix_ms()));
+        fs::create_dir_all(&base).expect("创建隔离夹具");
+        let blocker = base.join("not-a-directory");
+        fs::write(&blocker, b"sentinel").expect("写入阻挡文件");
+        let err = ensure_writable(&blocker).unwrap_err();
+        assert!(
+            err.contains("不可创建") || err.contains("不可写"),
+            "错因应说明不可写：{err}"
+        );
+        assert_eq!(
+            fs::read(&blocker).unwrap(),
+            b"sentinel".to_vec(),
+            "不得改写目标"
+        );
+        assert!(!base.join(".layress").exists(), "不得在别处静默兜底建目录");
+        let good = base.join("good");
+        fs::create_dir_all(&good).expect("创建可写目录");
+        assert!(ensure_writable(&good).is_ok());
+        assert!(!good.join(".write-probe").exists(), "可写探针必须清理");
+        fs::remove_dir_all(&base).expect("清理隔离夹具");
     }
 }

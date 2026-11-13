@@ -73,6 +73,17 @@
   <output id="bridge"></output>
 </section>
 
+<section>
+  <h2>文件 / 进程访问负例（E02、E13，应全部被拒绝）</h2>
+  <button id="probe-file-fetch" type="button">fetch 本地文件</button>
+  <button id="probe-fs-invoke" type="button">invoke 文件读取命令</button>
+  <button id="probe-proc-invoke" type="button">invoke 进程命令</button>
+  <button id="probe-capture-invoke" type="button">invoke 采集命令</button>
+  <output id="native-out"></output>
+  <p style="font-size:12px;color:#636e72">Web 页面本身没有进程 / 文件 API；负例以「调用不存在的原生命令」为代理，
+  预期全部被 capability 拒绝。结果只显示最后一项，逐条点击逐条看。</p>
+</section>
+
 <script>
 (function () {
   function fill() {
@@ -129,6 +140,40 @@
     bridge.push('invoke调用=被拒绝（' + (e && e.message ? e.message.slice(0, 40) : typeof e) + '）');
   }
   document.getElementById('bridge').textContent = bridge.join(' · ');
+
+  // 4.3：文件 / 进程访问负例。Web 页面没有这类 API，以调用不存在的原生命令为代理；
+  // 结果直接显示在被测页面上，方便人工逐条核对「全部被拒绝」。
+  function nativeOut(msg) { document.getElementById('native-out').textContent = msg; }
+  function probeInvoke(label, cmd, args) {
+    var api = window.__TAURI_INTERNALS__;
+    if (!api || typeof api.invoke !== 'function') {
+      nativeOut(label + '：原生桥不存在（已拒绝）');
+      return;
+    }
+    try {
+      api.invoke(cmd, args).then(
+        function () { nativeOut(label + '：意外成功（权限边界缺陷）'); },
+        function (e) { nativeOut(label + '：被拒绝（' + String(e).slice(0, 90) + '）'); }
+      );
+    } catch (e) {
+      nativeOut(label + '：被拒绝（' + String(e).slice(0, 90) + '）');
+    }
+  }
+  document.getElementById('probe-file-fetch').addEventListener('click', function () {
+    fetch('file:///etc/passwd').then(
+      function (r) { nativeOut('fetch 本地文件：意外成功 ' + r.status); },
+      function (e) { nativeOut('fetch 本地文件：被拒绝（' + String(e).slice(0, 90) + '）'); }
+    );
+  });
+  document.getElementById('probe-fs-invoke').addEventListener('click', function () {
+    probeInvoke('invoke 文件读取', 'plugin:fs|read_file', { path: '/etc/passwd' });
+  });
+  document.getElementById('probe-proc-invoke').addEventListener('click', function () {
+    probeInvoke('invoke 进程命令', 'plugin:shell|execute', { cmd: 'id' });
+  });
+  document.getElementById('probe-capture-invoke').addEventListener('click', function () {
+    probeInvoke('invoke 采集命令', 'capture_start', { delayMs: 0 });
+  });
 })();
 </script>
 </body>
