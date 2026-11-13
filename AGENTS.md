@@ -31,8 +31,8 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-tauri-page-host 任务 1.x、2.x 全部四项与 3.x 全部三项已完成，含用户人工复验**（2026-11-11 / 11-12 / 11-13）：原生快照、版本化元数据、两模式坐标、返回会话、慢采开关下的 GUI 竞态负例，以及 2.2 无效地址负例（8 条）均实测通过；结果条已按用户选择移到窗口最底部独立状态栏（三 WebView）；2.2 第 2 条修后文案已由用户人工复验通过；4.x 实施中（4.1 / 4.3 / 4.4 代码与 13 项单测落地待人工复验；4.2 前置条件未满足、不勾），5.x 未开始 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.1/2.2/2.3/2.4 + 3.1/3.2/3.3 已勾选；4.x–5.x 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
+| 阶段 | **add-tauri-page-host 任务 1.x、2.x 全部四项与 3.x 全部三项已完成，含用户人工复验**（2026-11-11 / 11-12 / 11-13）：原生快照、版本化元数据、两模式坐标、返回会话、慢采开关下的 GUI 竞态负例，以及 2.2 无效地址负例（8 条）均实测通过；结果条已按用户选择移到窗口最底部独立状态栏（三 WebView）；2.2 第 2 条修后文案已由用户人工复验通过；4.x 中 4.1 / 4.3 / 4.4 已完成并经用户人工复验（15:42）；4.2 前置条件未满足、不勾；5.x 未开始 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.1/2.2/2.3/2.4 + 3.1/3.2/3.3 + 4.1/4.3/4.4 已勾选（13/18）；4.2 与 5.x 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
 | 代码 | `apps/desktop/`：单窗口三 WebView（工具条 / 被测页面 / 底部状态栏，互不重叠）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵、视口边框、新窗口 / 下载 / 权限拒绝、内嵌样例服务；3.x 新增：WKWebView 原生快照（仅被测视图）、`layress.capture/v1` 元数据落盘、采集竞态状态机与 6 项单测、原地静态预览（工具层铺满 + 被测层仅平移不改尺寸）、原图坐标换算自检与参照块、数据根最小解析、开发期探针与「慢采 5s」复验开关、窗口底部独立状态栏（`status.html` + `status_bar_set`，Vite 双入口）；2.2 新增：导航 / 加载 / 拒绝 / 刷新反馈统一走底部状态栏、失败恢复真实地址栏、authority 前置校验与 5 项地址校验 / 可达性单测（合计 13 项）；4.x 新增：数据根解析纯函数与 2 项单测、启动数据根点亮状态栏、样例页原生访问负例探测区、退出只清理数据根内探针残留 |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
