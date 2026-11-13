@@ -43,7 +43,7 @@ context: |
   - 共享开发工具 OpenSpec 1.17.0 另要求 Node >= 22.12.0，本机 Node 26.13.0 已运行通过。入口和隔离目录约定见 docs/development/workflow.md，工具不随产品打包、不装进本仓，也不改系统 PATH。
   - 桌面载体采用 Tauri；Rust 原生层与 TypeScript strict 前端配合，前端使用 pnpm。workspace 与依赖版本已定稿（见 change design「实施定稿」）；UI 框架暂不引入，核心与 CLI 的语言边界由后续实现设计定稿。
   - 优先验证系统 WebView 的页面承载、视口、截图、批注和权限隔离，不默认附带 Chromium 或 Node.js；若另需浏览器或运行时，先写清用途、总分发体积与写盘范围，不静默改变载体。
-  - 已读取 API：多 WebView 的 Window::add_child 目前要求 unstable 功能；macOS WKWebView 不支持 data_directory，自定义 data store identifier 不等于可指定目录。首个 change 单列非持久会话及真实写盘验证，不以 API 设置成功冒充便携通过。
+  - 已读取 API：多 WebView 的 Window::add_child 目前要求 unstable 功能；macOS WKWebView 不支持 data_directory，自定义 data store identifier 不等于可指定目录。真实写盘验证按 D30 移出首个 change、归首次打包后的发行轮，不以 API 设置成功冒充便携通过。
   - 优先复用成熟浏览器、批注与检查能力；Playwright / CDP 等尚未选定为产品接入实现。
   - 本地与 CI 共用 node scripts/check-repo.mjs 公共门禁；构建、类型、业务测试、lint、spec 检查待产品骨架建立后接入同一条链。
   - MIT；产出默认中文，根目录登记的对外文档同轮同步英文，产品文案按 i18n/ 口径演进。
