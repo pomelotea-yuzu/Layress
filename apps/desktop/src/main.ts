@@ -166,11 +166,13 @@ function eventData<T>(p: PageEventPayload): T | null {
 
 type ToastLevel = "info" | "pending" | "ok" | "error";
 
-/** 采集结果 → 窗口最底部的独立状态栏 WebView（status.html，无能力、无脚本）。
- *  不再占用工具层 DOM，因此不会遮住工具栏；状态栏未就绪时静默降级，不改变采集结果。 */
-function showCaptureToast(text: string, level: ToastLevel): void {
+/** 操作反馈 → 窗口最底部的独立状态栏 WebView（status.html，无能力、无脚本）。
+ *  导航 / 加载 / 采集共用这一条常驻通道：工具层第三行在 64px CSS 视口下被裁，
+ *  只写 statusLine 会让「已拒绝」在 GUI 上完全不可见（见 runtime-probe）。
+ *  状态栏未就绪时静默降级，不改变操作结果。 */
+function showStatusBar(text: string, level: ToastLevel): void {
   void invoke("status_bar_set", { text, level }).catch(() => {
-    // 只影响提示呈现，不改变采集结果。
+    // 只影响提示呈现，不改变操作结果。
   });
   statusLine.textContent = text; // 工具层状态行留一份兜底（第三行受 64px 视口限制，不依赖它）
 }
@@ -179,21 +181,29 @@ function showCaptureToast(text: string, level: ToastLevel): void {
 
 async function navigate(): Promise<void> {
   const raw = urlInput.value;
-  statusLine.textContent = `导航请求：${raw} …`;
+  showStatusBar(`正在校验地址：${raw} …`, "pending");
   try {
     await invoke("page_navigate", { raw });
     // 成功后的状态与地址由 Rust 事件回报，这里不做乐观展示
   } catch (e) {
-    statusLine.textContent = `✗ 已拒绝：${String(e)}`;
+    showStatusBar(`✗ 已拒绝：${String(e)}`, "error");
+    // 预检失败不导航：地址栏必须恢复成 Rust 侧的真实页面地址，
+    // 否则输入框残留无效地址，会被误读成「旧页面已到了新地址」。
+    try {
+      const state = await invoke<PageStateInfo>("page_state");
+      urlInput.value = state.url ?? "";
+    } catch {
+      urlInput.value = "";
+    }
   }
 }
 
 async function refresh(): Promise<void> {
   try {
     await invoke("page_refresh");
-    statusLine.textContent = "刷新当前页面 …";
+    showStatusBar("刷新当前页面 …", "pending");
   } catch (e) {
-    statusLine.textContent = `✗ 刷新失败：${String(e)}`;
+    showStatusBar(`✗ 刷新失败：${String(e)}`, "error");
   }
 }
 
@@ -321,14 +331,14 @@ async function capture(): Promise<void> {
   const seq = captureSeq;
   hidePreview();
   statusLine.textContent = "采集请求已提交 …";
-  showCaptureToast("采集请求已提交 …", "pending");
+  showStatusBar("采集请求已提交 …", "pending");
   // 慢采开关只在开发构建生效：留出人工可操作的窗口，验证竞态失效（E06 运行级负例）。
   const delayMs = slowCapture?.checked ? 5000 : 0;
   try {
     const outcome = await invoke<CaptureOutcome>("capture_start", { delayMs });
     if (seq !== captureSeq) {
       // 旧请求被新采集替代：不改写当前画面，但结果必须留痕，不能静默忽略。
-      showCaptureToast(
+      showStatusBar(
         `旧请求 ${outcome.meta.id} 已完成但被新采集替代，未作为当前结果显示`,
         "info",
       );
@@ -336,7 +346,7 @@ async function capture(): Promise<void> {
     }
     showPreview(outcome);
     statusLine.textContent = `✓ 采集完成：${outcome.meta.id}`;
-    showCaptureToast(
+    showStatusBar(
       `✓ 采集完成 ${outcome.meta.id} · ${outcome.meta.image.width_px}×${outcome.meta.image.height_px} px · 产物 ${outcome.meta.image.file}`,
       "ok",
     );
@@ -348,7 +358,7 @@ async function capture(): Promise<void> {
     const stale = seq !== captureSeq ? "（旧请求，已被新采集替代）" : "";
     const text = `✗ 本次采集失败${stale}：${detail}${old}${root}`;
     // 常驻条先写，保证即使状态行被后续事件覆盖、或旧请求被忽略，失败仍然可见。
-    showCaptureToast(text, "error");
+    showStatusBar(text, "error");
     if (seq !== captureSeq) return;
     statusLine.textContent = text;
   }
@@ -492,7 +502,12 @@ async function subscribeEvents(): Promise<void> {
       case "Status": {
         const s = eventData<{ phase: string; url: string }>(p);
         if (s) {
-          statusLine.textContent = s.phase === "loading" ? `加载中：${s.url}` : `✓ 已加载：${s.url}`;
+          const loading = s.phase === "loading";
+          // 加载状态也走常驻条：负例时红条不能被「✓ 已加载」冲成成功语义。
+          showStatusBar(
+            loading ? `加载中：${s.url}` : `✓ 页面加载完成：${s.url}`,
+            loading ? "pending" : "ok",
+          );
         }
         break;
       }
@@ -511,7 +526,8 @@ async function subscribeEvents(): Promise<void> {
       }
       case "Denied": {
         const d = eventData<{ reason: string }>(p);
-        if (d) statusLine.textContent = `✗ ${d.reason}`;
+        // 页面内部发起的非 HTTP(S) 导航被拒绝，也必须可见，不能只在被裁的第三行留痕。
+        if (d) showStatusBar(`✗ ${d.reason}`, "error");
         break;
       }
       case "Capture": {
@@ -521,7 +537,7 @@ async function subscribeEvents(): Promise<void> {
         const level: ToastLevel =
           failed ? "error" : c.phase === "completed" ? "ok" : "pending";
         // 每个采集阶段都进常驻条：started 的「慢采已开启 …ms」可直接证明参数生效。
-        showCaptureToast(`[${c.phase}] ${c.message || c.id}`, level);
+        showStatusBar(`[${c.phase}] ${c.message || c.id}`, level);
         if (failed) {
           statusLine.textContent = `✗ ${c.message}`;
         } else if (c.phase === "started") {

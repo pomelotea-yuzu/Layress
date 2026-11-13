@@ -6,7 +6,9 @@
     <title>Layress 底部状态栏</title>
     <style>
       /* 独立状态栏：无脚本、无 Tauri 能力，文本由 Rust 的 status_bar_set 注入。
-         颜色语义（与原工具条浮层一致）：灰=就绪/提示，黄=采集进行中，绿=采集成功，红=失效或失败。 */
+         承载导航 / 加载 / 采集的全部操作反馈，不放工具层：工具层 CSS 视口实测仅 64px，
+         第三行状态信息被 #bar 的 overflow:hidden 裁掉（见 runtime-probe）。
+         颜色语义：灰=就绪/提示，黄=进行中，绿=成功，红=拒绝/失败/失效。 */
       html, body { margin: 0; height: 100%; font-family: -apple-system, sans-serif; overflow: hidden; }
       #bar { height: 100%; box-sizing: border-box; display: flex; align-items: center;
         padding: 0 10px; font-size: 12px; white-space: nowrap;

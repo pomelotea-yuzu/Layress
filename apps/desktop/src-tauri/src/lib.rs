@@ -484,6 +484,20 @@ fn validate_url(raw: &str) -> Result<Url, String> {
     if raw.is_empty() {
         return Err("地址为空".to_string());
     }
+    // 「http:///path」会被 url crate 把路径段规范化成主机名（"path"），
+    // 只靠后续 host 非空检查会放行；再等 DNS 碰巧失败来兜底不可靠（mDNS 可能解析出主机）。
+    // 这层 authority 检查**只对 http(s) 生效**：否则 file:///etc/passwd 会先被判「缺少主机名」，
+    // 掩盖真正的拒绝理由「scheme 不受支持」（2026-11-13 用户人工复验指出）。
+    if let Some(pos) = raw.find("://") {
+        let scheme = &raw[..pos];
+        if scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https") {
+            let authority = &raw[pos + 3..];
+            let first = authority.split(['/', '?', '#']).next().unwrap_or("");
+            if first.is_empty() {
+                return Err("地址缺少主机名".to_string());
+            }
+        }
+    }
     let url = Url::parse(raw).map_err(|e| format!("地址无法解析：{e}"))?;
     match url.scheme() {
         "http" | "https" => {}
@@ -495,29 +509,109 @@ fn validate_url(raw: &str) -> Result<Url, String> {
     Ok(url)
 }
 
-/// 导航前做 TCP 可达性预检：失败明确报错且不触碰当前页面（E03）。
-async fn check_reachable(url: &Url) -> Result<(), String> {
+/// 同步的 TCP 可达性探测：抽成独立函数，便于单测直接断言而不依赖 async runtime。
+fn probe_reachable(url: &Url) -> Result<(), String> {
+    use std::net::ToSocketAddrs;
     let host = url.host_str().unwrap_or_default().to_string();
     let port = url
         .port_or_known_default()
         .ok_or_else(|| "地址缺少端口且 scheme 无默认端口".to_string())?;
     let target = format!("{host}:{port}");
-    let res = tauri::async_runtime::spawn_blocking(move || {
-        use std::net::ToSocketAddrs;
-        match target.to_socket_addrs() {
-            Err(e) => Err(format!("域名解析失败：{e}")),
-            Ok(mut addrs) => match addrs.find(|a| a.is_ipv4()).or_else(|| addrs.next()) {
-                None => Err("域名未解析出可用地址".to_string()),
-                Some(addr) => match TcpStream::connect_timeout(&addr, REACHABILITY_TIMEOUT) {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(format!("目标不可达（{addr}）：{e}")),
-                },
+    match target.to_socket_addrs() {
+        Err(e) => Err(format!("域名解析失败：{e}")),
+        Ok(mut addrs) => match addrs.find(|a| a.is_ipv4()).or_else(|| addrs.next()) {
+            None => Err("域名未解析出可用地址".to_string()),
+            Some(addr) => match TcpStream::connect_timeout(&addr, REACHABILITY_TIMEOUT) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("目标不可达（{addr}）：{e}")),
             },
+        },
+    }
+}
+
+/// 导航前做 TCP 可达性预检：失败明确报错且不触碰当前页面（E03）。
+/// DNS 与 connect 放在阻塞线程，避免拖住 UI 线程；`connect_timeout` 只约束连接阶段。
+async fn check_reachable(url: &Url) -> Result<(), String> {
+    let owned = url.clone();
+    tauri::async_runtime::spawn_blocking(move || probe_reachable(&owned))
+        .await
+        .map_err(|e| format!("可达性检查任务失败：{e}"))?
+}
+
+/// E03 的纯逻辑部分：地址校验与可达性预检各有一正一反样本。
+/// 运行级「预检失败后当前页面不变、不误报加载成功」仍须人工 GUI 复验，机器单测不替代。
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::TcpListener;
+
+    #[test]
+    fn validate_url_rejects_invalid_addresses() {
+        let cases = [
+            "",
+            "   ",
+            "example.com",
+            "javascript:alert(1)",
+            "file:///etc/passwd",
+            "data:text/html,hi",
+            "ftp://example.com/",
+            "http://",
+            "https://",
+            "http:///path",
+            "http:////example.com/",
+            "http://example.com:99999/",
+        ];
+        for raw in cases {
+            assert!(
+                validate_url(raw).is_err(),
+                "本应被拒绝的地址却通过校验：{raw:?}"
+            );
         }
-    })
-    .await
-    .map_err(|e| format!("可达性检查任务失败：{e}"))?;
-    res
+    }
+
+    #[test]
+    fn validate_url_accepts_http_s_and_normalizes_scheme() {
+        let u = validate_url("  HTTP://Example.com:8080/path?q=1  ").expect("合法 http 地址");
+        assert_eq!(u.scheme(), "http");
+        assert_eq!(u.host_str(), Some("example.com"));
+        assert_eq!(u.port(), Some(8080));
+        assert_eq!(
+            validate_url("https://example.com/").unwrap().scheme(),
+            "https"
+        );
+    }
+
+    /// 拒绝理由必须归因准确：危险 scheme 不能被说成「缺少主机名」，
+    /// 否则用户会以为补上主机名就能打开 file://（2026-11-13 人工复验反馈）。
+    #[test]
+    fn reject_reason_keeps_scheme_before_host_check() {
+        for raw in ["file:///etc/passwd", "ftp://example.com/", "data:text/html,hi"] {
+            let err = validate_url(raw).unwrap_err();
+            assert!(err.contains("scheme"), "{raw:?} 的错因被误归因：{err}");
+            assert!(!err.contains("主机名"), "{raw:?} 不该报缺少主机名：{err}");
+        }
+        let err = validate_url("http:///path").unwrap_err();
+        assert!(err.contains("主机名"), "http(s) 畸形地址仍应报缺少主机名：{err}");
+    }
+
+    /// 已知坏样本：刚释放的本地端口没有监听，预检必须判不可达。
+    #[test]
+    fn probe_reachable_rejects_closed_port() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("绑定临时端口");
+        let port = listener.local_addr().expect("读取临时端口").port();
+        drop(listener);
+        let url = Url::parse(&format!("http://127.0.0.1:{port}/")).unwrap();
+        assert!(probe_reachable(&url).is_err(), "端口已关闭，预检必须失败");
+    }
+
+    /// 正例：本地有监听时预检通过，避免把「一律失败」误当成拒绝逻辑正确。
+    #[test]
+    fn probe_reachable_accepts_listening_port() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("绑定临时端口");
+        let port = listener.local_addr().expect("读取临时端口").port();
+        let url = Url::parse(&format!("http://127.0.0.1:{port}/")).unwrap();
+        assert!(probe_reachable(&url).is_ok(), "本地监听端口应可达");
+    }
 }
 
 // ── 命令（工具层 → Rust） ────────────────────────────────────────
