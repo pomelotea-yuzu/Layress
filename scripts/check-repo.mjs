@@ -22,16 +22,21 @@ try {
     checkRoot = snapshot;
     env = { ...process.env, GIT_DIR: gitDir, GIT_WORK_TREE: snapshot, GIT_INDEX_FILE: path.resolve(ROOT, index) };
   }
+  // 每项可指定 cwd / env。构建类检查必须在真实检出目录跑：--staged 的索引快照
+  // 不含 node_modules / target，无法编译；洁净度 / 链接 / 双语仍按索引快照。
   const checks = [
-    ['check-hygiene.mjs', '--all'],
-    ['check-hygiene.mjs', '--selftest'],
-    ['check-i18n.mjs', '--selftest'],
-    ['check-i18n.mjs', '--links'],
-    ['check-i18n.mjs'],
+    { script: 'check-hygiene.mjs', args: ['--all'] },
+    { script: 'check-hygiene.mjs', args: ['--selftest'] },
+    { script: 'check-i18n.mjs', args: ['--selftest'] },
+    { script: 'check-i18n.mjs', args: ['--links'] },
+    { script: 'check-i18n.mjs', args: [] },
+    { script: 'check-build.mjs', args: ['--all'], cwd: ROOT, env: process.env },
+    { script: 'check-build.mjs', args: ['--selftest'], cwd: ROOT, env: process.env },
   ];
-  for (const [script, ...args] of checks) {
-    const result = spawnSync(process.execPath, [path.join(checkRoot, 'scripts', script), ...args], {
-      cwd: checkRoot, env, stdio: 'inherit',
+  for (const { script, args, cwd, env: stepEnv } of checks) {
+    const base = cwd ?? checkRoot;
+    const result = spawnSync(process.execPath, [path.join(base, 'scripts', script), ...args], {
+      cwd: base, env: stepEnv ?? env, stdio: 'inherit',
     });
     if (result.error) throw result.error;
     if (result.status !== 0) {

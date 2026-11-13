@@ -15,8 +15,8 @@
   依赖构建脚本经 `pnpm-workspace.yaml` 的 `allowBuilds` 审批，只放行 esbuild）。
 - Tauri 采用 Rust 原生层与 TypeScript 前端。2026-11-11 任务 1.3 落地：`apps/desktop/` 骨架
   （tauri 2.12.5 `unstable` / @tauri-apps 2.12.4 / Vite 7.3.8 / TS 5.9.3 strict），`pnpm build:desktop`
-  与 `cargo check`（在 `apps/desktop/src-tauri/` 下）为当前代码检查入口；**尚未接入公共门禁链**（任务 5.1），
-  提交前须单独实跑并记录退出码。Rust 工具链安装与镜像口径见 [`../knowledge/engineering.md`](../knowledge/engineering.md)。
+  与 `cargo check`（在 `apps/desktop/src-tauri/` 下）为当前代码检查入口；**已于 2026-11-13 任务 5.1 接入公共门禁链**（`check-build.mjs`），
+  提交前由 `check-repo.mjs` 自动实跑并记录退出码。Rust 工具链安装与镜像口径见 [`../knowledge/engineering.md`](../knowledge/engineering.md)。
 - 每个克隆一次：`git config core.hooksPath .githooks`。不挂 hook，洁净度问题会推迟到 CI 才暴露。
 
 ```bash
@@ -31,10 +31,10 @@ node scripts/check-i18n.mjs --links
 node scripts/check-i18n.mjs
 node scripts/check-i18n.mjs --selftest
 
-# workspace 已建立（2026-11-11）；目标命令链在任务 5.1 接入公共入口前，须单独实跑：
-# pnpm build:desktop && (cd apps/desktop/src-tauri && cargo check && cargo test --lib)
-# 最终形态：pnpm check:build && pnpm check:typecheck && pnpm check:test \
-#   && pnpm check:lint && pnpm check:i18n && pnpm check:spec && pnpm check:hygiene
+# 任务 5.1 起，三条构建 / 类型 / 测试检查已由 check-repo.mjs 自动跑，不再需要手工单独执行：
+#   pnpm build:desktop / cargo check / cargo test --lib
+# 单项排查：node scripts/check-build.mjs --all | --selftest
+# lint 与 spec 一致性检查仍未接入，见下方质量门禁表。
 ```
 
 ## 质量门禁
@@ -44,12 +44,12 @@ node scripts/check-i18n.mjs --selftest
 | 洁净度 | `check-hygiene.mjs` | 索引中的体积、二进制后缀、垃圾场路径、凭据、豁免与忽略泄露 | 生效 |
 | 全库链接 | `check-i18n.mjs --links` | 全部已跟踪 Markdown 的相对路径、仓库根路径及引用式链接断链，不依赖双语登记 | 生效 |
 | 双语成对 | `check-i18n.mjs` | 缺英文、语言入口标签标反、小节漂移、孤儿英文 | 生效 |
-| 构建 / 类型 / 测试 / lint | `pnpm check:*` | 代码质量与回归 | 待建 |
+| 构建 / 类型 / 测试 | `check-build.mjs --all` | 前端 tsc + vite build、Rust `cargo check` / `cargo test --lib`、失败退出码传播（lint 仍未接入） | 生效（本机 macOS arm64 实跑；CI ubuntu 配置待首次回显；Windows 未验证） |
 | spec 一致性 | `pnpm check:spec` | 主 spec 与归档 change 的差集 | 待建 |
 
 两条硬约定：
 
-- **本地与云端跑同一条链**：公共入口 [`scripts/check-repo.mjs`](../../scripts/check-repo.mjs) 顺序运行洁净度、洁净度自测、文档门禁自测、全库链接与对外双语配对，任一步失败即停止。CI 两侧调用 `--all`；pre-commit 调用 `--staged`，先导出完整索引快照，按该快照的脚本、忽略规则、双语清单与文档检查，未暂存的修复不能掩盖提交里的错误。普通 `--all` 的链接与配对检查读取已跟踪的工作区文档，CI 干净检出时与索引一致。
+- **本地与云端跑同一条链**：公共入口 [`scripts/check-repo.mjs`](../../scripts/check-repo.mjs) 顺序运行洁净度、洁净度自测、文档门禁自测、全库链接与对外双语配对，任一步失败即停止。CI 两侧调用 `--all`；pre-commit 调用 `--staged`，先导出完整索引快照，按该快照的脚本、忽略规则、双语清单与文档检查，未暂存的修复不能掩盖提交里的错误。普通 `--all` 的链接与配对检查读取已跟踪的工作区文档，CI 干净检出时与索引一致。**唯一差异**：构建类检查在真实检出目录跑，因为索引快照不含 `node_modules` / `target` 缓存，无法编译；该差异由 `check-repo.mjs` 显式指定 cwd，且构建失败照样让整链退出非 0。
 - **机器 PASS ≠ 验收**。视觉与交互判定归人工复核；未执行的复核在项目状态里单列"未执行"。
 
 实现 Agent 接口时，change 必须定义输入输出 schema、退出码与错误码，并验证无 TTY 调用、缺参、机器输出解析、状态分层、超时 / 取消和证据引用；验收口径见 [`openspec/config.yaml`](../../openspec/config.yaml) 的 Agent 接口约定。此项为待实现要求，不计作当前门禁已覆盖。
