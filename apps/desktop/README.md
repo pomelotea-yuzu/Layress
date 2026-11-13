@@ -114,37 +114,138 @@ cd ~/Developer/project/layress/apps/desktop \
 
 ## 任务 4.x 人工复验（开发期，2026-11-13 待用户执行）
 
-**先完整重启**：本轮改过 Rust 与样例页。Ctrl+C 杀净 `pnpm tauri dev` / vite / 应用进程后按上面的启动命令重起。
+### 0. 复验前准备（每换一个数据根都要重做）
 
-### 4.1 数据根可见与不可写负例
+本轮改过 Rust / 样例页 / 工具层 JS，**旧窗口一律不算**。在跑 `pnpm tauri dev` 的终端按 Ctrl+C，然后确认没有残留：
 
-1. 正常启动：**窗口最底部状态栏**应显示 `数据根：…/target/debug/.layress（来源：可执行文件目录旁 .layress/，可写）`；采集一次，产物落在该根 `captures/`。
-2. 自定义可写根：`--data-dir` 指向任意可写目录：
+```bash
+pgrep -fl "tauri dev|vite|layress-desktop"
+```
+
+有残留就按显示的 PID 逐个 `kill <pid>`。数据根**只在启动时解析**，所以下面 A / B / C 三档每换一次都要 Ctrl+C 重启，运行中改参数无效。
+
+先记基线（后面判「没有新增文件」要用）：
+
+```bash
+ls -1 ~/Developer/project/layress/apps/desktop/src-tauri/target/debug/.layress/captures/*.png 2>/dev/null | wc -l
+ls -ld ~/Library/Application\ Support/layress ~/Library/Caches/layress 2>/dev/null || echo "系统用户目录无 layress 目录"
+```
+
+把第一个数字记下来（记作 N）。
+
+### 1. 4.1 · `--data-dir` 到底写哪里
+
+**`--data-dir=` 后面写一个目录的绝对路径**——这个目录就是应用写截图、元数据、日志的「数据根」。不是文件名、不是 URL、也不是相对路径（相对路径会跟着启动工作目录跑，本轮口径未定义，见 [debt](../../docs/knowledge/debt.md)）。
+
+它写在整条启动命令**末尾、第二个 `--` 之后**，用等号连写最稳：`pnpm tauri dev -- -- --data-dir=<绝对路径>`。
+第一个 `--` 之后是 cargo runner 参数，第二个 `--` 之后才传给应用（见 `pnpm tauri dev --help` 的 Arguments 段）。
+
+三档各起一次应用：
+
+| 档 | `--data-dir` 后面写什么 | 验证什么 |
+|---|---|---|
+| A 默认 | 整个参数省略 | 默认落点 = exe 旁 `.layress/` |
+| B 可写 | `/Users/yangzhicheng/Developer/project/layress/artifacts/custom-root` | 显式指定生效、产物落在那里 |
+| C 不可写 | `/dev/null/layress-probe` | 明确失败、不回落、不兜底 |
+
+B 档完整命令（可直接粘贴）：
+
+```bash
+cd ~/Developer/project/layress/apps/desktop \
+  && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" \
+     pnpm tauri dev -- -- --data-dir=/Users/yangzhicheng/Developer/project/layress/artifacts/custom-root
+```
+
+C 档只改末尾：
+
+```bash
+cd ~/Developer/project/layress/apps/desktop \
+  && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" \
+     pnpm tauri dev -- -- --data-dir=/dev/null/layress-probe
+```
+
+> `/dev/null` 是文件不是目录，`create_dir_all` 必定失败，不会往系统里写任何东西，比用受保护目录更安全。
+> 不想依赖参数透传时，可用环境变量形式 `LAYRESS_DATA_DIR=<绝对路径> pnpm tauri dev`（不需要 `--`）。
+
+**A 档（不带参数正常启动）**
+
+1. 看**窗口最底部状态栏**：灰条应为 `数据根：…/apps/desktop/src-tauri/target/debug/.layress（来源：可执行文件目录旁 .layress/，可写）`。
+2. 看终端 stderr：应有 `[layress] 数据根：…（来源：…，可写：是）`。
+3. 点「打开样例页」→ 点「采集」，状态栏转绿；到 `<数据根>/captures/` 应多出一对 `<id>.png` + `<id>.json`。
+
+**B 档（自定义可写根）**
+
+1. 状态栏应显示 `数据根：/Users/yangzhicheng/Developer/project/layress/artifacts/custom-root（来源：命令行 --data-dir，可写）`。
+2. 采集一次后跑：
+
+   ```bash
+   ls -1 /Users/yangzhicheng/Developer/project/layress/artifacts/custom-root/captures/
+   ```
+
+   应看到新 PNG / JSON；默认 `.layress/captures/` 的数量停在 N，没有往默认根写。
+3. 优先级（诱饵路径只作对照，不会被写入）：
 
    ```bash
    cd ~/Developer/project/layress/apps/desktop \
      && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" \
-        pnpm tauri dev -- -- --data-dir="$HOME/Developer/project/layress/artifacts/custom-root"
+        LAYRESS_DATA_DIR=/Users/yangzhicheng/Developer/project/layress/artifacts/decoy \
+        pnpm tauri dev -- -- --data-dir=/Users/yangzhicheng/Developer/project/layress/artifacts/custom-root
    ```
 
-   ⚠ 这里必须写**两个 `--`**：`tauri dev` 的第一个 `--` 之后是 runner(cargo) 参数，第二个 `--` 之后才传给应用
-   （见 `pnpm tauri dev --help` 的 Arguments 段）。不想依赖参数透传可直接用第 4 步的环境变量形式。
+   状态栏仍应显示「来源：命令行 --data-dir」，路径是 `custom-root` 而不是 `decoy`。
 
-   预期状态栏显示该目录与来源「命令行 --data-dir」，采集产物落在其中。
-3. 不可写负例：把上面路径换成只读位置（如 `/System/Library/layress-probe`）。预期：启动日志 `[layress] 数据根不可写，采集将明确失败：…`、状态栏**红条**显示不可写与原因；点「采集」明确失败，**不**在 `~/Library/...` 或默认 `.layress/` 建兜底目录，也不改写目标路径。
-4. 环境变量形式：`LAYRESS_DATA_DIR=… pnpm tauri dev` 应显示来源「环境变量」；命令行与环境变量同时给时命令行优先。
+**C 档（不可写负例）**
 
-### 4.3 原生访问负例
+1. 终端应出现 `[layress] 数据根不可写，采集将明确失败：数据根不可创建（/dev/null/layress-probe）：…`。
+2. 状态栏应为**红条**：`数据根：/dev/null/layress-probe（来源：命令行 --data-dir，不可写：…）`。
+3. 点「打开样例页」→ 点「采集」：状态栏红条 `✗ 本次采集失败 …`，**不进入静态预览**。
+4. 核对没有偷偷回落：
 
-打开样例页，逐个点「fetch 本地文件」/「invoke 文件读取命令」/「invoke 进程命令」/「invoke 采集命令」，每次看被测页 `#native-out`：全部应显示「被拒绝 / 原生桥不存在」，不能出现「意外成功」。Web 页面没有进程 / 文件 API，这四项以调用不存在的原生命令为代理，不声称它是完整的进程访问验证。
+   ```bash
+   ls -ld ~/Library/Application\ Support/layress ~/Library/Caches/layress 2>/dev/null || echo "无兜底目录"
+   ls -1 ~/Developer/project/layress/apps/desktop/src-tauri/target/debug/.layress/captures/*.png 2>/dev/null | wc -l
+   ```
 
-### 4.4 退出清理与重启
+   第一行应是「无兜底目录」；第二行仍为 N，说明这次失败没有在默认根写新文件。
 
-1. 打开样例页，勾「慢采 5s」，点「采集」，在 5 秒内关闭应用窗口。
-2. 预期：本次不进入静态预览、`<数据根>/captures/` 没有本次新增 PNG / JSON；数据根内上次成功的截图仍在；数据根外文件没有被删除。
-3. 重新启动，应用能正常打开、样例页可用，状态栏再次显示数据根。
+### 2. 4.3 · 原生访问负例（在 A 档或 B 档应用里做）
 
+1. 点「打开样例页」，在**被测页面**（窗口中间那块，不是顶部工具条）往下滚到
+   「文件 / 进程访问负例（E02、E13，应全部被拒绝）」这一段。
+2. 依次点四个按钮，每点一次看该段下方的蓝色结果行（`#native-out`，只显示最后一条）：
+
+   | 点哪个按钮 | 结果行应包含 | 判定 |
+   |---|---|---|
+   | `fetch 本地文件` | `被拒绝`（或 CSP 相关错误） | 出现「意外成功」= 不通过 |
+   | `invoke 文件读取命令` | `被拒绝` 或 `原生桥不存在（已拒绝）` | 同上 |
+   | `invoke 进程命令` | 同上 | 同上 |
+   | `invoke 采集命令` | 同上 | 同上 |
+
+3. 顺便核对上方「原生命令边界（E02）」段：`__TAURI_INTERNALS__=undefined`、`invoke调用=被拒绝（…）`，不能出现 `invoke调用=意外成功`。
+4. 如实口径：Web 页面本身没有进程 / 文件 API，这四个按钮用「调用不存在的原生命令」作代理，验证的是 capability 边界，**不声称**覆盖完整进程访问。
+
+### 3. 4.4 · 退出清理与重启（在 A 档或 B 档应用里做）
+
+1. 先记当前 captures 的 PNG 数（用第 0 步命令），记作 N。
+2. 「打开样例页」→ 勾工具条第二行「慢采 5s」→ 点「采集」→ 状态栏出现浅黄 `[started] 慢采已开启：…5000 ms…`。
+3. **在 5 秒内直接关闭应用窗口**（点窗口红叉 / Cmd+W，不是点「取消」按钮）。
+4. 用 A 档命令重新启动，然后核对：
+
+   ```bash
+   ls -1 ~/Developer/project/layress/apps/desktop/src-tauri/target/debug/.layress/captures/*.png 2>/dev/null | wc -l
+   ```
+
+   - 数字仍是 N ⇒ 被关掉的这次采集没有落盘；
+   - 原有 N 个 PNG / JSON 仍在，没被删；
+   - 数据根以外（仓库其它目录、`~/Library/...`）没有被删除或改动；
+   - 应用能正常打开、样例页可点击、状态栏再次显示数据根。
+5. 终端退出时应有 `[layress] 退出：数据根 … 保留，未清理数据根外文件`。
+
+### 4. 判据
+
+4.1 / 4.3 / 4.4 全部由用户人工确认后，才勾选 tasks 对应项并回填 E09 / E02 / E11。
 **4.2 不在本轮复验范围**：便携的载体是打包后的产品目录，开发态没有该对象；真实写盘观测挂到首次打包之后，见 [debt](../../docs/knowledge/debt.md)。
+机器单测只覆盖纯逻辑，不替代 GUI 复核（I11）。
 
 ## 口径
 
@@ -160,7 +261,7 @@ cd ~/Developer/project/layress/apps/desktop \
   页面区高度统一由 `stage_height()` 计算，工具条与状态栏都不静默侵占被测视口。
 - **数据根**：`--data-dir` / `LAYRESS_DATA_DIR` > 可执行文件旁 `.layress/`，
   启动与采集前各做一次可写检查；不可写明确失败，不回落系统用户目录。
-  3.x 只落地最小解析与可见性，任务 4.1 的负例与 4.2 的写盘观测仍未执行。
+  4.1 已落地解析纯函数、可写检查与启动可见性（GUI 负例待复验）；4.2 因开发态没有打包后的产品目录，属前置条件未满足，挂到发行轮。
 - 构建缓存 `src-tauri/target/`、前端 `dist/`、运行数据根 `.layress/` 均不入库；`Cargo.lock` 入库。
 - 机器 PASS 不等于人工验收：3.x 的截图内容、两种比例下的坐标落点、返回后输入与竞态负例已由用户复验通过；
-  弹窗会话单独触发、2.2 无效地址负例与 4.x 仍未执行。
+  弹窗会话单独触发与 4.x 的 GUI 负例仍未执行；2.2 已于 2026-11-13 复验通过。
