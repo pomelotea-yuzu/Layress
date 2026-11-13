@@ -124,8 +124,11 @@ cd ~/Developer/project/layress/apps/desktop \
    ```bash
    cd ~/Developer/project/layress/apps/desktop \
      && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" \
-        pnpm tauri dev -- --data-dir="$HOME/Developer/project/layress/artifacts/custom-root"
+        pnpm tauri dev -- -- --data-dir="$HOME/Developer/project/layress/artifacts/custom-root"
    ```
+
+   ⚠ 这里必须写**两个 `--`**：`tauri dev` 的第一个 `--` 之后是 runner(cargo) 参数，第二个 `--` 之后才传给应用
+   （见 `pnpm tauri dev --help` 的 Arguments 段）。不想依赖参数透传可直接用第 4 步的环境变量形式。
 
    预期状态栏显示该目录与来源「命令行 --data-dir」，采集产物落在其中。
 3. 不可写负例：把上面路径换成只读位置（如 `/System/Library/layress-probe`）。预期：启动日志 `[layress] 数据根不可写，采集将明确失败：…`、状态栏**红条**显示不可写与原因；点「采集」明确失败，**不**在 `~/Library/...` 或默认 `.layress/` 建兜底目录，也不改写目标路径。
