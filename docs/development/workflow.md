@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖 Tauri 页面承载首增量：1.x–4.x（4.2 按 D30 移出范围）已实施并经用户人工复验；5.1 门禁接入完成，**5.2 机器侧规格场景对照完成、不勾选**：首轮人工 A 通过，B / C / D 因窗口跑旧 JS 判据作废，须先确认工具条版本徽标再重跑（2026-11-14）。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖 Tauri 页面承载首增量：1.x–4.x（4.2 按 D30 移出范围）与 5.1 / 5.2 已实施并经用户人工复验勾选（5.2 经四轮复验，2026-11-14；期间修复状态栏层级与下载夹具两个真缺陷，应用层权限回调路径单列未执行），5.3–5.4 未开始。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 
