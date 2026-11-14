@@ -4,7 +4,7 @@
 > **2.2 无效地址负例于 2026-11-13 经用户人工复验通过并勾选**（8 条中 7 条符合预期，第 2 条错因归因错误已修并加单测；
 > 修后文案同日由用户 GUI 复验通过，原单列项已销账，详见下节）；
 > 3.x 真机探针取得 PNG 与版本化元数据，**3.1 / 3.2 / 3.3 全部经用户人工复验通过并勾选**
-> （竞态负例经慢采开关与底部结果条补齐后于 11:53 确认）；4.x 中 4.1 / 4.3 / 4.4 于 2026-11-13 15:42 经用户人工复验通过并勾选，4.2 已按 D30 移出本 change 范围（见下节）；5.1 已完成并登记 Gitee CI 首次失败回显；**5.2 已完成并勾选（2026-11-14，四轮人工复验）**：A/B/C 与 D 全部通过，期间发现并修复两个真缺陷（状态栏被页面遮挡、下载夹具未触发 `on_download`）与一个页面反馈缺口（geo 无回调时空白）；地理位置最终由 **WebKit 系统层明确拒绝（error code 1 "User denied Geolocation"）、权限未授予**，应用层 `on_permission_request` 未被系统调用已如实单列（见「第四轮人工复验」）；**5.3 已完成（2026-11-14，本机首次 release 构建 + 体积 / 前置记录）**，5.4 未开始。
+> （竞态负例经慢采开关与底部结果条补齐后于 11:53 确认）；4.x 中 4.1 / 4.3 / 4.4 于 2026-11-13 15:42 经用户人工复验通过并勾选，4.2 已按 D30 移出本 change 范围（见下节）；5.1 已完成并登记 Gitee CI 首次失败回显；**5.2 已完成并勾选（2026-11-14，四轮人工复验）**：A/B/C 与 D 全部通过，期间发现并修复两个真缺陷（状态栏被页面遮挡、下载夹具未触发 `on_download`）与一个页面反馈缺口（geo 无回调时空白）；地理位置最终由 **WebKit 系统层明确拒绝（error code 1 "User denied Geolocation"）、权限未授予**，应用层 `on_permission_request` 未被系统调用已如实单列（见「第四轮人工复验」）；**5.3 已完成（2026-11-14，本机首次 release 构建 + 体积 / 前置记录）**；**5.4 已完成（2026-11-14，归档 + 规格合入，本 change 收口）**。
 > 实施完成状态只在 [tasks](tasks.md) 维护。
 > 下表是证据归属与未执行项，不是验收报告。
 
@@ -17,7 +17,7 @@
   - `pnpm build:desktop`（= `tsc --noEmit && vite build`）：退出码 0，产物 `dist/index.html` 0.32 KB + JS 1.28 KB。
   - `cargo check`（`apps/desktop/src-tauri/`）：退出码 0，tauri 2.12.5 + unstable 编译通过，dev profile 28.39s。
 - **许可核对**：tauri / tauri-build / @tauri-apps/* = MIT OR Apache-2.0；Vite = MIT；TypeScript = Apache-2.0；与本项目 MIT 兼容。完整第三方声明仍是发行前欠账（debt）。
-- **工程落点**：根 `package.json` + `pnpm-workspace.yaml`（apps/*、packages/*、allowBuilds 审批表）；`apps/desktop/`（TS strict 前端骨架 + `src-tauri/`）；门禁收紧见 [engineering](../../../docs/knowledge/engineering.md)（图片后缀默认拦截，应用图标走 allowlist 理由豁免）。
+- **工程落点**：根 `package.json` + `pnpm-workspace.yaml`（apps/*、packages/*、allowBuilds 审批表）；`apps/desktop/`（TS strict 前端骨架 + `src-tauri/`）；门禁收紧见 [engineering](../../../../docs/knowledge/engineering.md)（图片后缀默认拦截，应用图标走 allowlist 理由豁免）。
 - **对应证据表状态**：E01 / E12 / E14 的工具链与构建部分已有本机记录；E01 的**运行与人工操作、E02–E11、E13 及 E12 的 CI 侧**仍未执行，下表状态不变。
 
 ## 任务 2.x 实现（2026-11-11，运行级 / 人工验证未执行）
@@ -92,13 +92,13 @@
 
 **单测覆盖的正反样本**：11 类无效地址（空、无 scheme、javascript / file / data / ftp、空主机、`http:///path`、`http:////example.com/`、超范围端口）、HTTP(S) 合法地址与 scheme 大小写规范化、无监听的本地端口必须判不可达、有监听的本地端口必须通过（防「一律失败」假绿），以及 file / ftp / data 的错因必须归因到 scheme 而非主机名（用户人工复验反馈固化）。
 
-**发现并修复的两个漏口**：① `http:///path` 被 url 解析器把路径段规范化成主机名，绕过 host 非空检查，只靠 DNS 碰巧失败兜底；已在校验阶段拒绝并加断言。② 该前置检查抢在 scheme 白名单之前，把 `file:///etc/passwd` 误报成「缺少主机名」；已限定仅 http(s) 生效并加错因断言。结论同轮回填 [`engineering.md`](../../../docs/knowledge/engineering.md)。
+**发现并修复的两个漏口**：① `http:///path` 被 url 解析器把路径段规范化成主机名，绕过 host 非空检查，只靠 DNS 碰巧失败兜底；已在校验阶段拒绝并加断言。② 该前置检查抢在 scheme 白名单之前，把 `file:///etc/passwd` 误报成「缺少主机名」；已限定仅 http(s) 生效并加错因断言。结论同轮回填 [`engineering.md`](../../../../docs/knowledge/engineering.md)。
 
 **后续结果（2026-11-13）**：上述 GUI 项已由用户人工复验通过，见下节「任务 2.2 用户人工复验」；2.2 已勾选。第 2 条错因归因错误在复验中发现并修复，**修后文案同日由用户 GUI 复验通过，原单列项已销账**。机器单测不替代人工验收（I11）。
 
 ## 任务 2.2 用户人工复验（2026-11-13，通过；单列项已销账）
 
-**用户原话**：「第二个是 已拒绝：地址缺少主机名，其他没有问题」。按 [app README](../../../apps/desktop/README.md) 的 8 条清单执行；观察通道为窗口最底部独立状态栏（工具层第三行在 64px 视口下被裁，不依赖）。
+**用户原话**：「第二个是 已拒绝：地址缺少主机名，其他没有问题」。按 [app README](../../../../apps/desktop/README.md) 的 8 条清单执行；观察通道为窗口最底部独立状态栏（工具层第三行在 64px 视口下被裁，不依赖）。
 
 | 结果 | 内容 |
 |---|---|
@@ -150,8 +150,8 @@ title 哨兵）、`src/coords.ts`（坐标换算与运行时往返自检）、`s
 - **E09（部分）**：数据根解析、启动 / 采集前可写检查、日志 / 事件 / UI 显示已落地（3.x 写盘前置）；
   不可写负例与 WebView 真实写盘观测（4.1 / 4.2）未执行，不得写成便携通过（本节为 3.x 当时状态；4.1 已于 11-13 复验通过，4.2 已按 D30 移出）。
 
-**本轮发现并已修的坑**（结论已同轮回填 [`engineering.md`](../../../docs/knowledge/engineering.md)
-与 [`runtime-probe.md`](../../../docs/knowledge/runtime-probe.md)）：
+**本轮发现并已修的坑**（结论已同轮回填 [`engineering.md`](../../../../docs/knowledge/engineering.md)
+与 [`runtime-probe.md`](../../../../docs/knowledge/runtime-probe.md)）：
 
 - title 哨兵 JSON 键名写 `sx`/`sy`，Rust 结构字段为 `scroll_x`/`scroll_y` ⇒ 元数据把实现 bug
   静默标成「未取得」；已统一键名并新增单测断言键名一致性。
@@ -226,13 +226,13 @@ bounds 实测 `Logical(0,758) 1280×42`（窗口 800 逻辑高，758+42=800）�
 
 ## 任务 4.x 实施与前置条件（2026-11-13）
 
-**用户口径修正（15:15，原话「现在不是还在开发，没有打包的需求，便携还不"存在"吧」）**：便携优先（I12）的载体是打包后的产品目录；当前 `pnpm tauri dev` 下 exe 在 `src-tauri/target/debug/`、数据根在 `target/debug/.layress/`，同时存在 Vite / pnpm / cargo / WKWebView 辅助进程的写入，既没有「产品目录」可删，也无法按 E10 把写入归因到产品本身。因此 4.2 在开发态是**前置条件未满足 / 未执行**，不是「观测不完整 / 不确定」；本 change 不搭观测脚本、不勾 4.2、不宣称便携，真实观测挂到打包后的发行轮，登记为未决口径（[debt](../../../docs/knowledge/debt.md)）。**2026-11-13 15:49 用户选方案 A（D30），正式移出本 change 范围，该未决项已定夺。**
+**用户口径修正（15:15，原话「现在不是还在开发，没有打包的需求，便携还不"存在"吧」）**：便携优先（I12）的载体是打包后的产品目录；当前 `pnpm tauri dev` 下 exe 在 `src-tauri/target/debug/`、数据根在 `target/debug/.layress/`，同时存在 Vite / pnpm / cargo / WKWebView 辅助进程的写入，既没有「产品目录」可删，也无法按 E10 把写入归因到产品本身。因此 4.2 在开发态是**前置条件未满足 / 未执行**，不是「观测不完整 / 不确定」；本 change 不搭观测脚本、不勾 4.2、不宣称便携，真实观测挂到打包后的发行轮，登记为未决口径（[debt](../../../../docs/knowledge/debt.md)）。**2026-11-13 15:49 用户选方案 A（D30），正式移出本 change 范围，该未决项已定夺。**
 
 **本轮代码落点**：`capture.rs`（`resolve_data_root_from` 纯函数 + 2 项单测：优先级 / 不回落系统用户目录 / 不可写明确失败不兜底）、`main.ts`（`DataRoot` 事件与 `page_state` 初始化都把数据根解析结果点亮到底部状态栏，不可写为红条，I13 + I15）、`fixtures/sample-page.html`（文件 / 进程 / 采集命令的原生访问负例探测区，E02、E13）、`lib.rs`（`WindowEvent::Destroyed` 作废在途采集后只清理数据根内 `.write-probe` 残留并打印保留说明，不删除数据根外任何文件，E11）。
 
 **机器级实跑（本机，退出码 0）**：`cargo check`；`cargo test --lib` **13 项通过 / 0 失败**（新增 2 项数据根单测）；`pnpm build:desktop`；`node scripts/check-repo.mjs --all`。
 
-**用户人工复验（2026-11-13 15:42，原话「做完了，没遇到问题」）**：4.1 / 4.3 / 4.4 按 [app README](../../../apps/desktop/README.md) 清单执行，全部通过 ⇒ tasks 三项勾选、E09 / E02 / E11 回填通过。4.2 已按 D30 移出范围（非勾选）。机器单测不替代人工验收（I11）。
+**用户人工复验（2026-11-13 15:42，原话「做完了，没遇到问题」）**：4.1 / 4.3 / 4.4 按 [app README](../../../../apps/desktop/README.md) 清单执行，全部通过 ⇒ tasks 三项勾选、E09 / E02 / E11 回填通过。4.2 已按 D30 移出范围（非勾选）。机器单测不替代人工验收（I11）。
 
 ## 任务 4.x 用户人工复验（2026-11-13 15:42，通过）
 
@@ -247,7 +247,7 @@ bounds 实测 `Logical(0,758) 1280×42`（窗口 800 逻辑高，758+42=800）�
 
 ## 任务 5.1 门禁接入（2026-11-13）
 
-**代码落点**：新增 [`check-build.mjs`](../../../scripts/check-build.mjs)（`--all` 实跑三条检查、`--selftest` 用恒失败命令反证退出码传播），接入 [`check-repo.mjs`](../../../scripts/check-repo.mjs) 的默认 checks 链；根 `package.json` 加 `check:ci`；[`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) 补 pnpm / Rust / Linux WebView 系统依赖并调用同一条 `--all` 链。
+**代码落点**：新增 [`check-build.mjs`](../../../../scripts/check-build.mjs)（`--all` 实跑三条检查、`--selftest` 用恒失败命令反证退出码传播），接入 [`check-repo.mjs`](../../../../scripts/check-repo.mjs) 的默认 checks 链；根 `package.json` 加 `check:ci`；[`.github/workflows/ci.yml`](../../../../.github/workflows/ci.yml) 补 pnpm / Rust / Linux WebView 系统依赖并调用同一条 `--all` 链。
 
 **机器级实跑（本机 macOS arm64 / darwin，退出码 0）**：`node scripts/check-repo.mjs --all` ⇒ `pnpm build:desktop`（tsc strict + Vite，922 ms）、`cargo check`（138 ms）、`cargo test --lib`（13 项通过 / 0 失败，121 ms）退出码均为 0；`check-build.mjs --selftest` 断言「恒成功放行、恒失败被拦」通过。任一失败即整链退出非 0，**不提供跳过开关**。
 
@@ -303,7 +303,7 @@ C「1280×704 没有红条，缩小窗口也没有」、D「几项都没有显�
 **判定**：B / C / D **判据未取得，既不计通过也不计失败**，单列待重跑；不写成产品缺陷，也不沿用首轮观察。
 **升级**（同一坑第三次命中，AGENTS §六第 3 条）：`index.html` 第二行加 `#build-tag[data-build]`，
 `main.ts` 定义 `BUILD_TAG` 并在启动时写入 `v20261114-2`（红色「加载中…」或徽标缺失 = 旧窗口）；
-`check-build.mjs` 静态断言两处常量一致，改 JS 忘改徽标直接红；[app README](../../../apps/desktop/README.md)
+`check-build.mjs` 静态断言两处常量一致，改 JS 忘改徽标直接红；[app README](../../../../apps/desktop/README.md)
 第 0 步改为「先看徽标再复验」。本机 `check-build.mjs --all` 回显 `✓ 工具层版本徽标一致：v20261114-2`。
 
 ### 第二轮人工复验（2026-11-14，新窗口，真实缺陷）
@@ -376,7 +376,7 @@ E13 该项仍按「系统回调未验证」如实单列，**不造红条凑通�
 | 12 | 数据根可写 | E09 | 11-13 A 默认根 / B `--data-dir` 自定义根，含优先级 | **通过（人工）** |
 | 13 | 数据根不可写 | E09 | 11-13 C 档 `/dev/null/layress-probe`：红条、采集明确失败、`~/Library` 与默认根无兜底、PNG 数不变 | **通过（人工）** |
 | 14 | 有采集进行时退出 | E11 | 11-13 慢采期间关窗口：本次未落盘、旧图保留、数据根外无改动、重启正常 | **通过（人工）** |
-| 15 | 尚未执行的验证 | E14 | 本节对照表 + 四轮复验结果 + 下方四类分列 + [app README](../../../apps/desktop/README.md) 清单 | **完成（人工 11-14 四轮）**：A/B/C/D 全部通过，两真缺陷修后复验有效；未执行项见四类分列 ⇒ **5.2 已勾选** |
+| 15 | 尚未执行的验证 | E14 | 本节对照表 + 四轮复验结果 + 下方四类分列 + [app README](../../../../apps/desktop/README.md) 清单 | **完成（人工 11-14 四轮）**：A/B/C/D 全部通过，两真缺陷修后复验有效；未执行项见四类分列 ⇒ **5.2 已勾选** |
 
 ### 四类分列（E14 硬性要求）
 
@@ -387,9 +387,21 @@ E13 该项仍按「系统回调未验证」如实单列，**不造红条凑通�
 | **未执行** | Windows / Linux 实机（含非 macOS 的状态栏层级与权限路径）、真实移动设备、非 macOS 原生快照、严格 CSP 注入、动态画面原子性、大图 base64 IPC 开销、复杂登录 / 新窗口 / 持久会话；**应用层权限回调路径**：macOS WKWebView 对 geolocation 由系统层直接拒绝、`on_permission_request` 未被系统调用过，该回调路径在 macOS 上未得到过触发验证（其余此前单列的弹窗会话、状态栏层级、下载夹具、A 组旧图隔离均已在 11-14 复验通过，不再单列） |
 | **人工待复核** | 无（2026-11-14 第四轮后清空） |
 
+## 任务 5.4 归档与规格合入（2026-11-14）
+
+| 步骤 | 结果 |
+|---|---|
+| 归档前校验 | `openspec validate add-tauri-page-host --strict --no-interactive --json` valid=true / 0 issues；`node scripts/check-repo.mjs --all` 退出码 0 |
+| `openspec archive add-tauri-page-host --yes --json` | 退出码 0：`archivedAs=2026-11-14-add-tauri-page-host`、`specsUpdated=true`、added=7 / modified=0 / removed=0 |
+| 主规格合入 | `openspec/specs/desktop-page-host/spec.md` 含 7 条 Requirement；`## Purpose` 为归档后手写（非 TBD 占位）；`openspec validate --specs --strict --json` 1/1 通过 |
+| 引用迁移 | 全库 16 份文档的 `changes/add-tauri-page-host` 路径统一改指 `changes/archive/2026-11-14-add-tauri-page-host`；`openspec/changes/README.md` 改为「无活动 change」；链接门禁 0 问题 |
+| 归档后门禁 | `check-repo.mjs --all` 退出码 0（洁净度 / 65→61 篇链接 / 双语 / 13 项单测 / 版本徽标与夹具断言） |
+
+**差异与限制（收口时状态）**：规格合入只含 7 条已验证 requirement，未执行项不进主规格，随本文件单列保留——应用层 `on_permission_request` 未被系统调用、DMG 未产出（沙箱拦 `hdiutil`）、打包产物未运行验证与写盘观测（D30 归发行轮）、Windows / Linux 未验证；`pnpm check:spec` 主规格与归档差集核对门禁仍为待建（workflow 质量门禁表）。
+
 ### 人工复验清单（macOS GUI，交用户执行）
 
-步骤与判据见 [app README](../../../apps/desktop/README.md)「任务 5.2 人工复验清单」。
+步骤与判据见 [app README](../../../../apps/desktop/README.md)「任务 5.2 人工复验清单」。
 首轮复验已因旧窗口作废 B / C / D；第二轮定位并修复状态栏层级与下载夹具两个真缺陷，第三轮用户确认两者及
 A / B / C、D 的其余项全部通过；第四轮（12:19）地理位置由 WebKit 系统层明确拒绝、权限未授予，**闭环并勾选 5.2**。
 应用层权限回调路径单列「未执行」（见四类分列），不汇总为通过（I11 / E14）。
@@ -420,10 +432,10 @@ A / B / C、D 的其余项全部通过；第四轮（12:19）地理位置由 Web
 | `.git`（size-pack） | **873 KiB** |
 | 仓库工作树（不含 node_modules / target / .git） | **6.1M** |
 
-**首次构建拦路的一个真坑（已修并回填 [engineering](../../../docs/knowledge/engineering.md)）**：
+**首次构建拦路的一个真坑（已修并回填 [engineering](../../../../docs/knowledge/engineering.md)）**：
 `bundle.icon` 只列一张 1024×1024 RGBA PNG（规格合法）仍报 `No matching IconType` ⇒ macOS bundler
 生成 .icns 需要能逐个映射 IconType 的**完整图标集**；`pnpm tauri icon` 生成全套后保留桌面六件套，
-`tauri.conf.json` 逐个列出，[allowlist](../../../.git-hygiene-allowlist) 理由同步更新。
+`tauri.conf.json` 逐个列出，[allowlist](../../../../.git-hygiene-allowlist) 理由同步更新。
 
 ### WebView 前置依赖（按平台分列，不混写）
 
@@ -449,7 +461,7 @@ A / B / C、D 的其余项全部通过；第四轮（12:19）地理位置由 Web
 ## 依据核对
 
 - 本轮已读取 [Tauri WebviewBuilder API](https://docs.rs/tauri/latest/tauri/webview/struct.WebviewBuilder.html)与[Window API](https://docs.rs/tauri/latest/tauri/window/struct.Window.html)，API 限制见 [design](design.md)；原始抓取留 `artifacts/`，不入库。
-- 建档时 PATH 未找到 OpenSpec CLI、Cargo、rustc 或 pnpm；随后按用户指定位置共享安装 `@fission-ai/openspec@1.17.0`，通过隔离配置 / 缓存 / 临时目录并关闭遥测的入口运行。安装方式见[工作流](../../../docs/development/workflow.md)。产品依赖解析、编译和实机探针仍未执行。
+- 建档时 PATH 未找到 OpenSpec CLI、Cargo、rustc 或 pnpm；随后按用户指定位置共享安装 `@fission-ai/openspec@1.17.0`，通过隔离配置 / 缓存 / 临时目录并关闭遥测的入口运行。安装方式见[工作流](../../../../docs/development/workflow.md)。产品依赖解析、编译和实机探针仍未执行。
 
 ## 已执行的文档校验
 

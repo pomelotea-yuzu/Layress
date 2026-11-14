@@ -1,7 +1,7 @@
 # apps/ · 应用入口归属
 
 > 当前状态：`desktop/` 已有 add-tauri-page-host 首增量的最小 Tauri 骨架（任务 1.3，2026-11-11）；
-> 页面承载、采集等能力在任务 2.x+ 实现，见[活动 change](../openspec/changes/add-tauri-page-host/proposal.md)。
+> 页面承载、采集等能力在任务 2.x+ 实现，见[活动 change](../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)。
 
 ## desktop/
 

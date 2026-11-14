@@ -8,9 +8,8 @@ context: |
   用户希望人和 Agent 都简单使用：人从现场圈画和短描述开始，Agent 获得同一任务、位置、证据与复查结果。
   不强制用户先写选择器、JSON 或正式用例；交互细节和具体接入方式尚未实现。
 
-  当前阶段（2026-11-11）：add-tauri-page-host 任务 1.x 与 2.1/2.3/2.4 完成并经用户人工复验——单窗口双 WebView（互不重叠布局、被测层零能力）、HTTP(S) 导航 + 可达性预检、视口设定与 title 哨兵测量、视口边界细边框（工具标记，采集前须关闭）、新窗口 / 下载 / 权限明确拒绝、内嵌本地样例服务；2.2 的无效地址负例人工未测不勾选；采集（3.x）、存储与权限验证（4.x）未开始。
-  活动入口：openspec/changes/add-tauri-page-host/proposal.md；只覆盖阶段 1 首增量的单窗口页面承载、基础视口、截图与原地预览可行性，其余范围不自动获批。
-  当前提交状态：用户已明确本地提交；另一 Agent 的 review 已收到，原编写 Agent 已处理意见，本轮同步最终审阅流程并在必要检查通过后提交，不开始产品编码。
+  当前阶段（2026-11-14）：首个 change add-tauri-page-host 已完成全部任务并归档——单窗口三 WebView（工具条 / 被测页面 / 底部状态栏，被测层零能力）、HTTP(S) 导航 + 可达性预检与无效地址负例、视口设定与实测哨兵、WKWebView 真实快照 + 版本化采集元数据、采集竞态与原地预览坐标、数据根解析 / 可写检查、新窗口 / 下载 / 权限明确拒绝，全部经用户人工复验；5.1 构建门禁接入公共链，5.2 规格正反场景经四轮人工复验闭环，5.3 首次本机 release 构建登记体积 / WebView 前置 / 限制，5.4 OpenSpec strict 校验与门禁实跑后归档、7 条 requirement 合入主规格 desktop-page-host。写盘观测按 D30 移出，归发行轮；应用层权限回调路径等未执行项单列于 evidence-index。
+  活动入口：openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md（已归档）；能力口径见 openspec/specs/desktop-page-host/spec.md。当前无活动 change，阶段 1 后续增量（项目 / 设备记忆、持久反馈、Agent CLI 等）先立项再实施，不自动获批。
   阶段 1 提案：docs/product/2026-11-10-stage-one-plan.md；Tauri 已确定，项目 / 设备记忆、持久反馈与补拍留后续增量，阶段 2 保留 Agent 自动交接与处理闭环。
   用户要求检验竞争力：圈画、快捷反馈、设备预览和反馈闭环本身已有先例，不据此声称差异化；核查见 docs/research/2026-11-10-integrated-review-differentiation.md。
   旧阶段封存见 docs/research/2026-11-09-phase-closure.md；旧资料可查，不自动恢复旧闸门、四模块架构、缩减算法、实验规模或三端桌面发行承诺。

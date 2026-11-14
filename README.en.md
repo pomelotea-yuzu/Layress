@@ -13,7 +13,7 @@
 
 </div>
 
-> **Current status: the product direction, Tauri desktop framework and six-stage roadmap are confirmed. The rest of the stage-one plan remains under review; product implementation has not started, and there is no release.**
+> **Current status: the first Tauri page-host increment (add-tauri-page-host) has been implemented, manually verified and archived on 2026-11-14, with its spec merged into the main `desktop-page-host` spec; there is still no installable release and the product is not usable end to end yet.**
 > This page describes the intended experience, not delivered features. See [`AGENTS.md`](AGENTS.md) §two and `git log` for actual progress.
 
 ## 🧭 What it is
@@ -29,9 +29,9 @@ Supported target applications and agent connections must be verified individuall
 
 ## 📌 Current status
 
-- No installable product, npm release or tag; no product source or workspace. The first active change, [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md), has been created; coding has not started.
-- The [product direction and usage](docs/product/product.md), Tauri desktop framework and [formal development roadmap](docs/product/roadmap.md) are confirmed. The rest of the [stage-one plan](docs/product/2026-11-10-stage-one-plan.md) remains under review; implementation has not started.
-- Existing assets include documentation, directory ownership, public research and engineering knowledge, plus hygiene, link and bilingual gates.
+- No installable product, npm release or tag. The first change, [add-tauri-page-host](openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md), has been implemented and archived: single-window three-WebView layout (toolbar / page under test / status bar), HTTP(S) navigation with permission isolation, basic viewport, real WKWebView snapshots with in-place preview, and a portable data root. The capability spec lives at [`openspec/specs/desktop-page-host/`](openspec/specs/desktop-page-host/spec.md).
+- The [product direction and usage](docs/product/product.md), Tauri desktop framework and [formal development roadmap](docs/product/roadmap.md) are confirmed. The rest of the [stage-one plan](docs/product/2026-11-10-stage-one-plan.md) remains under review; follow-up increments require a new change proposal first.
+- Existing assets include documentation, directory ownership, public research and engineering knowledge, plus hygiene, link, bilingual, build and unit-test gates.
 - GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress) is the primary repository; Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress) is the mirror. Remote synchronization must be checked live; agents do not push.
 - The 11-03–11-09 phase is [closed](docs/research/2026-11-09-phase-closure.md) and remains available as historical reference. Its validation gates, four-module architecture and desktop platform commitments do not automatically carry forward.
 

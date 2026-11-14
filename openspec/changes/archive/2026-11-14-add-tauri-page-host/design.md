@@ -1,7 +1,7 @@
 # 设计：Tauri 单窗口页面承载与采集
 
 > 状态：**实施中，2026-11-11；任务 1.x–2.x 代码已落地并通过编译与真实启动，运行级 / 人工验收未执行**。
-> 本 change 只覆盖[第一阶段计划](../../../docs/product/2026-11-10-stage-one-plan.md)的首个“窗口与页面承载”增量。
+> 本 change 只覆盖[第一阶段计划](../../../../docs/product/2026-11-10-stage-one-plan.md)的首个“窗口与页面承载”增量。
 > Tauri 已确定（D25）；本设计不将技术验证结论或其余阶段范围写成已经成立。
 
 ## 范围与交付
@@ -20,7 +20,7 @@
 - 文档提示 Windows 的同步回调 / 命令中创建 WebView 可能死锁，后续平台接入需核对应异步 / 线程限制。
 
 上述 `latest` 页面不是依赖锁定版本。实施时选择并固定具体 Tauri / Rust / 前端依赖，重新核对对应版本 API；记录 `unstable` 功能依赖与更新代价。
-建档时 PATH 未找到 `openspec`、`cargo`、`rustc` 或 `pnpm`，这不是整机安装状态结论。随后用户授权在仓库外共享安装 OpenSpec 1.17.0，已完成严格规格校验，入口见[工作流](../../../docs/development/workflow.md)；Rust / pnpm 等产品工具链与上述 API 运行仍未验证。
+建档时 PATH 未找到 `openspec`、`cargo`、`rustc` 或 `pnpm`，这不是整机安装状态结论。随后用户授权在仓库外共享安装 OpenSpec 1.17.0，已完成严格规格校验，入口见[工作流](../../../../docs/development/workflow.md)；Rust / pnpm 等产品工具链与上述 API 运行仍未验证。
 
 ## 实施定稿（任务 1.1–1.3，2026-11-11）
 

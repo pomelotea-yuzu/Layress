@@ -2,7 +2,7 @@
 
 > 本文默认以中文维护。
 
-> **当前接手说明（2026-11-14）**：Tauri 已确定（D25），首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md) 的 1.x–4.x 均完成并经用户人工复验（4.2 按 D30 移出本 change、归发行轮）；5.1 门禁接入完成并登记 Gitee CI 首次失败回显；**5.2 已于 2026-11-14 经用户四轮人工复验通过并勾选**：A/B/C/D 全部通过，期间修复状态栏被页面遮挡与下载夹具未触发回调两个真缺陷，地理位置由 WebKit 系统层明确拒绝（code 1）、权限未授予 ⇒ E13 闭环；应用层 `on_permission_request` 未被系统调用单列未执行。5.3–5.4 未开始。结果条为窗口最底部独立状态栏 WebView（D29），工具层剩余反馈已全部收敛到它（I15），原「`statusLine` 待收敛」欠账已销账。[阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围仍待逐步确定。旧阶段挂账与旧批准条件不作为当前执行指引，不要求先逐条销账才能推进新阶段。
+> **当前接手说明（2026-11-14）**：Tauri 已确定（D25），首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md) 的 1.x–4.x 均完成并经用户人工复验（4.2 按 D30 移出本 change、归发行轮）；5.1 门禁接入完成并登记 Gitee CI 首次失败回显；**5.2 已于 2026-11-14 经用户四轮人工复验通过并勾选**：A/B/C/D 全部通过，期间修复状态栏被页面遮挡与下载夹具未触发回调两个真缺陷，地理位置由 WebKit 系统层明确拒绝（code 1）、权限未授予 ⇒ E13 闭环；应用层 `on_permission_request` 未被系统调用单列未执行。5.3 已登记首次本机 release 构建的体积 / WebView 前置 / 限制（DMG 被沙箱拦、产物运行验证单列）；**5.4 已于 2026-11-14 实跑 OpenSpec strict 校验、`--specs` 校验与全库门禁后归档，7 条 requirement 合入主规格 desktop-page-host，全 change 收口**。结果条为窗口最底部独立状态栏 WebView（D29），工具层剩余反馈已全部收敛到它（I15），原「`statusLine` 待收敛」欠账已销账。[阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围仍待逐步确定。旧阶段挂账与旧批准条件不作为当前执行指引，不要求先逐条销账才能推进新阶段。
 
 > 这里只放**还没有结论**的事。已有结论的进 [`decisions.md`](decisions.md)，已知的坑进
 > [`engineering.md`](engineering.md) / [`runtime-probe.md`](runtime-probe.md)。
@@ -13,7 +13,7 @@
 | 事项 | 当前建议 | 归谁定夺 | 必须定下来的时点 |
 |---|---|---|---|
 | 阶段 1 后续范围 | 首个页面承载 change 已立项；项目 / 设备记忆、持久反馈、手动补拍等留后续增量，完整 Agent 闭环留阶段 2 | 用户讨论后续范围，对应 change 细化实现 | 进入对应后续增量时，不阻塞首个 change 建档 |
-| WebView 承载、采集与便携路径 | 已落入[首个 change 设计](../../openspec/changes/add-tauri-page-host/design.md)：多 WebView 的 unstable 功能、macOS 数据目录限制、非持久会话与真实写盘分别验证；不能把 API 设置当通过 | 实现 change 的 design 与实测证据 | 首个页面承载增量；新增平台之前逐端验证 |
+| WebView 承载、采集与便携路径 | 已落入[首个 change 设计](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/design.md)：多 WebView 的 unstable 功能、macOS 数据目录限制、非持久会话与真实写盘分别验证；不能把 API 设置当通过 | 实现 change 的 design 与实测证据 | 首个页面承载增量；新增平台之前逐端验证 |
 | 首轮验证与体积 | 建议 macOS arm64 首验、通用设备预设；应用包、系统 WebView 依赖及可能新增运行时合计说明，真实体积和模拟能力需实测 | 用户审阅平台范围，实现者记录能力与体积 | 首个实现增量核查承载能力，阶段收尾交付测量 |
 | 5.2 已闭环（2026-11-14 四轮复验）；剩余单列 | A / B / C / D 全部经用户人工复验通过；两真缺陷修后复验有效；地理位置由 WebKit 系统层明确拒绝（code 1 "User denied Geolocation"）、权限未授予。**单列未执行**：应用层 `on_permission_request` 在 macOS 上未被系统调用过；Windows / Linux 实机、非 macOS 快照、严格 CSP、动态画面原子性、大图 IPC、复杂登录 / 持久会话 | 后续 change 或发行轮；若某平台出现「权限被授出去」需回看应用回调路径 | 任何平台若观测到设备权限被实际授予，先核对应用回调是否被触发，再判定拒绝是否有效 |
 | 数据根可见性的完整验收 | 4.1 已人工复验通过（解析、可写检查、启动可见、不可写不回落）；WebView 真实写盘观测已按 D30 移出发行轮 | 首次打包后的发行轮 change | 声明「便携通过」之前，不因本 change 的数据根成功写成便携通过 |

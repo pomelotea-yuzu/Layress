@@ -17,7 +17,7 @@
 
 ## 当前停点与规划精度
 
-- 当前停在**首个 change 已立项、尚未编码**（2026-11-10）：[add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖第一个“窗口与页面承载”增量。
+- 当前停在**首个 change 已立项、尚未编码**（2026-11-10）：[add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)只覆盖第一个“窗口与页面承载”增量。
 - 提案按 Tauri 单应用规划，系统 WebView 的承载与采集待实测；项目 / 设备记忆等后续范围不自动获批，阶段 2 后续讨论。
 - 阶段 1–2 近期细化；阶段 3–4 只确定能力目标；阶段 5–6 暂不固定发布日期、平台数量或完整功能表。
 - 每阶段交付一个可体验增量；工程基础围绕该增量建设，任务清单与完成状态留在对应 change，不在此处展开。
@@ -36,7 +36,7 @@
 |---|---|
 | 产品目标、用户路径与已确认使用要求 | [产品方向与使用方式](product.md)；新增交互设计按主题放本目录并登记到[产品索引](README.md) |
 | 跨功能架构与持续有效的技术约定 | [架构文档](../architecture/README.md)；跨 change 执行方案见[工程文档归属](../engineering/README.md) |
-| 单项实现设计、任务与验收证据 | [活动 change](../../openspec/changes/README.md)；完成后按[开发流程](../development/workflow.md)归档 |
+| 单项实现设计、任务与验收证据 | [活动 change](../../openspec/changes/README.md)（当前无活动 change；已完成增量见[归档](../../openspec/changes/archive/README.md)）；完成后按[开发流程](../development/workflow.md)归档 |
 | 调研来源与历史取舍 | [调研索引](../research/README.md)与[关键决策](../knowledge/decisions.md)，不把过程追加进本页 |
 
 本文只保留阶段目标、完成信号、当前停点和文档指针，维护预算为 **≤ 100 行 / ≤ 8 KB**（人工审阅）。

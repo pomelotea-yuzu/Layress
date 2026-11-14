@@ -3,7 +3,7 @@
 > 日期：2026-11-10。状态：**用户已确定采用 Tauri，计划其余范围仍为待审阅提案，未开始实现**。
 > 依据：[产品方向](product.md)、[六阶段路线图](roadmap.md)与[体验讨论记录](2026-11-10-stage-one-experience-and-access.md)。
 > 用户明确要求从 Electron 候选转为 Tauri（D25），本计划已同步；具体版本、WebView 承载 / 采集方案与包划分留待实现设计，本轮仅改文档。
-> 同日后续：用户要求建立首个 change，已落为 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)。本轮只建立首增量文档，未开始编码；其余阶段范围仍按本提案逐步确定。
+> 同日后续：用户要求建立首个 change，已落为 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)。本轮只建立首增量文档，未开始编码；其余阶段范围仍按本提案逐步确定。
 
 ## 阶段目标
 
@@ -83,7 +83,7 @@ Tauri 系统 WebView 未必支持相同的模拟项，界面按实际能力区�
 | 4 · 记录与手动补拍 | 反馈列表、详情、补充说明、按原条件打开、补拍与前后查看、复制摘要 | 同一问题从发现到修改后查看可一直使用同一条记录 |
 | 5 · 日常试用与收尾 | 换普通真实项目试用，处理失败 / 恢复、检查便携存储、生成本机可运行包并记录体积 | 可试用应用、简短上手与限制说明、包体积 / 资源观测和逐项验收记录 |
 
-首个增量已建立 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)，技术方案、任务和证据计划留在该 change。它尚未开始实施；后续增量按实际范围另立 change，当前不预建产品 workspace。
+首个增量已建立 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)，技术方案、任务和证据计划留在该 change（**2026-11-14 已实施完成并归档，规格合入主规格**）；后续增量按实际范围另立 change。
 工程采用 Tauri 的 Rust 原生层与 TypeScript strict 前端，前端使用 pnpm；具体版本、UI 框架、任务核心与 CLI 的语言边界由实现设计确定，不预设仅用 Node.js 的核心或另一套重复任务记录。
 新增 Rust / 前端构建、类型和必要行为测试接入现有公共门禁，保持本地与 CI 同链；视觉、焦点和交互另做人工复核。本轮不安装 Rust / Tauri 或产品依赖。
 

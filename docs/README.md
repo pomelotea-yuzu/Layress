@@ -50,8 +50,8 @@
 | `drafts/` | 个人工作草稿与停止维护的内部译本本地归档，**整目录不入库**；归档子目录自带来源索引 | — |
 
 当前产品依据：[产品方向与使用方式](product/product.md)——本地界面验收助手；2026-11-10 用户确定 Tauri 桌面工作台，保留单窗口体验、共用任务事实与 Agent 非交互调用要求，尚未实现。
-正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；[第一阶段计划](product/2026-11-10-stage-one-plan.md)已转 Tauri，其余范围待审阅，近期具体、远期留白，尚未开始实现。
-首个活动 change：[add-tauri-page-host](../openspec/changes/add-tauri-page-host/proposal.md)——其目录与 `specs/desktop-page-host/` 分别承接首增量执行文档与待实现规格，归属见[活动 change 索引](../openspec/changes/README.md)；任务 1.x 与 2.1/2.3/2.4 已完成并经人工复验（2026-11-11），2.2 负例与 3.x 起未完成。
+正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；[第一阶段计划](product/2026-11-10-stage-one-plan.md)已转 Tauri，首增量已实施并归档，其余范围待审阅，近期具体、远期留白。
+首个 change：[add-tauri-page-host](../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)——已于 2026-11-14 实施完成并归档（任务 1.x–5.4，4.2 按 D30 移出），其 7 条 requirement 已合入主规格 [`openspec/specs/desktop-page-host/`](../openspec/specs/desktop-page-host/spec.md)；归属见[活动 change 索引](../openspec/changes/README.md)。
 调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
 平台分布背景：[开发者操作系统分布](research/2026-11-10-developer-os-distribution.md)——三类外圈数据的来源分级、题目口径冲突与未定稿的适配顺序建议；不是目标用户统计，也不恢复旧三端发行承诺。
 新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
@@ -84,6 +84,12 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
+- **2026-11-14 首增量归档（任务 5.4）**：`openspec/changes/add-tauri-page-host/` 整体移入
+  [`openspec/changes/archive/2026-11-14-add-tauri-page-host/`](../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)，
+  其 7 条 requirement 经 `openspec archive` 合入主规格 [`openspec/specs/desktop-page-host/spec.md`](../openspec/specs/desktop-page-host/spec.md)
+  （Purpose 为归档后手写，非自动占位）。全库 16 份文档的旧路径引用与活动 change 索引、README 双语、
+  config、工作流、状态卡同步更新；无文件内容重写，仅路径迁移与状态收口。
+
 - **2026-11-11 首增量任务 1.1–1.3 实施**：新增根 `package.json` / `pnpm-workspace.yaml` 与 `apps/desktop/`（Tauri 2.12.5 unstable + TS strict 骨架），目录归属登记于 [`apps/desktop/README.md`](../apps/desktop/README.md)；`check-hygiene.mjs` 图片后缀收紧入黑名单、应用图标走 allowlist。同步 change 的 design / evidence / tasks、workflow、接手状态卡、config、engineering 经验与 debt 时效。任务 2.x 起未执行；无路径迁移，构建产物与缓存不入库。
 
 - **2026-11-10 开发者操作系统分布背景核查**：新增 [`research/2026-11-10-developer-os-distribution.md`](research/2026-11-10-developer-os-distribution.md)，同步调研与文档索引；按受众调研口径标注来源等级、官方页面与二手转述的题目口径冲突及未执行项，平台适配顺序仅为建议、未定稿。状态卡四行真值未变，未改产品依据与活动 change，无路径迁移，未开始产品实现。
@@ -96,7 +102,7 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 - **2026-11-10 共享 OpenSpec 安装与校验**：按用户指定的仓库外共享目录安装 OpenSpec 1.17.0，工具、依赖、缓存与配置不入库；更新[工作流](development/workflow.md)、首个 change 的设计 / 证据、主规格入口、工程经验、config 与接手状态。补做 strict 校验通过，规划文档齐备不等于任务实施完成。仓库内无路径迁移，未安装产品依赖或开始编码。
 
-- **2026-11-10 建立首个 change**：新增 `openspec/changes/add-tauri-page-host/` 及其 `specs/desktop-page-host/`，包含 schema 元数据、提案、设计、规格增量、任务与证据计划；更新活动 / 主规格索引、产品 / 阶段 / 目录入口、中英 README、config、工作流与接手状态。主规格仍未合入，未安装工具或开始编码；OpenSpec CLI 校验未执行。无既有路径迁移。
+- **2026-11-10 建立首个 change**：新增 `openspec/changes/archive/2026-11-14-add-tauri-page-host/` 及其 `specs/desktop-page-host/`，包含 schema 元数据、提案、设计、规格增量、任务与证据计划；更新活动 / 主规格索引、产品 / 阶段 / 目录入口、中英 README、config、工作流与接手状态。主规格仍未合入，未安装工具或开始编码；OpenSpec CLI 校验未执行。无既有路径迁移。
 
 - **2026-11-10 转用 Tauri**：按用户决定同步[产品依据](product/product.md)、[第一阶段计划](product/2026-11-10-stage-one-plan.md)、路线图、D25、未决项、存储经验、config、接手索引、中英 README / 贡献 / 安全说明及模块、指南、架构和 i18n 入口。计划改为验证系统 WebView、Rust / TypeScript 边界与总体分发成本；历史讨论和旧三端方案只补时效说明，正文保留。无路径迁移，未装依赖、未启动实现。
 

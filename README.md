@@ -13,7 +13,7 @@
 
 </div>
 
-> **当前状态：产品方向、Tauri 桌面载体与六阶段路线图已确认，第一阶段计划其余范围待审阅；尚未开始产品实现，没有发行版。**
+> **当前状态：首个 Tauri 页面承载增量（add-tauri-page-host）已实施、经人工复验并于 2026-11-14 归档，规格合入主规格 `desktop-page-host`；仍无可安装发行版，产品尚未整体可用。**
 > 下文是目标体验，不是已交付能力。实际进度见 [`AGENTS.md`](AGENTS.md) §二与 `git log`。
 
 ## 🧭 这是什么
@@ -29,9 +29,9 @@ Tauri 使用系统 WebView，具体采集与模拟能力按平台实测公布，
 
 ## 📌 当前状态
 
-- 没有可安装产品、npm 发行包或 tag；没有产品源码或 workspace。首个活动 change [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)已建立，尚未编码。
-- 当前已敲定[产品方向与使用方式](docs/product/product.md)、Tauri 载体和[正式开发路线图](docs/product/roadmap.md)；[第一阶段计划](docs/product/2026-11-10-stage-one-plan.md)其余范围待审阅，尚未开始实现。
-- 仓库现有资产包括文档、目录归属、公开调研与工程知识、洁净度 / 链接 / 双语门禁。
+- 没有可安装产品、npm 发行包或 tag。首个 change [add-tauri-page-host](openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已实施并归档：单窗口三 WebView（工具条 / 被测页面 / 状态栏）、HTTP(S) 导航与权限隔离、基础视口、WKWebView 真实截图与原地预览、便携数据根；能力口径见 [`openspec/specs/desktop-page-host/`](openspec/specs/desktop-page-host/spec.md)。
+- 当前已敲定[产品方向与使用方式](docs/product/product.md)、Tauri 载体和[正式开发路线图](docs/product/roadmap.md)；[第一阶段计划](docs/product/2026-11-10-stage-one-plan.md)其余范围待审阅，后续增量先立项再实施。
+- 仓库现有资产包括文档、目录归属、公开调研与工程知识、洁净度 / 链接 / 双语 / 构建 / 单测门禁。
 - GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)为主仓库，Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)为镜像；远程同步状态以实时命令为准，智能体不 push。
 - 11-03～11-09 旧阶段资料已[封存](docs/research/2026-11-09-phase-closure.md)，可作历史参考；旧验证闸门、四模块划分和桌面平台承诺不自动恢复。
 

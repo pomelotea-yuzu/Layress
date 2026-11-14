@@ -1,9 +1,10 @@
 # apps/desktop/ · Tauri 桌面工作台
 
-> 当前状态：1.x–4.x 均完成并经用户人工复验（4.2 已按 D30 移出范围、归发行轮）；
-> 5.1 已完成并登记 Gitee CI 首次失败回显；**5.2 已于 2026-11-14 经用户四轮人工复验通过并勾选**，见文末「判据回填」。
+> 当前状态：**change 已全部完成并于 2026-11-14 归档**（1.x–4.x 经用户人工复验，4.2 按 D30 移出归发行轮；
+> 5.1 门禁接入并登记 Gitee CI 首次失败回显；5.2 经四轮人工复验闭环，见文末「判据回填」；5.3 首次本机 release
+> 构建登记体积 / WebView 前置 / 限制；5.4 归档并合入主规格 [`openspec/specs/desktop-page-host/`](../../openspec/specs/desktop-page-host/spec.md)）。
 > 结果条为**窗口最底部的独立状态栏 WebView**；2026-11-14 本轮把工具层剩余反馈全部收敛到它（I15）。
-> 任务勾选与证据以 change 的 `tasks.md` / `evidence-index.md` 为准。
+> 任务勾选与证据以[归档 change](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/tasks.md) 为准。
 
 ## 结构
 
@@ -253,7 +254,7 @@ cd ~/Developer/project/layress/apps/desktop \
 > 补 E04「窗口容纳不下」与 E13「额外入口被拒绝」两条红条，返回页面 / 尺寸 / 取消 / 初始化提示改走状态栏。
 > 业务逻辑未动，1.x–4.x 已通过的业务判据不重跑；下面 A–D 是**此前未单独执行**或**本轮新通道**的正反场景。
 > 观察通道统一为**窗口最底部独立状态栏**；被测页内的结果行看窗口中间那块页面。
-> 逐条对照见 [evidence-index「任务 5.2」](../../openspec/changes/add-tauri-page-host/evidence-index.md)。
+> 逐条对照见 [evidence-index「任务 5.2」](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/evidence-index.md)。
 > **复验结论见文末「判据回填」**，清单保留作历史步骤记录。
 
 ### 0. 完整重启 + 版本自证（必做，不做下面全部作废）
@@ -372,7 +373,7 @@ D 的「触发下载」「请求地理位置」没有红条（window.open 有）
 另登记硬事实：状态栏只反映应用层事件，**页面内权限被拒不会、也不应改变状态栏绿条**。
 
 机器侧（13 项单测 + `check-repo.mjs --all` 全链 + OpenSpec strict validate）已全绿。
-A / B / C / D 四组全部经用户人工复验通过，[tasks 5.2](../../openspec/changes/add-tauri-page-host/tasks.md) 已勾选；
+A / B / C / D 四组全部经用户人工复验通过，[tasks 5.2](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/tasks.md) 已勾选；
 剩余 5.3（本机开发运行与首个本地构建的真实大小、WebView 前置依赖及限制）、5.4（门禁实跑与归档）未开始。
 
 ## 口径

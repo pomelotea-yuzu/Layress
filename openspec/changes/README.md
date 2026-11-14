@@ -1,13 +1,16 @@
 # openspec/changes/ · 活动变更
 
 > 归属说明。这里放**正在进行**的 change，一个目录一个 change，动词开头的 kebab-case 命名。
-> 当前活动 change：[add-tauri-page-host](add-tauri-page-host/proposal.md)（2026-11-10 建立）。首增量为 Tauri 单窗口页面承载、基础视口、真实采集与原地预览；尚未开始编码或实机验证，其余阶段范围不自动获批。
+> 当前**无活动 change**：首增量 [add-tauri-page-host](archive/2026-11-14-add-tauri-page-host/proposal.md)
+> 已于 2026-11-14 完成归档（Tauri 单窗口页面承载、基础视口、真实采集与原地预览），
+> 规格增量已合入主规格 [`../specs/desktop-page-host/`](../specs/desktop-page-host/spec.md)；
+> 后续阶段范围不自动获批，新增量先立项再实施。
 
 ## 活动入口与归属
 
 | change | 范围与入口 |
 |---|---|
-| `add-tauri-page-host/` | [提案](add-tauri-page-host/proposal.md)、[设计](add-tauri-page-host/design.md)、[任务](add-tauri-page-host/tasks.md)、[证据计划](add-tauri-page-host/evidence-index.md)；其 `specs/desktop-page-host/` 存放[待实现规格增量](add-tauri-page-host/specs/desktop-page-host/spec.md)，归档前不冒充主规格 |
+| （无） | 下一个 change 立项后在此登记；归档入口见 [archive/](archive/README.md) |
 
 ## 结构
 

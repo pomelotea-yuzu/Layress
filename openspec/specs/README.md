@@ -1,7 +1,9 @@
 # openspec/specs/ · 主规格
 
 > 归属说明。这里放**已合入的能力口径**：一条需求配它的判据场景，长期有效。
-> 当前没有主规格——尚无已归档 change。[首个活动 change](../changes/add-tauri-page-host/proposal.md)已有待实现的 `desktop-page-host` 规格增量，留在 change 内，不能提前合入这里。
+> 当前已有 1 条能力：[`desktop-page-host/`](desktop-page-host/spec.md)，由 2026-11-14 归档的
+> [add-tauri-page-host](../changes/archive/2026-11-14-add-tauri-page-host/proposal.md) 的 7 条 requirement 合入。
+> 主 spec 与归档 change 的差集核对（`pnpm check:spec`）仍是待建门禁（见工作流质量门禁表）。
 
 ## 命名与结构
 

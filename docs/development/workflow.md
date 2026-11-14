@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖 Tauri 页面承载首增量：1.x–4.x（4.2 按 D30 移出范围）与 5.1 / 5.2 已实施并经用户人工复验勾选（5.2 经四轮复验，2026-11-14；期间修复状态栏层级与下载夹具两个真缺陷，应用层权限回调路径单列未执行），5.3–5.4 未开始。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 完成并归档（1.x–4.x 人工复验，4.2 按 D30 移出范围，5.1–5.4 完成；应用层权限回调路径等未执行项单列于 evidence-index），其规格增量已合入主规格 `openspec/specs/desktop-page-host/`。**当前无活动 change**，下一增量先立项再实施。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 
@@ -119,8 +119,10 @@ Agent 审阅属**机器复核，不替代人工验收**：视觉 / 交互人工�
 
 ```bash
 ../../tools/openspec/openspec --version
-../../tools/openspec/openspec validate add-tauri-page-host --strict --no-interactive --json
-../../tools/openspec/openspec status --change add-tauri-page-host --json
+# 活动change 存在时校验其规划文档（当前无活动 change，此命令形式备查）：
+../../tools/openspec/openspec validate <change-name> --strict --no-interactive --json
+# 无活动 change 时校验主规格：
+../../tools/openspec/openspec validate --specs --strict --no-interactive --json
 ```
 
 其他项目在自己的项目根目录使用同一个工具入口的实际路径，工作目录保持为被操作项目。
