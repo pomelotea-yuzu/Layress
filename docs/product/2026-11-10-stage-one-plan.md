@@ -1,9 +1,9 @@
 # 第一阶段计划提案：单窗口体验与现场记录
 
-> 日期：2026-11-10。状态：**用户已确定采用 Tauri，计划其余范围仍为待审阅提案，未开始实现**。
+> 日期：2026-11-10，状态更新于 2026-11-14。**Tauri 已确定，页面承载首增量已归档；项目与设备记忆已授权建档、尚未实施；其他范围仍为待审阅提案**。
 > 依据：[产品方向](product.md)、[六阶段路线图](roadmap.md)与[体验讨论记录](2026-11-10-stage-one-experience-and-access.md)。
 > 用户明确要求从 Electron 候选转为 Tauri（D25），本计划已同步；具体版本、WebView 承载 / 采集方案与包划分留待实现设计，本轮仅改文档。
-> 同日后续：用户要求建立首个 change，已落为 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)。本轮只建立首增量文档，未开始编码；其余阶段范围仍按本提案逐步确定。
+> 增量入口：首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 实施完成并归档；第二个 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)于同日按用户指令建档，后经另一 Agent 审阅并由编写者修订，尚未实施。其余阶段范围仍按本提案逐步确定。
 
 ## 阶段目标
 
@@ -78,12 +78,12 @@ Tauri 系统 WebView 未必支持相同的模拟项，界面按实际能力区�
 | 顺序 | 做什么 | 本步可审阅的结果 |
 |---|---|---|
 | 1 · 窗口与页面承载 | 定主窗口操作，建立最小 Tauri 工程与公共检查；验证系统 WebView 内页面导航、输入、弹窗、固定视口、截图与原地批注叠层 | 一版能打开真实页面、切换视口并采集干净画面的骨架；记录实际引擎、窗口、焦点与模拟限制 |
-| 2 · 项目与设备 | 项目 / 地址记录、三类通用设备与自定义、横竖屏、显示缩放、配置恢复 | 关闭重开后，继续使用项目上次的页面与设备；不靠手动拖窗口准备尺寸 |
+| 2 · 项目与设备 | 项目 / 地址记录、三类通用设备与自定义、横竖屏、配置恢复；当前 change 按正文选择平移，真实页面展示缩放另见 debt | 关闭重开后，继续使用项目上次的页面与设备；不靠手动拖窗口准备尺寸 |
 | 3 · 原地批注 | 捕获后显示同位置静态批注、框选 / 箭头、短描述与保存 | 在表单或设置页上实际指出问题，应用自动整理画面和条件 |
 | 4 · 记录与手动补拍 | 反馈列表、详情、补充说明、按原条件打开、补拍与前后查看、复制摘要 | 同一问题从发现到修改后查看可一直使用同一条记录 |
 | 5 · 日常试用与收尾 | 换普通真实项目试用，处理失败 / 恢复、检查便携存储、生成本机可运行包并记录体积 | 可试用应用、简短上手与限制说明、包体积 / 资源观测和逐项验收记录 |
 
-首个增量已建立 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)，技术方案、任务和证据计划留在该 change（**2026-11-14 已实施完成并归档，规格合入主规格**）；后续增量按实际范围另立 change。
+首个增量 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 实施完成并归档，规格合入主规格；第二个增量 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)覆盖项目 / 地址与视口配置记忆，经另一 Agent 审阅并修订规划，尚未实施。各自技术方案、任务和证据留在对应 change；本提案不替代实施结果。
 工程采用 Tauri 的 Rust 原生层与 TypeScript strict 前端，前端使用 pnpm；具体版本、UI 框架、任务核心与 CLI 的语言边界由实现设计确定，不预设仅用 Node.js 的核心或另一套重复任务记录。
 新增 Rust / 前端构建、类型和必要行为测试接入现有公共门禁，保持本地与 CI 同链；视觉、焦点和交互另做人工复核。本轮不安装 Rust / Tauri 或产品依赖。
 
@@ -100,7 +100,7 @@ Tauri 系统 WebView 未必支持相同的模拟项，界面按实际能力区�
 
 ## 阶段完成标准
 
-以下项目全部为**待执行**；机器检查通过与人工体验结论分别记录。
+下表是阶段级完成标准，**尚未整体通过**；各增量执行状态以对应 change 为准，已归档首增量不代表反馈 / 补拍等场景已完成。机器检查通过与人工体验结论分别记录。
 
 | 验收场景 | 通过应看到什么 |
 |---|---|
@@ -126,4 +126,4 @@ Tauri 系统 WebView 未必支持相同的模拟项，界面按实际能力区�
 ## 技术依据与核查边界
 
 2026-11-10 已读取 [Tauri 架构](https://v2.tauri.app/concept/architecture/)与[WebView 版本说明](https://v2.tauri.app/reference/webview-versions/)：Tauri 复用系统 WebView，平台引擎不同；[Electron 简介](https://www.electronjs.org/docs/latest/)明确其随应用嵌入 Chromium 与 Node.js。
-以上仅支持架构差异，本项目尚未做 Tauri 功能探针、体积测量或平台写盘验证；Tauri 已选定不等于这些能力已通过。
+以上为建档时的架构依据。2026-11-14 首增量的页面承载 / 快照 / 本机体积已有[归档证据](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/evidence-index.md)；平台真实写盘观测仍按 D30 归发行轮，不把架构选择当作便携通过。

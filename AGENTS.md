@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-tauri-page-host 已全部完成并归档（2026-11-14）**：1.x–4.x 经用户人工复验（4.2 按 D30 移出、归发行轮）；5.1 门禁接入（本机全绿，CI 回显分列见 evidence-index）；5.2 四轮人工复验闭环（期间修复状态栏遮挡与下载夹具两个真缺陷，地理位置由 WebKit 系统层明确拒绝 ⇒ E13 闭环，应用层权限回调未被系统调用单列）；5.3 首次本机 release 构建产出 `Layress.app`（10M），体积 / WebView 前置 / 限制已登记（DMG 被沙箱拦单列）；5.4 OpenSpec strict 校验、`--specs` 校验与全库门禁实跑通过后归档，7 条 requirement 合入主规格 `openspec/specs/desktop-page-host/`。**无活动 change**，下一增量先立项 |
-| 活动 change | 无（上一个：[2026-11-14-add-tauri-page-host](openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)，tasks 17 项中 16 项完成 + 5.4 归档轮完成，4.2 按 D30 移出；证据见 [evidence-index](openspec/changes/archive/2026-11-14-add-tauri-page-host/evidence-index.md)；主规格见 [desktop-page-host spec](openspec/specs/desktop-page-host/spec.md)） |
-| 代码 | `apps/desktop/`：单窗口三 WebView（工具条 / 被测页面 / 底部状态栏）、HTTP(S) 导航与可达性预检、视口设定与实测哨兵、WKWebView 视图级快照 + `layress.capture/v1` 元数据、采集竞态状态机（13 项单测）、平移式原地预览与原图坐标自检、数据根解析 / 可写检查、开发期探针与慢采开关、内嵌样例服务与权限负例；5.2 把全部操作反馈收敛到 `showStatusBar`（I15，第三行只作兜底），补 E04 / E13 红条、视口信号去重与工具层版本徽标（含门禁一致性断言）；Gitee `.workflow/ci.yml` 补 Rust / pnpm / WebView 前置。细节见 [app README](apps/desktop/README.md) |
-| 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
+| 阶段 | **项目与设备记忆规划审阅已闭环（2026-11-14）**：另一 Agent 的 4 项 P1 / 11 项 P2 已由编写者修订文档并逐条记录处置；OpenSpec strict 与实际暂存快照门禁通过，16 项产品任务全未执行。上一页面承载增量已归档，D30 仍归发行轮 |
+| 活动 change | [add-project-device-profiles](openspec/changes/add-project-device-profiles/proposal.md)：[review](openspec/changes/add-project-device-profiles/review.md) 原有条件结论及编写者处置均保留；新能力与宿主数据根两份 delta、28 场景 / 16 任务齐备，已满足 D26 本地提交前置，产品尚未实施 |
+| 代码 | 沿用已归档 `add-tauri-page-host` 的页面承载 / 采集；本轮仅处理规划 review，既有 13 项单测实跑通过。新增配置与交互均未实施；详见 [app README](apps/desktop/README.md) |
+| 发行 | 无产品发行；已有首次本机 `Layress.app` 构建，打包产物运行与真实写盘观测归发行轮。本轮按 D26 处理意见并本地提交，不 push、不打 tag，未核查远程同步状态 |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；

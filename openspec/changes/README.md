@@ -1,16 +1,16 @@
 # openspec/changes/ · 活动变更
 
 > 归属说明。这里放**正在进行**的 change，一个目录一个 change，动词开头的 kebab-case 命名。
-> 当前**无活动 change**：首增量 [add-tauri-page-host](archive/2026-11-14-add-tauri-page-host/proposal.md)
-> 已于 2026-11-14 完成归档（Tauri 单窗口页面承载、基础视口、真实采集与原地预览），
-> 规格增量已合入主规格 [`../specs/desktop-page-host/`](../specs/desktop-page-host/spec.md)；
-> 后续阶段范围不自动获批，新增量先立项再实施。
+> 当前活动 change：[add-project-device-profiles](add-project-device-profiles/proposal.md)，2026-11-14 用户授权建档，
+> 仅规划项目 / 地址与视口配置记忆及共享数据根修订，已独立审阅并修订规划，尚未实施。
+> 首增量 [add-tauri-page-host](archive/2026-11-14-add-tauri-page-host/proposal.md) 已归档，
+> 主规格见 [`desktop-page-host`](../specs/desktop-page-host/spec.md)；其他阶段范围不自动获批。
 
 ## 活动入口与归属
 
 | change | 范围与入口 |
 |---|---|
-| （无） | 下一个 change 立项后在此登记；归档入口见 [archive/](archive/README.md) |
+| [add-project-device-profiles](add-project-device-profiles/proposal.md) | 项目与地址记录、视口预设 / 自定义 / 横竖屏、按项目恢复、配置安全持久化；[设计](add-project-device-profiles/design.md)、[任务](add-project-device-profiles/tasks.md)、[证据计划](add-project-device-profiles/evidence-index.md)。已独立审阅并修订规划，尚未实施 |
 
 ## 结构
 
