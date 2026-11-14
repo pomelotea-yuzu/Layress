@@ -139,6 +139,8 @@ let tempRect: ImageRect | null = null;
 let anchorRect: ImageRect | null = null;
 let measuredSession: string | null = null;
 let sessionAtCapture: string | null = null;
+/** 视口信号去重：状态栏是单条覆盖通道，只有「设定值 / 容纳状态」变化时才占用它。 */
+let lastViewSignal = "";
 let captureSeq = 0;
 let dragging = false;
 let dragStart: Point | null = null;
@@ -211,14 +213,16 @@ async function applySize(): Promise<void> {
   const w = Number(widthInput.value);
   const h = Number(heightInput.value);
   if (!Number.isFinite(w) || !Number.isFinite(h)) {
-    statusLine.textContent = "✗ 宽高必须是数字";
+    showStatusBar("✗ 宽高必须是数字", "error");
     return;
   }
   try {
     await invoke("page_set_size", { width: w, height: h });
-    statusLine.textContent = `视口设定请求已提交：${w}×${h}`;
+    // 成功反馈由 Viewport 事件统一给：page_set_size 内部先 emit_viewport，
+    // 若这里再写一条绿条就会盖掉「窗口容纳不下」红条（单条覆盖通道的先后顺序坑）。
+    // 实测值看被测页「实际视口与引擎」区与采集元数据，工具层第三行被裁，不作判据（I15）。
   } catch (e) {
-    statusLine.textContent = `✗ ${String(e)}`;
+    showStatusBar(`✗ 视口设定失败：${String(e)}`, "error");
   }
 }
 
@@ -228,7 +232,7 @@ async function openSample(): Promise<void> {
     urlInput.value = `${base}/`;
     await navigate();
   } catch (e) {
-    statusLine.textContent = `✗ 样例服务不可用：${String(e)}`;
+    showStatusBar(`✗ 样例服务不可用：${String(e)}`, "error");
   }
 }
 
@@ -330,7 +334,6 @@ async function capture(): Promise<void> {
   captureSeq += 1;
   const seq = captureSeq;
   hidePreview();
-  statusLine.textContent = "采集请求已提交 …";
   showStatusBar("采集请求已提交 …", "pending");
   // 慢采开关只在开发构建生效：留出人工可操作的窗口，验证竞态失效（E06 运行级负例）。
   const delayMs = slowCapture?.checked ? 5000 : 0;
@@ -345,7 +348,6 @@ async function capture(): Promise<void> {
       return;
     }
     showPreview(outcome);
-    statusLine.textContent = `✓ 采集完成：${outcome.meta.id}`;
     showStatusBar(
       `✓ 采集完成 ${outcome.meta.id} · ${outcome.meta.image.width_px}×${outcome.meta.image.height_px} px · 产物 ${outcome.meta.image.file}`,
       "ok",
@@ -358,18 +360,17 @@ async function capture(): Promise<void> {
     const stale = seq !== captureSeq ? "（旧请求，已被新采集替代）" : "";
     const text = `✗ 本次采集失败${stale}：${detail}${old}${root}`;
     // 常驻条先写，保证即使状态行被后续事件覆盖、或旧请求被忽略，失败仍然可见。
+    // showStatusBar 内部已把同一文本兜底写进第三行，不在这里重复赋值（I15）。
     showStatusBar(text, "error");
-    if (seq !== captureSeq) return;
-    statusLine.textContent = text;
   }
 }
 
 async function cancelCapture(): Promise<void> {
   try {
     const ok = await invoke<boolean>("capture_cancel");
-    statusLine.textContent = ok ? "已请求取消当前采集" : "当前没有在途采集";
+    showStatusBar(ok ? "已请求取消当前采集" : "当前没有在途采集", "info");
   } catch (e) {
-    statusLine.textContent = `✗ 取消失败：${String(e)}`;
+    showStatusBar(`✗ 取消失败：${String(e)}`, "error");
   }
 }
 
@@ -379,17 +380,18 @@ async function backToPage(): Promise<void> {
   try {
     await invoke("preview_exit");
   } catch (e) {
-    statusLine.textContent = `✗ 返回页面失败：${String(e)}`;
+    showStatusBar(`✗ 返回页面失败：${String(e)}`, "error");
     return;
   }
   // Rust 会触发一次标题哨兵回报；会话标识只是机器观测，输入 / 弹窗仍需人工复核。
+  // E08 的「返回后是否重载」判据必须落在底部状态栏，不能只写被裁的第三行（I15）。
   window.setTimeout(() => {
     if (before && measuredSession && before !== measuredSession) {
-      statusLine.textContent = "⚠ 返回后页面会话标识变化：页面可能被重载，请人工核对输入与弹窗";
+      showStatusBar("⚠ 返回后页面会话标识变化：页面可能被重载，请人工核对输入与弹窗", "error");
     } else if (before && measuredSession) {
-      statusLine.textContent = "已返回原 WebView（会话标识未变化）；输入与弹窗请人工复核";
+      showStatusBar("已返回原 WebView（会话标识未变化）；输入与弹窗请人工复核", "ok");
     } else {
-      statusLine.textContent = "已返回原 WebView；会话标识未取得，输入与弹窗请人工复核";
+      showStatusBar("已返回原 WebView；会话标识未取得，输入与弹窗请人工复核", "info");
     }
   }, 400);
 }
@@ -431,6 +433,14 @@ async function loadInitialState(): Promise<void> {
       error: state.dataRootError,
     };
     renderDataRoot();
+    // 启动提示先写，数据根后写：状态栏是单条通道，最后一条必须是数据根，
+    // 否则 4.1 的「启动可见」判据会被开场白冲掉（I13 / I15）。
+    showStatusBar(
+      state.pageOpen
+        ? `已有被测页面会话${lastCapture ? `；旧现场 ${lastCapture.id}（非本次采集结果）` : ""}`
+        : "输入地址或点击「打开样例页」开始",
+      "info",
+    );
     // 启动时事件可能早于订阅到达；这里按 page_state 再点亮一次数据根，保证 I13 的「启动可见」。
     if (state.dataRoot) {
       showStatusBar(
@@ -444,11 +454,8 @@ async function loadInitialState(): Promise<void> {
       await invoke("preview_exit");
       hidePreview();
     }
-    statusLine.textContent = state.pageOpen
-      ? `已有被测页面会话${lastCapture ? `；旧现场 ${lastCapture.id}（非本次采集结果）` : ""}`
-      : "输入地址或点击「打开样例页」开始";
   } catch (e) {
-    statusLine.textContent = `✗ 状态读取失败：${String(e)}`;
+    showStatusBar(`✗ 状态读取失败：${String(e)}`, "error");
   }
 }
 
@@ -524,12 +531,37 @@ async function subscribeEvents(): Promise<void> {
         if (v) {
           viewportLine.textContent = fmtViewport(v);
           measuredSession = v.measured?.session ?? null;
+          // E04 的「实际视口可核对 / 容纳不下明确提示」判据不能只落在被裁的第三行。
+          // 但状态栏是单条覆盖通道：常态回报（页面加载完成、title 哨兵、返回预览）也会发 Viewport，
+          // 若每次都写就会冲掉「✓ 页面加载完成」与返回会话提示。只在「设定值 / 容纳状态」变化时占用它。
+          const cfg = v.configured ? `${v.configured[0]}×${v.configured[1]}` : "跟随窗口";
+          const signal = `${cfg}|${v.fully_visible ? "可见" : "容纳不下"}`;
+          if (signal !== lastViewSignal) {
+            lastViewSignal = signal;
+            if (!v.fully_visible) {
+              showStatusBar(
+                `⚠ 窗口容纳不下已设定视口 ${Math.round(v.bounds[0])}×${Math.round(v.bounds[1])}：` +
+                  "视口保持不变，未静默缩放（请放大窗口）",
+                "error",
+              );
+            } else if (v.configured) {
+              showStatusBar(
+                `✓ 视口已生效 ${cfg} · 窗口内完整显示（实测值请看被测页「实际视口与引擎」区）`,
+                "ok",
+              );
+            }
+          }
         }
         break;
       }
       case "Request": {
         const r = eventData<{ kind: string; url: string }>(p);
-        if (r) requestLine.textContent = `已拒绝 ${r.kind}：${r.url || "(无地址)"}`;
+        if (r) {
+          const text = `✗ 已拒绝 ${r.kind}：${r.url || "(无地址)"}（未开新窗口 / 未写下载 / 未授设备权限）`;
+          requestLine.textContent = `已拒绝 ${r.kind}：${r.url || "(无地址)"}`;
+          // E13 的「明确处理」判据要能被看见：第三行在 64px 视口下被裁，必须同步到状态栏。
+          showStatusBar(text, "error");
+        }
         break;
       }
       case "Denied": {
@@ -545,12 +577,8 @@ async function subscribeEvents(): Promise<void> {
         const level: ToastLevel =
           failed ? "error" : c.phase === "completed" ? "ok" : "pending";
         // 每个采集阶段都进常驻条：started 的「慢采已开启 …ms」可直接证明参数生效。
+        // showStatusBar 内部已兜底写第三行，不在这里重复赋值（I15）。
         showStatusBar(`[${c.phase}] ${c.message || c.id}`, level);
-        if (failed) {
-          statusLine.textContent = `✗ ${c.message}`;
-        } else if (c.phase === "started") {
-          statusLine.textContent = `采集 ${c.id}：${c.message}`;
-        }
         break;
       }
       case "DataRoot": {
@@ -587,7 +615,10 @@ async function main(): Promise<void> {
   // 旧窗口 + 刚更新的脚本会出现「HTML 还是旧版」：此时慢采开关与结果条都不存在，
   // 与其让用户看到空白状态行，不如直接给出重启指引。
   if (!slowCapture || !slowWrap) {
-    statusLine.textContent = "⚠ 工具界面 HTML 与脚本不同步：请 Ctrl+C 后重新运行 pnpm tauri dev（完整重启）";
+    showStatusBar(
+      "⚠ 工具界面 HTML 与脚本不同步：请 Ctrl+C 后重新运行 pnpm tauri dev（完整重启）",
+      "error",
+    );
   }
 }
 

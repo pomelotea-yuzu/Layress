@@ -2,13 +2,19 @@
 #
 # 与 pre-commit 和 .github/workflows/ci.yml 共用 scripts/check-repo.mjs 的门禁链。
 #
+# 任务 5.1 起公共链含 check-build.mjs（前端构建 / 类型、Rust 编译与单测）。工具链缺失时脚本
+# 明确失败且不提供跳过开关，因此本流水线必须自备与 GitHub 等价的前置，不能靠「文档门禁全绿」
+# 掩盖编译未跑：2026-11-13 Gitee 首次回显即因缺 cargo 失败（exit 255），见 evidence-index 5.1。
+#
 # ⚠️ 沿用前置项目的两条 Gitee Go 实测教训（不是猜测）：
 #   1. build@nodejs 插件对 nodeVersion 的支持清单不可靠，可能**静默跳过**自带 Node 安装，
 #      容器里没有可用 node。因此 Node 由 commands 自行安装，nodeVersion 字段只当必填占位。
 #   2. Gitee Go 的 commands **逐条执行、单条失败不短路** —— 分成多条命令会出现"前面红了整体还绿"。
-#      所以门禁全部用 && 链成一条命令，由最终退出码判败，杜绝假绿。
+#      所以全部前置与门禁用 && 链成一条命令，由最终退出码判败，杜绝假绿。
 #
-# pnpm workspace 落地后把链尾换成：pnpm install --frozen-lockfile && pnpm check:ci && node scripts/check-i18n.mjs
+# 未实测（不能写成已通过）：Gitee 容器的 apt 权限与镜像可达性、rustup / crates 下载耗时。
+# 是否可用只认用户 push 后的首次回显；若该容器确实装不上 Linux WebView 依赖，
+# 需显式决定 Gitee 侧的覆盖口径，不得默默给门禁加跳过开关。
 
 version: '1.0'
 name: ci-gates
@@ -32,14 +38,23 @@ stages:
     steps:
       - step: build@nodejs
         name: check_gates
-        displayName: '洁净度 + 文档链接 + 双语成对 + 自测'
+        displayName: '洁净度 + 文档链接 + 双语 + 自测 + 构建/类型/单测'
         # 占位：插件可能不认识该版本并跳过其安装动作，真正的 Node 由下面命令自装
         nodeVersion: 20.19.0
         commands:
           # ① 自装 Node 20（npmmirror 镜像；curl/wget 二选一，解到 /usr/local 使 node 入 PATH）
-          # 公共入口内部串行执行全部检查，任一步失败即返回非零。
+          # ② 固定 pnpm 12.18.0：容器预装的 pnpm 10 与根锁文件不一致，且 workspace 依赖要先装好。
+          # ③ Rust stable 走 rsproxy 镜像；source cargo env 后，check-build.mjs 的 resolveTool 才能找到 cargo。
+          # ④ Linux WebView 系统依赖：容器已带 webkit2gtk-4.1 时跳过，否则尝试 apt（权限未实测，失败即明确红）。
+          # 公共入口内部串行执行全部检查，任一步失败即返回非零；整条链只有一条 command，不短路。
           - >-
             (curl -fsSL https://npmmirror.com/mirrors/node/v20.19.0/node-v20.19.0-linux-x64.tar.gz -o /tmp/node.tar.gz
             || wget -q https://npmmirror.com/mirrors/node/v20.19.0/node-v20.19.0-linux-x64.tar.gz -O /tmp/node.tar.gz)
             && tar -xzf /tmp/node.tar.gz -C /usr/local --strip-components=1 && node -v
+            && npm install -g pnpm@12.18.0 && pnpm -v
+            && curl -fsSL https://rsproxy.cn/rustup-init.sh -o /tmp/rustup-init.sh
+            && RUSTUP_DIST_SERVER=https://rsproxy.cn RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain stable --no-modify-path
+            && . "$HOME/.cargo/env" && cargo --version
+            && (pkg-config --exists webkit2gtk-4.1 || (apt-get update && apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev))
+            && pnpm install --frozen-lockfile
             && node scripts/check-repo.mjs --all
