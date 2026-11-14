@@ -31,9 +31,9 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 1.x–4.x 均完成并经用户人工复验（4.2 按 D30 移出本 change、归发行轮）；**5.1 门禁接入完成**（本机全绿；CI 首次回显 GitHub 通过 / Gitee 缺 cargo 失败，已补工具链待 push 复验）；**5.2 机器侧完成、人工复验待执行、不勾选**：15 个规格场景 × E01–E14 对照表与四类分列、I15 反馈收敛，GUI 清单见 [app README](apps/desktop/README.md)；5.3–5.4 未开始 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：1.x + 2.x 四项 + 3.x 三项 + 4.1/4.3/4.4 + 5.1 已勾选（14/17）；4.2 已移出范围（D30）；5.2 进行中（人工未执行）、5.3–5.4 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
-| 代码 | `apps/desktop/`：单窗口三 WebView（工具条 / 被测页面 / 底部状态栏）、HTTP(S) 导航与可达性预检、视口设定与实测哨兵、WKWebView 视图级快照 + `layress.capture/v1` 元数据、采集竞态状态机（13 项单测）、平移式原地预览与原图坐标自检、数据根解析 / 可写检查、开发期探针与慢采开关、内嵌样例服务与权限负例；5.2 把全部操作反馈收敛到 `showStatusBar`（I15，第三行只作兜底），补 E04 / E13 红条与视口信号去重；Gitee `.workflow/ci.yml` 补 Rust / pnpm / WebView 前置。细节见 [app README](apps/desktop/README.md) 与 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md) |
+| 阶段 | 1.x–4.x 均完成并经用户人工复验（4.2 按 D30 移出、归发行轮）；**5.1 门禁接入完成**（本机全绿；CI 回显 GitHub 通过 / Gitee 缺 cargo 失败，已补工具链待 push 复验）；**5.2 不勾选**：机器侧完成 15 个规格场景 × E01–E14 对照与四类分列、I15 收敛；首轮人工 **A 通过、B/C/D 因窗口跑旧 JS 判据作废**，已加版本徽标 `v20261114-2` + 门禁断言，待确认徽标后重跑，清单见 [app README](apps/desktop/README.md)；5.3–5.4 未开始 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：14/17 已勾选（1.x–4.x 除 4.2 + 5.1）；4.2 按 D30 移出；5.2 进行中（首轮 A 通过、B/C/D 待重跑）、5.3–5.4 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
+| 代码 | `apps/desktop/`：单窗口三 WebView（工具条 / 被测页面 / 底部状态栏）、HTTP(S) 导航与可达性预检、视口设定与实测哨兵、WKWebView 视图级快照 + `layress.capture/v1` 元数据、采集竞态状态机（13 项单测）、平移式原地预览与原图坐标自检、数据根解析 / 可写检查、开发期探针与慢采开关、内嵌样例服务与权限负例；5.2 把全部操作反馈收敛到 `showStatusBar`（I15，第三行只作兜底），补 E04 / E13 红条、视口信号去重与工具层版本徽标（含门禁一致性断言）；Gitee `.workflow/ci.yml` 补 Rust / pnpm / WebView 前置。细节见 [app README](apps/desktop/README.md) |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；

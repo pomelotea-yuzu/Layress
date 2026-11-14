@@ -255,23 +255,36 @@ cd ~/Developer/project/layress/apps/desktop \
 > 观察通道统一为**窗口最底部独立状态栏**；被测页内的结果行看窗口中间那块页面。
 > 逐条对照见 [evidence-index「任务 5.2」](../../openspec/changes/add-tauri-page-host/evidence-index.md)。
 
-### 0. 完整重启（必做）
+### 0. 完整重启 + 版本自证（必做，不做下面全部作废）
 
-改过 `main.ts`，CSP `default-src 'self'` 会挡掉 Vite HMR，旧窗口仍是旧 DOM。在跑 `pnpm tauri dev` 的终端按 Ctrl+C，然后：
+改过 `index.html` / `main.ts`，CSP `default-src 'self'` 会挡掉 Vite HMR，旧窗口仍是旧 DOM。
+**2026-11-14 首轮复验就跑在旧窗口上**：A 组（3.x 旧链路）通过，B / C / D（本轮新增）全部无反馈，
+而 Vite 服务的 `main.ts` 已含新代码 ⇒ 窗口里的 JS 是改动前那份。因此现在用**版本徽标**自证，不再靠「我重启过」。
+
+在跑 `pnpm tauri dev` 的终端按 Ctrl+C，然后确认下面这条**输出为空**：
 
 ```bash
 pgrep -fl "tauri dev|vite|layress-desktop"
 ```
 
-有残留就按 PID 逐个 `kill <pid>`。再在任意目录粘贴：
+有残留就按 PID 逐个 `kill <pid>`，再跑一次 `pgrep` 确认为空。然后在任意目录粘贴：
 
 ```bash
 cd ~/Developer/project/layress/apps/desktop \
   && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" pnpm tauri dev
 ```
 
-先点「打开样例页」，确认状态栏 `✓ 页面加载完成：…` 与样例页内容都在。
-若状态栏出现 `⚠ 工具界面 HTML 与脚本不同步…`，说明还是旧窗口，回到第 0 步。
+**启动后第一件事：看工具条第二行最右侧**，必须显示灰色的 `v20261114-2`：
+
+| 看到什么 | 判定 |
+|---|---|
+| 灰色 `v20261114-2` | 新窗口，可开始复验 |
+| 红色「加载中…」 | HTML 是新的但脚本没跑完 / 被拦，**不可复验** |
+| 徽标整个不出现 | 仍是旧 HTML / 旧窗口，**不可复验** |
+| 状态栏红条 `⚠ 工具界面 HTML 与脚本不同步…` | 同上 |
+
+任一行命中「不可复验」就回到第 0 步重来，别往下点。徽标对了再点「打开样例页」，
+确认状态栏 `✓ 页面加载完成：…` 与样例页内容都在。
 
 ### A · 采集失败且存在旧图（E06，此前未单独人工核对）
 
@@ -316,8 +329,16 @@ cd ~/Developer/project/layress/apps/desktop \
 
 ### 判据回填
 
+**首轮结果（2026-11-14，旧窗口，判据作废）**：A 组通过；B「返回页面后绿条文字不变」、
+C「1280×704 与缩小窗口都没有红条」、D「几项都没有底部状态栏反馈」。
+核对事实：Vite 服务的 `main.ts` 已含本轮新代码（`lastViewSignal` / `视口已生效` / `窗口容纳不下`），
+而 A 的失败红条来自 3.x 旧链路且正常 ⇒ **窗口加载的是改动前那份 JS**。
+B / C / D **未取得有效判据，既不计通过也不计失败**，单列待重跑；不是产品缺陷结论。
+已加工具条版本徽标与 `check-build.mjs` 一致性断言，防止第四次靠「重启过了」猜。
+
 机器侧（13 项单测 + `check-repo.mjs --all` 全链 + OpenSpec strict validate）已全绿，**不替代以上人工项**。
-请按 A / B / C / D 逐组反馈「通过」或「第 X 条不符合预期（附状态栏文字）」；
+请确认第 0 步徽标为 `v20261114-2` 后重跑 A / B / C / D，逐组反馈「通过」或「第 X 条不符合预期（附状态栏文字）」；
+**若徽标正确却仍有项不生效**，把状态栏文字与被测页 `innerWidth/innerHeight` 一起贴回来，再按真实缺陷定位。
 用户回话前 [tasks 5.2](../../openspec/changes/add-tauri-page-host/tasks.md) 保持未勾选，5.3 / 5.4 不提前开始（I11 / E14）。
 
 ## 口径

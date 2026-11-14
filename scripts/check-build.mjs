@@ -69,10 +69,29 @@ function realSteps() {
   ];
 }
 
+/** 工具层版本徽标一致性：改了 main.ts 却忘了同步 index.html 的徽标时，
+ *  GUI 上的「是不是新窗口」自证会失效（旧 DOM / CSP 挡 HMR 的坑已踩三次）。
+ *  这是静态断言，不依赖 GUI，却能把「靠记性防」变成代码拦住。 */
+function checkBuildTag() {
+  const html = fs.readFileSync(path.join(ROOT, 'apps', 'desktop', 'index.html'), 'utf8');
+  const ts = fs.readFileSync(path.join(ROOT, 'apps', 'desktop', 'src', 'main.ts'), 'utf8');
+  const inHtml = /id="build-tag"[^>]*data-build="([^"]+)"/.exec(html)?.[1];
+  const inTs = /const BUILD_TAG = "([^"]+)"/.exec(ts)?.[1];
+  if (!inHtml || !inTs || inHtml !== inTs) {
+    console.error(
+      `[check-build] ✗ 工具层版本徽标不一致或缺失：index.html=${inHtml ?? '缺失'} / main.ts=${inTs ?? '缺失'}`,
+    );
+    return false;
+  }
+  console.log(`[check-build] ✓ 工具层版本徽标一致：${inTs}`);
+  return true;
+}
+
 function main() {
   console.log(
     `Layress 构建门禁 · 模式 ${SELFTEST ? 'selftest' : 'all'} · ${process.platform}/${process.arch} · Node ${process.version}`,
   );
+  if (!SELFTEST && !checkBuildTag()) process.exit(1);
   const steps = SELFTEST
     ? [
         { name: '正例：恒成功命令应通过', cmd: process.execPath, args: ['-e', 'process.exit(0)'], cwd: ROOT },

@@ -27,6 +27,10 @@
       .num { width: 64px; }
       #slow-wrap { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap; color: #455a64; }
       #slow-wrap input { margin: 0; }
+      /* 工具层脚本版本徽标：只有当前 main.ts 启动成功才会被写成 v... ；
+         显示「加载中」或整个不出现 ⇒ 窗口仍是旧 HTML / 旧 JS，复验结论一律作废。 */
+      #build-tag { margin-left: auto; font-size: 11px; white-space: nowrap; color: #78909c; font-variant-numeric: tabular-nums; }
+      #build-tag.stale { color: #b71c1c; font-weight: 600; }
       .status { font-size: 12px; line-height: 26px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       #status-line { color: #37474f; flex: 1 1 0; min-width: 0; }
       #viewport-line { color: #546e7a; flex: 0 1 auto; }
@@ -80,6 +84,8 @@
         <span id="slow-wrap" title="开发期复验用：勾选后采集在拿到截图后额外等待 5 秒，期间点「刷新」/「取消」/ 再次「采集」可验证本次结果失效且不写盘。仅开发构建生效">
           <input id="slow-capture" type="checkbox" /><label for="slow-capture">慢采 5s</label>
         </span>
+        <span id="build-tag" class="stale" data-build="v20261114-2"
+          title="工具层脚本版本：显示 v... 才说明窗口加载的是当前代码；红色「加载中」或不出现 ⇒ 旧窗口，复验作废">加载中…</span>
       </div>
       <div class="row">
         <span id="status-line" class="status"></span>

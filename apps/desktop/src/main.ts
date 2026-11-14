@@ -19,6 +19,13 @@ import {
   type Point,
 } from "./coords";
 
+/**
+ * 工具层脚本版本：每次改前端必须与 index.html 的 #build-tag[data-build] 同步递增，
+ * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
+ * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
+ */
+const BUILD_TAG = "v20261114-2";
+
 interface MeasuredViewport {
   w: number;
   h: number;
@@ -173,8 +180,10 @@ type ToastLevel = "info" | "pending" | "ok" | "error";
  *  只写 statusLine 会让「已拒绝」在 GUI 上完全不可见（见 runtime-probe）。
  *  状态栏未就绪时静默降级，不改变操作结果。 */
 function showStatusBar(text: string, level: ToastLevel): void {
-  void invoke("status_bar_set", { text, level }).catch(() => {
-    // 只影响提示呈现，不改变操作结果。
+  void invoke("status_bar_set", { text, level }).catch((e) => {
+    // 只影响提示呈现，不改变操作结果；但不能静默：工具层第三行已被裁，
+    // 至少留一条可抓取的机器痕迹，避免「用户说没出现」时无从分诊。
+    console.error("[layress] 状态栏更新失败：", e);
   });
   statusLine.textContent = text; // 工具层状态行留一份兜底（第三行受 64px 视口限制，不依赖它）
 }
@@ -603,6 +612,13 @@ async function subscribeEvents(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  // 版本徽标：只有当前 main.ts 真的跑起来，才会把红色「加载中…」写成 v...。
+  // 用户启动后一眼可核对窗口是不是新代码，不靠「我重启过」这种口头确认。
+  const buildTag = document.getElementById("build-tag");
+  if (buildTag) {
+    buildTag.textContent = BUILD_TAG;
+    buildTag.classList.remove("stale");
+  }
   // 慢采是开发期复验开关，正式构建不显示；Rust 侧也只在 debug 构建接受延迟。
   if (!import.meta.env.DEV && slowWrap) slowWrap.style.display = "none";
   const check = coordSelfTest();
@@ -612,11 +628,11 @@ async function main(): Promise<void> {
   await subscribeEvents();
   await loadInitialState();
   viewportLine.textContent = "视口：尚未打开页面";
-  // 旧窗口 + 刚更新的脚本会出现「HTML 还是旧版」：此时慢采开关与结果条都不存在，
-  // 与其让用户看到空白状态行，不如直接给出重启指引。
-  if (!slowCapture || !slowWrap) {
+  // 旧窗口 + 刚更新的脚本会出现「HTML 还是旧版」：此时版本徽标、慢采开关都不存在。
+  // 与其让用户看到空白状态行，不如在状态栏直接给出重启指引（该通道已由 A 组复验证明可用）。
+  if (!slowCapture || !slowWrap || !buildTag) {
     showStatusBar(
-      "⚠ 工具界面 HTML 与脚本不同步：请 Ctrl+C 后重新运行 pnpm tauri dev（完整重启）",
+      "⚠ 工具界面 HTML 与脚本不同步（工具条第二行无版本徽标）：请 Ctrl+C 后重新运行 pnpm tauri dev（完整重启）",
       "error",
     );
   }

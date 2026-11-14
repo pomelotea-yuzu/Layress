@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖 Tauri 页面承载首增量：1.x–4.x（4.2 按 D30 移出范围）已实施并经用户人工复验；5.1 门禁接入完成，**5.2 机器侧规格场景对照完成、视觉 / 交互人工复验未执行、不勾选**（2026-11-14）。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/add-tauri-page-host/proposal.md)只覆盖 Tauri 页面承载首增量：1.x–4.x（4.2 按 D30 移出范围）已实施并经用户人工复验；5.1 门禁接入完成，**5.2 机器侧规格场景对照完成、不勾选**：首轮人工 A 通过，B / C / D 因窗口跑旧 JS 判据作废，须先确认工具条版本徽标再重跑（2026-11-14）。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)后续范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 
@@ -44,7 +44,7 @@ node scripts/check-i18n.mjs --selftest
 | 洁净度 | `check-hygiene.mjs` | 索引中的体积、二进制后缀、垃圾场路径、凭据、豁免与忽略泄露 | 生效 |
 | 全库链接 | `check-i18n.mjs --links` | 全部已跟踪 Markdown 的相对路径、仓库根路径及引用式链接断链，不依赖双语登记 | 生效 |
 | 双语成对 | `check-i18n.mjs` | 缺英文、语言入口标签标反、小节漂移、孤儿英文 | 生效 |
-| 构建 / 类型 / 测试 | `check-build.mjs --all` | 前端 tsc + vite build、Rust `cargo check` / `cargo test --lib`、失败退出码传播（lint 仍未接入） | 生效（本机 macOS arm64 全绿；CI 首次回显分列：GitHub ubuntu 用户回显通过、Gitee Go 缺 cargo 失败且已补工具链待 push 复验；Windows 未验证） |
+| 构建 / 类型 / 测试 | `check-build.mjs --all` | 前端 tsc + vite build、Rust `cargo check` / `cargo test --lib`、**工具层版本徽标一致性**、失败退出码传播（lint 仍未接入） | 生效（本机 macOS arm64 全绿；CI 首次回显分列：GitHub ubuntu 用户回显通过、Gitee Go 缺 cargo 失败且已补工具链待 push 复验；Windows 未验证） |
 | spec 一致性 | `pnpm check:spec` | 主 spec 与归档 change 的差集 | 待建 |
 
 两条硬约定：

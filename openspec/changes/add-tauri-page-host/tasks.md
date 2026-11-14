@@ -2,7 +2,7 @@
 
 > 状态：**任务 1.1–1.3、2.x 全部四项与 3.x 全部三项均已实施并经用户人工复验通过（2026-11-11 / 11-12 / 11-13）**；
 > 2.2 无效地址负例于 2026-11-13 复验通过，第 2 条错因文案已修并有单测，**修后文案同日由用户 GUI 复验通过，无遗留单列项**。
-> 4.x 中 4.1 / 4.3 / 4.4 已实施并经用户人工复验通过（2026-11-13 15:42）；4.2 已按 D30 移出本 change 范围（归发行轮），5.x 实施中：5.1 已接入公共门禁并本机实跑通过，CI 首次回显为 **GitHub 通过 / Gitee 因缺 cargo 失败**（已补 `.workflow/ci.yml` 工具链，复验待 push）；5.2 机器侧规格场景对照与 I15 反馈收敛已完成，**人工复验未执行、不勾选**；5.3–5.4 未开始。按顺序推进，每步在 [evidence-index](evidence-index.md)关联实际证据；视觉 / 交互人工复核与机器检查分列。
+> 4.x 中 4.1 / 4.3 / 4.4 已实施并经用户人工复验通过（2026-11-13 15:42）；4.2 已按 D30 移出本 change 范围（归发行轮），5.x 实施中：5.1 已接入公共门禁并本机实跑通过，CI 首次回显为 **GitHub 通过 / Gitee 因缺 cargo 失败**（已补 `.workflow/ci.yml` 工具链，复验待 push）；5.2 机器侧规格场景对照与 I15 反馈收敛已完成，**首轮人工 A 组通过、B/C/D 因旧窗口 JS 判据作废待重跑，不勾选**；5.3–5.4 未开始。按顺序推进，每步在 [evidence-index](evidence-index.md)关联实际证据；视觉 / 交互人工复核与机器检查分列。
 > 2026-11-13：2.2 补齐反馈可见性、地址校验与 5 项新单测；4.x 补 2 项数据根单测，`cargo test --lib` 现 13 项全通过；
 > 复验步骤与结论见 [app README](../../../apps/desktop/README.md) 与 [evidence-index](evidence-index.md)。
 
@@ -58,6 +58,8 @@
 - [x] 5.1 将 Rust / 前端构建、类型和必要行为测试接入公共门禁，明确平台适用范围；不能只在本机绕过失败项。（E12）— 2026-11-13：新增 `scripts/check-build.mjs` 并接入 `check-repo.mjs` 默认链（pre-commit 与 CI 同一条），含 `pnpm build:desktop` / `cargo check` / `cargo test --lib` 与失败传播自测；本机 macOS arm64 实跑全绿、13 项单测通过。**CI 首次回显（2026-11-14 补记）**：GitHub ubuntu 用户回显通过（无原始日志）；Gitee Go 前三项门禁全过、到 `check-build.mjs` 报缺 cargo 并 exit 255，根因是 `.workflow/ci.yml` 只装 Node；已补齐 pnpm 12 / Rust stable / Linux WebView 依赖 / `pnpm install`（D31），**修复回显待用户 push**。Windows 未验证。
 - [ ] 5.2 执行规格正反场景与 macOS 人工体验；失败、环境阻塞、未执行项单列，不能仅凭静态 PASS 勾完成。（E01–E14）
   > 2026-11-14 进展（**仍不勾选**）：机器侧已产出 [evidence-index](evidence-index.md)「任务 5.2」的 15 个规格场景 × E01–E14 对照表与四类分列；`check-repo.mjs --all` 退出码 0、OpenSpec strict validate 1 通过 / 0 失败；并清偿 debt 的 I15 前置（剩余 `statusLine` 直接赋值全收敛到状态栏，补 E04 容纳不下与 E13 拒绝红条）。
-  > **待用户执行**：[app README](../../../apps/desktop/README.md)「任务 5.2 人工复验清单」（旧图隔离、弹窗会话、容纳不下提示、新增反馈通道）。机器 PASS 不勾完成（I11 / E14）。
+  > **首轮人工结果（2026-11-14）**：A 组「采集失败且存在旧图」用户确认通过；B / C / D 无反馈。核对 Vite 服务的是本轮新脚本、且 A 的旧链路能正常写状态栏 ⇒ 窗口加载的是改动前 JS（CSP 挡 HMR）。B/C/D **判据作废，既不计通过也不计失败**，单列待重跑，详见 [evidence-index](evidence-index.md)「首轮人工复验」。
+  > **升级**：加工具条版本徽标 `v20261114-2` + `check-build.mjs` 一致性断言，复验前先看徽标，防止同一坑第四次。
+  > **待用户执行**：按 [app README](../../../apps/desktop/README.md) 第 0 步完整重启并确认徽标后重跑 B / C / D（A 已通过）。机器 PASS 不勾完成（I11 / E14）。
 - [ ] 5.3 记录本机开发运行和首个本地构建的真实大小、WebView 前置依赖及限制；不要求本 change 公开发行或完成整个阶段。（E12、E14）
 - [ ] 5.4 实跑可用的 OpenSpec 校验与仓库门禁，补齐证据、差异与限制；全部要求满足后归档，并将已验证规格合入主规格。（E12、E14；本轮文档校验不代表本任务已完成）
