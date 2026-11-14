@@ -87,29 +87,46 @@ function checkBuildTag() {
   return true;
 }
 
-/** E13 下载负例必须真的发起下载：text/plain 会被 WKWebView 直接渲染，
- *  on_download 不触发，人工看到「没有红条」会误判成拒绝失效（2026-11-14 真缺陷）。 */
-function checkDownloadFixture() {
+/** 样例夹具的三条静态不变量，都是 2026-11-14 人工复验踩出来的：
+ *  下载 MIME 必须不可渲染（否则 on_download 不触发）；坐标参照块不能拦截点击；
+ *  地理位置负例必须有超时兜底（否则权限请求挂起时页面一片空白，像「点了没反应」）。 */
+function checkFixtureInvariants() {
   const fixture = fs.readFileSync(
     path.join(ROOT, 'apps', 'desktop', 'src-tauri', 'src', 'fixture.rs'),
     'utf8',
   );
-  const ok =
-    fixture.includes('Content-Type: application/octet-stream') &&
-    fixture.includes('Content-Disposition: attachment');
-  if (!ok) {
-    console.error('[check-build] ✗ 下载夹具 MIME 被改回可渲染类型，E13 下载负例不会触发 on_download');
-    return false;
+  const html = fs.readFileSync(
+    path.join(ROOT, 'apps', 'desktop', 'src-tauri', 'fixtures', 'sample-page.html'),
+    'utf8',
+  );
+  const checks = [
+    [
+      '下载夹具可触发 WKWebView 下载回调',
+      fixture.includes('Content-Type: application/octet-stream') &&
+        fixture.includes('Content-Disposition: attachment'),
+    ],
+    [
+      '坐标参照块不拦截点击',
+      /#coord-anchor\s*\{[^}]*pointer-events:\s*none/.test(html),
+    ],
+    [
+      '地理位置负例有超时兜底',
+      html.includes('权限请求 2s 内未得到系统回调'),
+    ],
+  ];
+  let ok = true;
+  for (const [name, pass] of checks) {
+    console.log(`[check-build] ${pass ? '✓' : '✗'} 夹具不变量：${name}`);
+    if (!pass) ok = false;
   }
-  console.log('[check-build] ✓ 下载夹具可触发 WKWebView 下载回调');
-  return true;
+  return ok;
 }
 
 function main() {
   console.log(
     `Layress 构建门禁 · 模式 ${SELFTEST ? 'selftest' : 'all'} · ${process.platform}/${process.arch} · Node ${process.version}`,
   );
-  if (!SELFTEST && (!checkBuildTag() || !checkDownloadFixture())) process.exit(1);
+  if (!SELFTEST && (!checkBuildTag() || !checkFixtureInvariants())) process.exit(1);
   const steps = SELFTEST
     ? [
         { name: '正例：恒成功命令应通过', cmd: process.execPath, args: ['-e', 'process.exit(0)'], cwd: ROOT },

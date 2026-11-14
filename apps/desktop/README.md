@@ -274,8 +274,8 @@ cd ~/Developer/project/layress/apps/desktop \
   && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" pnpm tauri dev
 ```
 
-本轮修复全在 **Rust 层**（`lib.rs` / `fixture.rs`），前端没动 ⇒ 徽标仍是 `v20261114-2`；
-重启后终端应出现 `Compiling layress-desktop` / `Running target/debug/layress-desktop`，否则 Rust 改动没进进程。
+本轮改的是 **Rust 层与内嵌样例页**（`fixtures/sample-page.html` 由 `include_str!` 编译期嵌入），
+前端没动 ⇒ 徽标仍是 `v20261114-2`；重启后终端应出现 `Compiling layress-desktop`，否则改动没进进程。
 
 **启动后第一件事：看工具条第二行最右侧**，必须显示灰色的 `v20261114-2`：
 
@@ -331,15 +331,16 @@ cd ~/Developer/project/layress/apps/desktop \
 | 点「应用尺寸」（见 C） | 绿条 / 红条按可见性给出，不再只有第三行 |
 | 点被测页「window.open 新窗口」 | 红条 `✗ 已拒绝 new-window …（未开新窗口 / 未写下载 / 未授设备权限）`，页面结果行显示「新窗口未创建」 |
 | 点「触发下载」 | 红条 `✗ 已拒绝 download …`，终端有 `[layress][request] 下载请求已拒绝：…`，不产生下载文件 |
-| 点「请求地理位置」 | 终端有 `[layress][request] 设备权限请求已拒绝：…` 时才有红条；若页面结果行是「无 geolocation API」，说明本 WebView 未发起权限请求，**无红条属预期**，把该行文字贴回来 |
+| 点「请求地理位置」 | 页面结果行**立即**变成 `地理位置：已点击，正在核对 navigator.geolocation …`，随后为三者之一：`本 WebView 未提供 navigator.geolocation…` / `权限请求 2s 内未得到系统回调…` / `geolocation 被拒绝…`；把最终那行文字与终端 `[layress][request]` 日志贴回来 |
 
 **下载 / 地理位置的口径**：首轮把「没红条」判成待复核是对的，但根因不同——
 下载夹具原来返回 `Content-Type: text/plain`，WKWebView 会直接渲染成页面，根本不进 wry 的下载
 delegate，`on_download` 自然不触发；已改成 `application/octet-stream`，让负例真的发起下载请求。
-地理位置则取决于 WKWebView 是否暴露 `navigator.geolocation`：样例页在 API 不存在时直接写
-「无 geolocation API」并 return，不发权限请求 ⇒ `on_permission_request` 不触发。
-这两种情况都**不是拒绝失效**，但也**不算「系统回调明确拒绝」已验证**，单列未执行；
-Rust 回调已加 stderr 日志，用来区分「没触发」与「触发后被拒绝」。
+第三轮用户澄清地理位置是**「点了没反应」**：权限请求可能既不回调也不报错，页面结果行一直空白。
+现已给按钮加点击即时反馈 + 2s 超时兜底，并顺手给坐标参照块加 `pointer-events: none`
+（`z-index:9999` 的纯视觉标记本不该拦截点击，虽不是本次根因）。
+这几种情况都**不是拒绝失效**，但也**不算「系统回调明确拒绝」已验证**，单列未执行；
+Rust 回调的 stderr 日志用来区分「没触发」与「触发后被拒绝」。
 
 ### 判据回填
 
@@ -357,10 +358,15 @@ D 的「触发下载」「请求地理位置」没有红条（window.open 有）
 ③ `navigator.geolocation` 可能不存在，样例页直接 return ⇒ 未发起权限请求，`on_permission_request` 不触发，
 **如实单列未执行，不宣称「系统回调明确拒绝」已验证**。B 组本轮未再反馈，仍待重跑。
 
+**第三轮结果（2026-11-14 12:08）**：用户确认「其他没有问题，地理位置是点了没反应」⇒
+**A、B、C 及 D 的取消 / 应用尺寸 / window.open / 下载全部通过**；状态栏层级与下载夹具两个真缺陷修复有效。
+地理位置已加即时反馈 + 超时兜底，样例页为编译期嵌入 ⇒ 需重启后单独重测这一项。
+
 机器侧（13 项单测 + `check-repo.mjs --all` 全链 + OpenSpec strict validate）已全绿，**不替代以上人工项**。
-请按第 0 步完整重启（本轮是 Rust 改动，看终端 `Compiling layress-desktop`），确认徽标为 `v20261114-2` 后
-重跑 B / C / D 与下载 / 地理位置；逐组反馈「通过」或「第 X 条不符合预期（附状态栏文字 + 终端 `[layress][request]` 行）」。
-用户回话前 [tasks 5.2](../../openspec/changes/add-tauri-page-host/tasks.md) 保持未勾选，5.3 / 5.4 不提前开始（I11 / E14）。
+请按第 0 步完整重启（看终端 `Compiling layress-desktop`），确认徽标为 `v20261114-2` 后**只重测地理位置**：
+看页面结果行最终停在三态文案的哪一条，并回贴终端 `[layress][request]` 日志。
+这一项闭环后 5.2 即可勾选；在此之前 [tasks 5.2](../../openspec/changes/add-tauri-page-host/tasks.md) 保持未勾选，
+5.3 / 5.4 不提前开始（I11 / E14）。
 
 ## 口径
 

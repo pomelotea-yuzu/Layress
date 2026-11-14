@@ -44,7 +44,7 @@ node scripts/check-i18n.mjs --selftest
 | 洁净度 | `check-hygiene.mjs` | 索引中的体积、二进制后缀、垃圾场路径、凭据、豁免与忽略泄露 | 生效 |
 | 全库链接 | `check-i18n.mjs --links` | 全部已跟踪 Markdown 的相对路径、仓库根路径及引用式链接断链，不依赖双语登记 | 生效 |
 | 双语成对 | `check-i18n.mjs` | 缺英文、语言入口标签标反、小节漂移、孤儿英文 | 生效 |
-| 构建 / 类型 / 测试 | `check-build.mjs --all` | 前端 tsc + vite build、Rust `cargo check` / `cargo test --lib`、**工具层版本徽标与下载夹具 MIME 静态断言**、失败退出码传播（lint 仍未接入） | 生效（本机 macOS arm64 全绿；CI 首次回显分列：GitHub ubuntu 用户回显通过、Gitee Go 缺 cargo 失败且已补工具链待 push 复验；Windows 未验证） |
+| 构建 / 类型 / 测试 | `check-build.mjs --all` | 前端 tsc + vite build、Rust `cargo check` / `cargo test --lib`、**工具层版本徽标与三条夹具不变量静态断言**、失败退出码传播（lint 仍未接入） | 生效（本机 macOS arm64 全绿；CI 首次回显分列：GitHub ubuntu 用户回显通过、Gitee Go 缺 cargo 失败且已补工具链待 push 复验；Windows 未验证） |
 | spec 一致性 | `pnpm check:spec` | 主 spec 与归档 change 的差集 | 待建 |
 
 两条硬约定：
