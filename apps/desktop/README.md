@@ -274,6 +274,9 @@ cd ~/Developer/project/layress/apps/desktop \
   && PATH="$HOME/.workbuddy/binaries/node/versions/22.22.2-6/bin:$HOME/.cargo/bin:$PATH" pnpm tauri dev
 ```
 
+本轮修复全在 **Rust 层**（`lib.rs` / `fixture.rs`），前端没动 ⇒ 徽标仍是 `v20261114-2`；
+重启后终端应出现 `Compiling layress-desktop` / `Running target/debug/layress-desktop`，否则 Rust 改动没进进程。
+
 **启动后第一件事：看工具条第二行最右侧**，必须显示灰色的 `v20261114-2`：
 
 | 看到什么 | 判定 |
@@ -313,9 +316,12 @@ cd ~/Developer/project/layress/apps/desktop \
 | 宽 / 高填 `1000` / `600`，点「应用尺寸」 | 状态栏绿条 `✓ 视口已生效 1000×600 · 窗口内完整显示…`；被测页「实际视口与引擎」区显示 `innerWidth 1000 px / innerHeight 600 px` |
 | 改成 `1280` / `704`，点「应用尺寸」 | 状态栏**红条** `⚠ 窗口容纳不下已设定视口 1280×704：视口保持不变，未静默缩放（请放大窗口）` |
 | 紧接着看被测页 | `innerWidth/innerHeight` **仍是 1280 / 704**，没有被偷偷改宽高、也没有缩放成「适配窗口」 |
-| 把窗口拖得更小 / 放大回去 | 红条随窗口尺寸变化更新；放大到装得下后，下一次视口变化会回到绿条 |
+| 把窗口拖得更小 / 放大回去 | 红条**始终浮在最上层、不被页面盖住**；放大到装得下后，下一次视口变化会回到绿条 |
 
-> 若窗口已被放大到能装下 `1280×704`，先把窗口拖小一点再观察红条，判据是「设定值不变 + 明确提示」，不是某个固定尺寸。
+> 2026-11-14 第二轮反馈：红条其实有，但窗口缩小后被被测页面挡住了。根因是页面 WebView 在点
+> 「打开样例页」时才 `add_child`，后创建的视图压在启动期创建的状态栏之上。现已用
+> `status.reparent(&window)`（macOS wry = `contentView.addSubview`）把状态栏提回最上层。
+> 若窗口已被放大到能装下 `1280×704`，先拖小一点再观察；判据是「设定值不变 + 明确提示 + 红条可见」。
 
 ### D · 新增反馈通道（I15 收敛 / E13）
 
@@ -324,8 +330,16 @@ cd ~/Developer/project/layress/apps/desktop \
 | 不勾慢采、直接点「取消」 | 灰条 `当前没有在途采集`（以前只写在被裁的第三行） |
 | 点「应用尺寸」（见 C） | 绿条 / 红条按可见性给出，不再只有第三行 |
 | 点被测页「window.open 新窗口」 | 红条 `✗ 已拒绝 new-window …（未开新窗口 / 未写下载 / 未授设备权限）`，页面结果行显示「新窗口未创建」 |
-| 点「触发下载」 | 红条 `✗ 已拒绝 download …`，不产生下载文件 |
-| 点「请求地理位置」 | 红条 `✗ 已拒绝 …`，页面结果行显示被拒绝 / 无 API |
+| 点「触发下载」 | 红条 `✗ 已拒绝 download …`，终端有 `[layress][request] 下载请求已拒绝：…`，不产生下载文件 |
+| 点「请求地理位置」 | 终端有 `[layress][request] 设备权限请求已拒绝：…` 时才有红条；若页面结果行是「无 geolocation API」，说明本 WebView 未发起权限请求，**无红条属预期**，把该行文字贴回来 |
+
+**下载 / 地理位置的口径**：首轮把「没红条」判成待复核是对的，但根因不同——
+下载夹具原来返回 `Content-Type: text/plain`，WKWebView 会直接渲染成页面，根本不进 wry 的下载
+delegate，`on_download` 自然不触发；已改成 `application/octet-stream`，让负例真的发起下载请求。
+地理位置则取决于 WKWebView 是否暴露 `navigator.geolocation`：样例页在 API 不存在时直接写
+「无 geolocation API」并 return，不发权限请求 ⇒ `on_permission_request` 不触发。
+这两种情况都**不是拒绝失效**，但也**不算「系统回调明确拒绝」已验证**，单列未执行；
+Rust 回调已加 stderr 日志，用来区分「没触发」与「触发后被拒绝」。
 
 ### 判据回填
 
@@ -336,9 +350,16 @@ C「1280×704 与缩小窗口都没有红条」、D「几项都没有底部状�
 B / C / D **未取得有效判据，既不计通过也不计失败**，单列待重跑；不是产品缺陷结论。
 已加工具条版本徽标与 `check-build.mjs` 一致性断言，防止第四次靠「重启过了」猜。
 
+**第二轮结果（2026-11-14，新窗口，真缺陷）**：C 的红条确实出现，但窗口缩小到一定程度后被被测页面挡住；
+D 的「触发下载」「请求地理位置」没有红条（window.open 有）。定位为两个真缺陷 + 一个平台限制：
+① 页面 WebView 后创建压住状态栏 ⇒ 用 `reparent` 把状态栏提回最上层（已修，待复验）；
+② 下载夹具 `Content-Type: text/plain` 让 WKWebView 直接渲染、不进下载回调 ⇒ 改 `application/octet-stream`（已修，待复验）；
+③ `navigator.geolocation` 可能不存在，样例页直接 return ⇒ 未发起权限请求，`on_permission_request` 不触发，
+**如实单列未执行，不宣称「系统回调明确拒绝」已验证**。B 组本轮未再反馈，仍待重跑。
+
 机器侧（13 项单测 + `check-repo.mjs --all` 全链 + OpenSpec strict validate）已全绿，**不替代以上人工项**。
-请确认第 0 步徽标为 `v20261114-2` 后重跑 A / B / C / D，逐组反馈「通过」或「第 X 条不符合预期（附状态栏文字）」；
-**若徽标正确却仍有项不生效**，把状态栏文字与被测页 `innerWidth/innerHeight` 一起贴回来，再按真实缺陷定位。
+请按第 0 步完整重启（本轮是 Rust 改动，看终端 `Compiling layress-desktop`），确认徽标为 `v20261114-2` 后
+重跑 B / C / D 与下载 / 地理位置；逐组反馈「通过」或「第 X 条不符合预期（附状态栏文字 + 终端 `[layress][request]` 行）」。
 用户回话前 [tasks 5.2](../../openspec/changes/add-tauri-page-host/tasks.md) 保持未勾选，5.3 / 5.4 不提前开始（I11 / E14）。
 
 ## 口径

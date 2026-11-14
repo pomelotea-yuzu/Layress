@@ -87,11 +87,29 @@ function checkBuildTag() {
   return true;
 }
 
+/** E13 下载负例必须真的发起下载：text/plain 会被 WKWebView 直接渲染，
+ *  on_download 不触发，人工看到「没有红条」会误判成拒绝失效（2026-11-14 真缺陷）。 */
+function checkDownloadFixture() {
+  const fixture = fs.readFileSync(
+    path.join(ROOT, 'apps', 'desktop', 'src-tauri', 'src', 'fixture.rs'),
+    'utf8',
+  );
+  const ok =
+    fixture.includes('Content-Type: application/octet-stream') &&
+    fixture.includes('Content-Disposition: attachment');
+  if (!ok) {
+    console.error('[check-build] ✗ 下载夹具 MIME 被改回可渲染类型，E13 下载负例不会触发 on_download');
+    return false;
+  }
+  console.log('[check-build] ✓ 下载夹具可触发 WKWebView 下载回调');
+  return true;
+}
+
 function main() {
   console.log(
     `Layress 构建门禁 · 模式 ${SELFTEST ? 'selftest' : 'all'} · ${process.platform}/${process.arch} · Node ${process.version}`,
   );
-  if (!SELFTEST && !checkBuildTag()) process.exit(1);
+  if (!SELFTEST && (!checkBuildTag() || !checkDownloadFixture())) process.exit(1);
   const steps = SELFTEST
     ? [
         { name: '正例：恒成功命令应通过', cmd: process.execPath, args: ['-e', 'process.exit(0)'], cwd: ROOT },

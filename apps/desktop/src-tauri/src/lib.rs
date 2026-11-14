@@ -256,6 +256,29 @@ fn apply_layout(app: &AppHandle<tauri::Wry>, preview: bool) {
     }
 }
 
+/// 把底部状态栏提到最上层（仅 macOS 已验证）。
+/// 被测页面是用户点「打开样例页」时才 `add_child`，后创建的 WKWebView 天然压在
+/// 启动期创建的状态栏之上；设定视口（1280×704）时页面 bounds 会延伸到底部 42px，
+/// 窗口缩小后状态栏被页面盖住 ⇒ 红条 / 失败提示全部看不见。
+/// wry 在 macOS 的 `reparent` 实现就是 `contentView.addSubview`，等于把视图移到
+/// subviews 末尾（最上层）；reparent 到同一窗口不改变归属，只重排层级。
+#[cfg(target_os = "macos")]
+fn bring_status_to_front(app: &AppHandle<tauri::Wry>) {
+    let Some(status) = app.get_webview(STATUS_LABEL) else {
+        return;
+    };
+    let Some(window) = app.get_window("main") else {
+        return;
+    };
+    if let Err(e) = status.reparent(&window) {
+        eprintln!("[layress] 状态栏置顶失败：{e}");
+    }
+}
+
+/// 非 macOS 的 reparent 行为未实测，不擅自调整层级；如实留到对应平台验证。
+#[cfg(not(target_os = "macos"))]
+fn bring_status_to_front(_app: &AppHandle<tauri::Wry>) {}
+
 fn relayout(app: &AppHandle<tauri::Wry>) {
     // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）
     let preview = app
@@ -436,22 +459,28 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
             NewWindowResponse::Deny
         })
         .on_download(|_webview, event| {
-            // 下载一律拒绝：不写默认下载目录（E13）
-            if let DownloadEvent::Requested { url, .. } = event {
-                if let Some(app) = APP.get() {
-                    emit(
-                        app,
-                        PageEvent::Request {
-                            kind: "download".to_string(),
-                            url: url.to_string(),
-                            action: "denied".to_string(),
-                        },
-                    );
+            // 下载一律拒绝：不写默认下载目录（E13）。打日志便于区分
+            // 「系统没发起下载请求」与「发起后已拒绝」——两者都不能写成红条通过。
+            match &event {
+                DownloadEvent::Requested { url, .. } => {
+                    eprintln!("[layress][request] 下载请求已拒绝：{url}");
+                    if let Some(app) = APP.get() {
+                        emit(
+                            app,
+                            PageEvent::Request {
+                                kind: "download".to_string(),
+                                url: url.to_string(),
+                                action: "denied".to_string(),
+                            },
+                        );
+                    }
                 }
+                _ => eprintln!("[layress][request] 收到非 Requested 下载事件（未放行下载）"),
             }
             false
         })
         .on_permission_request(|_webview, kind| {
+            eprintln!("[layress][request] 设备权限请求已拒绝：{kind:?}");
             // 设备权限一律拒绝（E13）
             if let Some(app) = APP.get() {
                 emit(
@@ -473,6 +502,9 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
             LogicalSize::new(w, h),
         )
         .map_err(|e| format!("创建被测页面视图失败：{e}"))?;
+    // 页面是此时才 add_child 的，会盖住启动期创建的状态栏；立刻把状态栏提回最上层，
+    // 否则窗口缩小后底部 42px 的红条会被页面埋掉（用户 2026-11-14 复验发现）。
+    bring_status_to_front(app);
     emit_viewport(app);
     Ok(())
 }

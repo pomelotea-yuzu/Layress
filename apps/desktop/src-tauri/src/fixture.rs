@@ -79,8 +79,10 @@ fn ok_html(body: &str) -> Vec<u8> {
 
 fn download_response() -> Vec<u8> {
     let body = "Layress 下载触发样例（E13）：此请求应被工具明确拒绝，不应写入任何下载目录。\n";
+    // 必须是 WKWebView 无法显示的类型：text/plain 会被当作普通页面直接渲染，
+    // 根本不进入 wry 的下载 delegate ⇒ on_download 不触发，负例测不到「明确拒绝」。
     format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {len}\r\nContent-Disposition: attachment; filename=\"layress-fixture.txt\"\r\nConnection: close\r\n\r\n{body}",
+        "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len}\r\nContent-Disposition: attachment; filename=\"layress-fixture.txt\"\r\nConnection: close\r\n\r\n{body}",
         len = body.len()
     )
     .into_bytes()
