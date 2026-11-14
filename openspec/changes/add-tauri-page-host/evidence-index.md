@@ -4,7 +4,7 @@
 > **2.2 无效地址负例于 2026-11-13 经用户人工复验通过并勾选**（8 条中 7 条符合预期，第 2 条错因归因错误已修并加单测；
 > 修后文案同日由用户 GUI 复验通过，原单列项已销账，详见下节）；
 > 3.x 真机探针取得 PNG 与版本化元数据，**3.1 / 3.2 / 3.3 全部经用户人工复验通过并勾选**
-> （竞态负例经慢采开关与底部结果条补齐后于 11:53 确认）；4.x 中 4.1 / 4.3 / 4.4 于 2026-11-13 15:42 经用户人工复验通过并勾选，4.2 已按 D30 移出本 change 范围（见下节）；5.1 已完成并登记 Gitee CI 首次失败回显；**5.2 已完成并勾选（2026-11-14，四轮人工复验）**：A/B/C 与 D 全部通过，期间发现并修复两个真缺陷（状态栏被页面遮挡、下载夹具未触发 `on_download`）与一个页面反馈缺口（geo 无回调时空白）；地理位置最终由 **WebKit 系统层明确拒绝（error code 1 "User denied Geolocation"）、权限未授予**，应用层 `on_permission_request` 未被系统调用已如实单列（见「第四轮人工复验」），5.3–5.4 未开始。
+> （竞态负例经慢采开关与底部结果条补齐后于 11:53 确认）；4.x 中 4.1 / 4.3 / 4.4 于 2026-11-13 15:42 经用户人工复验通过并勾选，4.2 已按 D30 移出本 change 范围（见下节）；5.1 已完成并登记 Gitee CI 首次失败回显；**5.2 已完成并勾选（2026-11-14，四轮人工复验）**：A/B/C 与 D 全部通过，期间发现并修复两个真缺陷（状态栏被页面遮挡、下载夹具未触发 `on_download`）与一个页面反馈缺口（geo 无回调时空白）；地理位置最终由 **WebKit 系统层明确拒绝（error code 1 "User denied Geolocation"）、权限未授予**，应用层 `on_permission_request` 未被系统调用已如实单列（见「第四轮人工复验」）；**5.3 已完成（2026-11-14，本机首次 release 构建 + 体积 / 前置记录）**，5.4 未开始。
 > 实施完成状态只在 [tasks](tasks.md) 维护。
 > 下表是证据归属与未执行项，不是验收报告。
 
@@ -394,6 +394,53 @@ E13 该项仍按「系统回调未验证」如实单列，**不造红条凑通�
 A / B / C、D 的其余项全部通过；第四轮（12:19）地理位置由 WebKit 系统层明确拒绝、权限未授予，**闭环并勾选 5.2**。
 应用层权限回调路径单列「未执行」（见四类分列），不汇总为通过（I11 / E14）。
 
+## 任务 5.3 本机开发运行与首个本地构建记录（2026-11-14）
+
+> 判据：记录真实大小、WebView 前置依赖及限制（E12、E14）。不要求公开发布或完成整个阶段；
+> 打包产物的**运行验证与写盘观测仍归发行轮（D30）**，本节只记录构建事实，不宣称便携。
+
+### 首个本地 release 构建（2026-11-14，本机 macOS 27.2.1 / arm64）
+
+| 命令 | 结果 |
+|---|---|
+| `pnpm -C apps/desktop tauri build`（首次） | release 编译 **23.69s** 成功（含前端 `pnpm build`）；打 .app 阶段失败：`Failed to create app icon: No matching IconType` |
+| `pnpm -C apps/desktop tauri icon src-tauri/icons/icon.png` | 退出码 0，生成全套图标；保留桌面子集，删除 android / ios / Square* / StoreLogo（移动与商店专用，可再生成） |
+| `pnpm -C apps/desktop tauri build`（修复后） | `Layress.app` 打包成功；DMG 步骤失败：`hdiutil: create failed - 操作不被允许`（沙箱拦 `/Volumes` 挂载，沙箱外重跑仍被拦） |
+| `node scripts/check-repo.mjs --all` | 退出码 0：洁净度含 6 个新图标文件 0 失败 / 0 警告、13 项单测通过、构建 / 类型检查通过 |
+| `openspec validate add-tauri-page-host --strict` | 退出码 0 |
+
+**产物与体积（本机实测，`du` / `ls -lh` 回显）**：
+
+| 对象 | 大小 |
+|---|---|
+| release 二进制 `target/release/layress-desktop`（Mach-O arm64） | **10M**（debug 34M） |
+| `target/release/bundle/macos/Layress.app` 整包 | **10M**（二进制占绝大部分，Resources 为 icns 图标） |
+| `src-tauri/target/`（dev + release 编译缓存，不入库） | **4.9G** |
+| 根 `node_modules`（pnpm workspace，不入库） | **57M** |
+| `.git`（size-pack） | **873 KiB** |
+| 仓库工作树（不含 node_modules / target / .git） | **6.1M** |
+
+**首次构建拦路的一个真坑（已修并回填 [engineering](../../../docs/knowledge/engineering.md)）**：
+`bundle.icon` 只列一张 1024×1024 RGBA PNG（规格合法）仍报 `No matching IconType` ⇒ macOS bundler
+生成 .icns 需要能逐个映射 IconType 的**完整图标集**；`pnpm tauri icon` 生成全套后保留桌面六件套，
+`tauri.conf.json` 逐个列出，[allowlist](../../../.git-hygiene-allowlist) 理由同步更新。
+
+### WebView 前置依赖（按平台分列，不混写）
+
+| 平台 | 前置 | 状态 |
+|---|---|---|
+| macOS arm64（本机） | WKWebView 为**系统自带**，无额外运行时下载；编译需 Xcode CLT（Apple clang 21.0.0）、rustup 1.99.1（rsproxy 镜像）、Node 22.22.2 / pnpm 12.18.0；非持久会话由 `incognito` 提供，`data_directory` 在 WKWebView 不可用（design 已核对） | **已实跑** |
+| Linux（CI ubuntu） | `libwebkit2gtk-4.1-dev`、`libxdo-dev`、`libssl-dev`、`libayatana-appindicator3-dev`、`librsvg2-dev`（`.workflow/ci.yml` 与 GitHub workflow 已列） | 配置已写，**容器实测待 push 回显** |
+| Windows | WebView2 Runtime（系统组件）；wry 同步回调 / 命令中创建 WebView 可能死锁（design 已登记 API 限制） | **未验证** |
+
+### 限制与单列（E14，不汇总为通过）
+
+- **DMG 未产出**：`hdiutil create` 被沙箱拒（「操作不被允许」），属环境阻塞；`.app` 产物为本机构建记录对象。DMG 可由用户真实终端执行同一命令产出。
+- **打包产物未运行验证**：`Layress.app` 未做启动 / 操作 / 写盘观测——按 D30 归发行轮，本节不宣称便携。
+- **构建产物未签名**：macOS 无签名 / 公证步骤（当前无分发要求），如实记录。
+- Windows / Linux 本机构建、移动端均未验证；非 macOS 无原生快照实现（沿用既有单列）。
+- 体积为**开发机构建**事实，不代表发行形态：未 strip / 未做产物裁剪 / 未含安装器。
+
 ## Agent 审阅与提交状态
 
 2026-11-10 用户要求撤回最近的工具记录提交 `4b64372`，已保留全部文件改动，共享 OpenSpec 安装与下述校验事实仍有效。
@@ -430,7 +477,7 @@ A / B / C、D 的其余项全部通过；第四轮（12:19）地理位置由 Web
 | E09 | 不可写数据根必须失败，不兜底 | 输入目录条件、可写检查与错误，无关目录未改变的观测 | 通过（2026-11-13 用户人工复验 A/B/C 三档：启动可见、自定义根生效、不可写明确失败且不回落；另有 2 项单测与启动状态栏显示） |
 | E10 | 非持久模式也要验证越界写入；已知坏样本必须检出，不完整观测不能通过 | 观测工具 / 权限与覆盖范围、正反对照、进程 / 时间归因、前后差异、排除无关活动依据，方法见下节 | **移出本 change 范围（2026-11-13 方案 A / D30）**：归首次打包后的发行轮 change；本 change 不宣称便携通过，E10 观测方法保留供发行轮复用 |
 | E11 | 退出取消采集并释放资源 | 进程 / 资源与重启观察、残留情况 | 通过（2026-11-13 用户人工复验：慢采期间关窗口本次未落盘、旧图保留、数据根外无改动、重启正常；代码只清理数据根内探针残留） |
-| E12 | 本地与 CI 共用检查，平台结果不混写 | 实际命令、退出码、平台适用范围、本地构建大小及依赖成本 | 部分（本机通过 / CI 分列）：5.1 已把构建 / 类型 / 13 项单测接入 `check-repo.mjs` 公共链，本机 macOS arm64 全绿（含失败传播自测）；2026-11-14 本轮复跑 `--all` 退出码 0、OpenSpec strict validate 1 通过 / 0 失败。**CI 首次回显**：GitHub ubuntu 用户回显通过（无原始日志）；Gitee Go 因缺 cargo 失败（exit 255），已补 `.workflow/ci.yml` 工具链、复验待用户 push；Windows 未验证 |
+| E12 | 本地与 CI 共用检查，平台结果不混写 | 实际命令、退出码、平台适用范围、本地构建大小及依赖成本 | 完成（本机侧）：5.1 已把构建 / 类型 / 13 项单测接入 `check-repo.mjs` 公共链，本机 macOS arm64 全绿；**5.3 已记录首个本地 release 构建**（.app 10M / 二进制 10M / target 4.9G / node_modules 57M）与三平台 WebView 前置（见「任务 5.3」节）。CI 侧分列：GitHub ubuntu 用户回显通过（无原始日志）；Gitee Go 因缺 cargo 失败，已补 `.workflow/ci.yml`、复验待用户 push；Windows 未验证 |
 | E13 | 页面新窗口 / 下载 / 设备权限请求受到明确处理 | 触发样例、请求类型、允许 / 拒绝理由、顶层窗口 / 文件 / 权限的实际变化 | 通过（11-11 用户人工复验三负例 + 11-14 二至四轮：`window.open` / 下载红条与日志、地理位置系统层拒绝 code 1 权限未授予；应用层权限回调未被系统调用已单列） |
 | E14 | 未执行、失败、不确定与通过分开记录 | 规格场景与证据编号对照、各平台 / 人工项的实际状态，验证缺失项不能被汇总为通过 | 完成（2026-11-14）：15 个规格场景对照表与四类分列见「任务 5.2」节；四轮人工复验后 A/B/C/D 全部通过、两真缺陷修后复验有效、地理位置系统层拒绝闭环；应用层权限回调路径等未执行项如实单列，5.2 已勾选 |
 

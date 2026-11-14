@@ -31,8 +31,8 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | 1.x–4.x 均完成并经用户人工复验（4.2 按 D30 移出、归发行轮）；5.1 门禁接入完成（本机全绿，CI 回显分列见 evidence-index）；**5.2 已完成并勾选（2026-11-14 四轮人工复验）**：A/B/C/D 全部通过，期间修复状态栏被页面遮挡与下载夹具未触发回调两个真缺陷；地理位置由 WebKit 系统层明确拒绝（code 1）、权限未授予 ⇒ E13 闭环，应用层权限回调未被系统调用如实单列；5.3–5.4 未开始 |
-| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：15/17 已勾选（1.x–4.x 除 4.2 + 5.1/5.2）；4.2 按 D30 移出；5.3–5.4 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
+| 阶段 | 1.x–4.x 均完成并经用户人工复验（4.2 按 D30 移出、归发行轮）；5.1 门禁接入完成（本机全绿，CI 回显分列见 evidence-index）；5.2 已完成并勾选（2026-11-14 四轮人工复验）：A/B/C/D 全部通过，期间修复状态栏被页面遮挡与下载夹具未触发回调两个真缺陷；地理位置由 WebKit 系统层明确拒绝（code 1）、权限未授予 ⇒ E13 闭环，应用层权限回调未被系统调用如实单列；**5.3 已完成并勾选（2026-11-14）：首次本机 release 构建产出 `Layress.app`（10M），体积 / WebView 前置 / 限制登记于 evidence-index「任务 5.3」；DMG 被沙箱拦单列、产物运行验证归发行轮**；5.4 未开始 |
+| 活动 change | [add-tauri-page-host](openspec/changes/add-tauri-page-host/proposal.md)（[tasks](openspec/changes/add-tauri-page-host/tasks.md)：16/17 已勾选（1.x–4.x 除 4.2 + 5.1–5.3）；4.2 按 D30 移出；仅 5.4 未完成；证据见 [evidence-index](openspec/changes/add-tauri-page-host/evidence-index.md)） |
 | 代码 | `apps/desktop/`：单窗口三 WebView（工具条 / 被测页面 / 底部状态栏）、HTTP(S) 导航与可达性预检、视口设定与实测哨兵、WKWebView 视图级快照 + `layress.capture/v1` 元数据、采集竞态状态机（13 项单测）、平移式原地预览与原图坐标自检、数据根解析 / 可写检查、开发期探针与慢采开关、内嵌样例服务与权限负例；5.2 把全部操作反馈收敛到 `showStatusBar`（I15，第三行只作兜底），补 E04 / E13 红条、视口信号去重与工具层版本徽标（含门禁一致性断言）；Gitee `.workflow/ci.yml` 补 Rust / pnpm / WebView 前置。细节见 [app README](apps/desktop/README.md) |
 | 发行 | 无产品发行。本地提交不 push、不打 tag；push 状态不能沿用旧计数：`git fetch --all && git log --oneline '@{u}'..main`，并用 `git ls-remote` 逐端核对（远程名以 `git remote -v` 为准） |
 

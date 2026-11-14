@@ -12,4 +12,4 @@
 
 # ── 当前豁免 ──────────────────────────────────────────────────
 artifacts/README.md  # 一次性产物目录的占位说明，例外于垃圾场路径黑名单；内容不含运行证据
-apps/desktop/src-tauri/icons/**  # Tauri bundle.icon 引用的应用必需图标；当前为占位图，正式设计后原路径替换，size=2M
+apps/desktop/src-tauri/icons/**  # Tauri bundle.icon 引用的应用必需图标集（`pnpm tauri icon` 生成，桌面子集：32/128/128@2x/icns/ico/1024 源图）；正式设计后可原路径替换，size=2M
