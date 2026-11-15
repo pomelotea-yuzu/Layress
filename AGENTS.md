@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **项目与设备记忆规划审阅已闭环（2026-11-14）**：另一 Agent 的 4 项 P1 / 11 项 P2 已由编写者修订文档并逐条记录处置；OpenSpec strict 与实际暂存快照门禁通过，16 项产品任务全未执行。上一页面承载增量已归档，D30 仍归发行轮 |
+| 阶段 | **项目与设备记忆规划审阅已闭环（2026-11-14）**：另一 Agent 的 4 项 P1 / 11 项 P2 已由编写者修订文档并逐条记录处置；OpenSpec strict 与实际暂存快照门禁通过，16 项产品任务全未执行。2026-11-15 处理 Gitee CI 第二次失败回显并修配置（云端复验待用户 push）；上一页面承载增量已归档，D30 仍归发行轮 |
 | 活动 change | [add-project-device-profiles](openspec/changes/add-project-device-profiles/proposal.md)：[review](openspec/changes/add-project-device-profiles/review.md) 原有条件结论及编写者处置均保留；新能力与宿主数据根两份 delta、28 场景 / 16 任务齐备，已满足 D26 本地提交前置，产品尚未实施 |
-| 代码 | 沿用已归档 `add-tauri-page-host` 的页面承载 / 采集；本轮仅处理规划 review，既有 13 项单测实跑通过。新增配置与交互均未实施；详见 [app README](apps/desktop/README.md) |
-| 发行 | 无产品发行；已有首次本机 `Layress.app` 构建，打包产物运行与真实写盘观测归发行轮。本轮按 D26 处理意见并本地提交，不 push、不打 tag，未核查远程同步状态 |
+| 代码 | 沿用已归档 `add-tauri-page-host` 的页面承载 / 采集；规划 review 后本轮只改 `.workflow/ci.yml` 与状态 / 经验文档，产品源码未动，本机 `check-repo.mjs --all` 实跑 13/13 通过。新增配置与交互均未实施；详见 [app README](apps/desktop/README.md) |
+| 发行 | 无产品发行；已有首次本机 `Layress.app` 构建，打包产物运行与真实写盘观测归发行轮。本轮按 D26 处理意见并本地提交，不 push、不打 tag，未核查远程同步状态；Gitee 云端复验待用户 push |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；
@@ -82,7 +82,7 @@ node scripts/check-i18n.mjs --links     # 单查全库 Markdown 本地目标路�
 
 任务 5.1 起，`check-repo.mjs` 默认链已含 `check-build.mjs`（前端构建 / 类型、Rust 编译、13 项单测与失败传播自测），
 pre-commit（`--staged`）与 CI（`--all`）跑同一条链；构建类检查在真实检出目录执行（`--staged` 索引快照不含依赖缓存）。
-平台适用范围：本机 macOS arm64 已实跑；CI 首次回显分列 —— GitHub ubuntu 用户回显通过（无原始日志）、Gitee Go 因缺 cargo 失败（已补工具链、复验待用户 push）；Windows 未验证，单列不汇总。
+平台适用范围：本机 macOS arm64 已实跑（`check-repo.mjs --all` 13/13）；CI 回显分列 —— GitHub ubuntu 用户回显通过（无原始日志）；Gitee Go 两次失败：首次缺 cargo，补工具链后第二次（2026-11-14 14:51）`pnpm -v` 因 pnpm 10 自管理版本切换 ENOEXEC 挂掉，已修配置（固定 12.18.0 + 关闭切换 + 版本自证 + USTC rustup），**云端复验待用户 push**；Windows 未验证，单列不汇总。
 工作区排查用 `--all`；部分暂存的提交以 `--staged` 为准。
 
 每个克隆做一次（不做就等于没有门禁）：

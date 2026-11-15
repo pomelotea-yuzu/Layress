@@ -104,3 +104,9 @@
 - D30：打包产物运行与 WebView 全进程真实写盘观测仍归发行轮。本次仅能验证新增配置文件落点，不得宣称便携通过。
 - Windows / Linux、完整手机模拟、真机、持久登录会话、SPA 非主文档路由全面观测：本轮不承诺已支持或验证。
 - Gitee CI 修复后的首次回显待用户 push；本地运行门禁不代表 Gitee 已通过。本轮不核查远程同步、不 push 或打 tag。
+
+## 2026-11-15 补记：Gitee CI 第二次回显（不属本 change 验收）
+
+- 用户提供 2026-11-14 14:51 Gitee Go 原始日志：Node 20.19.0 与 `npm install -g pnpm@12.18.0` 均成功，`pnpm -v` 报 `Failed to switch pnpm to v12.18.0` / `spawnSync Unknown system error -8`，命令在工具链前置阶段即失败，Rust / WebView / 公共链三步都未跑到；GitHub Actions 同一提交用户回显通过。
+- 2026-11-15 已定位为容器预装 pnpm 10 抢在 12.18.0 之前并按 `packageManager` pin 自切换（受管 shim 无法被 spawn），修 `.workflow/ci.yml`：PATH 前置 npm prefix/bin、关闭 `manage-package-manager-versions`、版本自证、rustup 改 USTC 二进制、crates 用 rsproxy sparse。本机 `sh -n` 与 `check-repo.mjs --all`（13/13）通过。
+- **云端复验仍待用户 push**；E01–E10 全部未执行、16 项任务仍全未勾选，本 change 的实施与验收状态不因 CI 配置修订改变。根因与规避见 `docs/knowledge/engineering.md`，欠账行见 `docs/knowledge/debt.md`。
