@@ -31,9 +31,9 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **项目与设备记忆规划审阅已闭环（2026-11-14）**：另一 Agent 的 4 项 P1 / 11 项 P2 已由编写者修订文档并逐条记录处置；OpenSpec strict 与实际暂存快照门禁通过，16 项产品任务全未执行。2026-11-15 处理 Gitee CI 第二次失败回显并修配置（云端复验待用户 push）；上一页面承载增量已归档，D30 仍归发行轮 |
-| 活动 change | [add-project-device-profiles](openspec/changes/add-project-device-profiles/proposal.md)：[review](openspec/changes/add-project-device-profiles/review.md) 原有条件结论及编写者处置均保留；新能力与宿主数据根两份 delta、28 场景 / 16 任务齐备，已满足 D26 本地提交前置，产品尚未实施 |
-| 代码 | 沿用已归档 `add-tauri-page-host` 的页面承载 / 采集；规划 review 后本轮只改 `.workflow/ci.yml` 与状态 / 经验文档，产品源码未动，本机 `check-repo.mjs --all` 实跑 13/13 通过。新增配置与交互均未实施；详见 [app README](apps/desktop/README.md) |
+| 阶段 | **项目与设备记忆规划审阅已闭环（2026-11-14）**：另一 Agent 的 4 项 P1 / 11 项 P2 已由编写者修订文档并逐条记录处置；OpenSpec strict 与实际暂存快照门禁通过。2026-11-15 修 Gitee CI 第二次失败回显（按用户要求暂不 push 验证）并**启动实施轮**：1.2 纯配置模型层、1.3 文件存储模块落地；1.1 已把模型 / 存储接入宿主与 Tauri 命令、新增项目设置面板（徽标 `v20261115-2`）；首轮人工复验发现 Tauri 命令参数映射错误，已修并加门禁断言；1.1 人工复验通过并勾选；**0.1 布局可行性前置经 r3 实机 + 人工三句通过并勾选**（业务仲裁归 3.4、未执行），其余 14 项未勾选；上一页面承载增量已归档，D30 仍归发行轮 |
+| 活动 change | [add-project-device-profiles](openspec/changes/add-project-device-profiles/proposal.md)：[review](openspec/changes/add-project-device-profiles/review.md) 原有条件结论及编写者处置均保留；新能力与宿主数据根两份 delta、28 场景 / 16 任务齐备，已满足 D26 本地提交前置，产品实施仅到模型层与 0.1 布局验证 |
+| 代码 | 沿用已归档 `add-tauri-page-host` 的页面承载 / 采集；新增 `src/project_config.rs` 配置模型 / 校验 / 8 个错误码 + 14 项单测，`lib.rs` 加模块声明、`validate_url` 可见性与 debug-only 的 0.1 布局探针（r3：回显带 `probe=r3`、自动打开样例页、自动缩窗），新增 `src/config_store.rs` 配置落盘 / 独占锁 / 串行写 / 原子替换 + 9 项单测（含真实子进程双实例与中断），1.1 已接 `config_state` / `config_create_project` / `config_rename_project` / `settings_enter` / `settings_exit` 命令与结构化错误，工具层加设置面板并把徽标递增到 `v20261115-2`（`index.html` 的 `data-build` 同轮同步；首轮复验参数修复后再次递增）；`check-repo.mjs --all` 实跑 41/41、`cargo check --release` 退出码 0。详见 [app README](apps/desktop/README.md) |
 | 发行 | 无产品发行；已有首次本机 `Layress.app` 构建，打包产物运行与真实写盘观测归发行轮。本轮按 D26 处理意见并本地提交，不 push、不打 tag，未核查远程同步状态；Gitee 云端复验待用户 push |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
@@ -82,7 +82,7 @@ node scripts/check-i18n.mjs --links     # 单查全库 Markdown 本地目标路�
 
 任务 5.1 起，`check-repo.mjs` 默认链已含 `check-build.mjs`（前端构建 / 类型、Rust 编译、13 项单测与失败传播自测），
 pre-commit（`--staged`）与 CI（`--all`）跑同一条链；构建类检查在真实检出目录执行（`--staged` 索引快照不含依赖缓存）。
-平台适用范围：本机 macOS arm64 已实跑（`check-repo.mjs --all` 13/13）；CI 回显分列 —— GitHub ubuntu 用户回显通过（无原始日志）；Gitee Go 两次失败：首次缺 cargo，补工具链后第二次（2026-11-14 14:51）`pnpm -v` 因 pnpm 10 自管理版本切换 ENOEXEC 挂掉，已修配置（固定 12.18.0 + 关闭切换 + 版本自证 + USTC rustup），**云端复验待用户 push**；Windows 未验证，单列不汇总。
+平台适用范围：本机 macOS arm64 已实跑（`check-repo.mjs --all` 41/41 lib 单测、`cargo check --release` 退出码 0）；CI 回显分列 —— GitHub ubuntu 用户回显通过（无原始日志）；Gitee Go 两次失败：首次缺 cargo，补工具链后第二次（2026-11-14 14:51）`pnpm -v` 因 pnpm 10 自管理版本切换 ENOEXEC 挂掉，已修配置（固定 12.18.0 + 关闭切换 + 版本自证 + USTC rustup），**云端复验待用户 push**；Windows 未验证，单列不汇总。
 工作区排查用 `--all`；部分暂存的提交以 `--staged` 为准。
 
 每个克隆做一次（不做就等于没有门禁）：

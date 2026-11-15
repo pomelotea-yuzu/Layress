@@ -122,11 +122,40 @@ function checkFixtureInvariants() {
   return ok;
 }
 
+/** Tauri 2 会把 Rust 命令的 snake_case 参数映射为前端 camelCase 键。
+ *  2026-11-15 1.1 首轮人工复验报 `missing required key startUrl` ⇒ 前端误传 `start_url`，
+ *  把「靠记性记参数名」升级成构建门禁断言，避免下次改回去又只靠 GUI 发现。 */
+function checkCommandArgs() {
+  const ts = fs.readFileSync(path.join(ROOT, 'apps', 'desktop', 'src', 'main.ts'), 'utf8');
+  const rs = fs.readFileSync(path.join(ROOT, 'apps', 'desktop', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+  const invokeBlock = /invoke<ConfigStateView>\("config_create_project",\s*\{([\s\S]*?)\}\)/.exec(ts)?.[1] ?? '';
+  const checks = [
+    [
+      'Rust 命令参数保持 snake_case',
+      rs.includes('start_url: String') && rs.includes('preset_id: String'),
+    ],
+    [
+      '前端 invoke 使用 camelCase 键',
+      /\bstartUrl\b/.test(invokeBlock) && /\bpresetId\b/.test(invokeBlock),
+    ],
+    [
+      '前端不再传 snake_case 键',
+      !/\bstart_url\s*:/.test(invokeBlock) && !/\bpreset_id\s*:/.test(invokeBlock),
+    ],
+  ];
+  let ok = true;
+  for (const [name, pass] of checks) {
+    console.log(`[check-build] ${pass ? '✓' : '✗'} 命令参数不变量：${name}`);
+    if (!pass) ok = false;
+  }
+  return ok;
+}
+
 function main() {
   console.log(
     `Layress 构建门禁 · 模式 ${SELFTEST ? 'selftest' : 'all'} · ${process.platform}/${process.arch} · Node ${process.version}`,
   );
-  if (!SELFTEST && (!checkBuildTag() || !checkFixtureInvariants())) process.exit(1);
+  if (!SELFTEST && (!checkBuildTag() || !checkFixtureInvariants() || !checkCommandArgs())) process.exit(1);
   const steps = SELFTEST
     ? [
         { name: '正例：恒成功命令应通过', cmd: process.execPath, args: ['-e', 'process.exit(0)'], cwd: ROOT },

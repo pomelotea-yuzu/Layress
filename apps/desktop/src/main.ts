@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261114-2";
+const BUILD_TAG = "v20261115-2";
 
 interface MeasuredViewport {
   w: number;
@@ -186,6 +186,119 @@ function showStatusBar(text: string, level: ToastLevel): void {
     console.error("[layress] 状态栏更新失败：", e);
   });
   statusLine.textContent = text; // 工具层状态行留一份兜底（第三行受 64px 视口限制，不依赖它）
+}
+
+// ── 任务 1.1：项目配置状态与设置面板 ─────────────────────────────
+
+interface ConfigProjectView {
+  id: string;
+  name: string;
+  startUrl: string;
+  lastLoadedUrl: string | null;
+  presetId: string;
+  width: number;
+  height: number;
+}
+
+interface ConfigStateView {
+  revision: number;
+  activeProjectId: string | null;
+  projects: ConfigProjectView[];
+  writable: boolean;
+  dataRoot: string;
+  error: { code: string; message: string } | null;
+}
+
+// 新增 DOM 一律可选获取：旧窗口 HTML 与 Vite HMR 不同步时降级，不让整个脚本崩掉。
+const settingsPanel = document.getElementById("settings");
+const settingsState = document.getElementById("settings-state");
+const settingsList = document.getElementById("settings-list");
+const settingsName = document.getElementById("settings-name") as HTMLInputElement | null;
+const settingsUrl = document.getElementById("settings-url") as HTMLInputElement | null;
+const settingsPreset = document.getElementById("settings-preset") as HTMLSelectElement | null;
+const btnSettings = document.getElementById("btn-settings") as HTMLButtonElement | null;
+
+/** 结构化错误：Rust 返回 { code, message }；普通 String 错误也兼容。 */
+function commandErrorText(e: unknown): string {
+  if (e && typeof e === "object") {
+    const obj = e as { code?: unknown; message?: unknown };
+    if (typeof obj.code === "string" && typeof obj.message === "string") {
+      return `${obj.code}：${obj.message}`;
+    }
+    if (typeof obj.message === "string") return obj.message;
+  }
+  return String(e);
+}
+
+/** 只渲染 Rust 返回的「已保存状态」，不做乐观展示。 */
+function renderConfig(view: ConfigStateView): void {
+  if (btnSettings) {
+    const active = view.projects.find((p) => p.id === view.activeProjectId);
+    btnSettings.textContent = view.error
+      ? "项目：配置错误"
+      : `项目：${active ? active.name : "无"}`;
+  }
+  if (settingsState) {
+    settingsState.textContent = view.error
+      ? `配置不可用（${view.error.code}）：${view.error.message}`
+      : `已保存 ${view.projects.length} 个项目 · revision ${view.revision} · ${view.writable ? "可写" : "只读"}`;
+  }
+  if (settingsList) {
+    settingsList.textContent = view.projects.length
+      ? view.projects
+          .map((p) => `${p.name}（${p.startUrl} · ${p.presetId} ${p.width}×${p.height}）`)
+          .join("；")
+      : "尚无项目记录；临时浏览不会自动记忆";
+  }
+}
+
+async function refreshConfig(): Promise<void> {
+  try {
+    renderConfig(await invoke<ConfigStateView>("config_state"));
+  } catch (e) {
+    showStatusBar(`✗ 读取项目配置失败：${commandErrorText(e)}`, "error");
+  }
+}
+
+async function openSettings(): Promise<void> {
+  try {
+    const view = await invoke<ConfigStateView>("settings_enter");
+    renderConfig(view);
+    settingsPanel?.classList.add("show");
+  } catch (e) {
+    showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
+  }
+}
+
+async function closeSettings(): Promise<void> {
+  try {
+    await invoke("settings_exit");
+    settingsPanel?.classList.remove("show");
+    await refreshConfig();
+  } catch (e) {
+    showStatusBar(`✗ 关闭设置失败：${commandErrorText(e)}`, "error");
+  }
+}
+
+async function saveProject(): Promise<void> {
+  const name = settingsName?.value ?? "";
+  const startUrl = settingsUrl?.value ?? "";
+  const presetId = settingsPreset?.value ?? "desktop";
+  showStatusBar("正在保存项目配置 …", "pending");
+  try {
+    const view = await invoke<ConfigStateView>("config_create_project", {
+      name,
+      // Tauri 2 把 Rust 命令的 snake_case 参数映射为前端 camelCase；写成 snake_case 键会报 missing required key。
+      startUrl,
+      presetId,
+    });
+    renderConfig(view);
+    if (settingsName) settingsName.value = "";
+    if (settingsUrl) settingsUrl.value = "";
+    showStatusBar(`✓ 项目已保存：${name.trim()} · revision ${view.revision}`, "ok");
+  } catch (e) {
+    showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
+  }
 }
 
 // ── 导航与视口（任务 2.x）────────────────────────────────────────
@@ -475,6 +588,9 @@ function bindUi(): void {
   });
   assertElement<HTMLButtonElement>("btn-refresh").addEventListener("click", () => void refresh());
   assertElement<HTMLButtonElement>("btn-sample").addEventListener("click", () => void openSample());
+  btnSettings?.addEventListener("click", () => void openSettings());
+  document.getElementById("settings-save")?.addEventListener("click", () => void saveProject());
+  document.getElementById("settings-cancel")?.addEventListener("click", () => void closeSettings());
   assertElement<HTMLButtonElement>("btn-size").addEventListener("click", () => void applySize());
   assertElement<HTMLButtonElement>("btn-capture").addEventListener("click", () => void capture());
   assertElement<HTMLButtonElement>("btn-cancel").addEventListener("click", () => void cancelCapture());
@@ -627,6 +743,7 @@ async function main(): Promise<void> {
   bindUi();
   await subscribeEvents();
   await loadInitialState();
+  await refreshConfig();
   viewportLine.textContent = "视口：尚未打开页面";
   // 旧窗口 + 刚更新的脚本会出现「HTML 还是旧版」：此时版本徽标、慢采开关都不存在。
   // 与其让用户看到空白状态行，不如在状态栏直接给出重启指引（该通道已由 A 组复验证明可用）。

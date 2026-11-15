@@ -1,9 +1,9 @@
 # 第一阶段计划提案：单窗口体验与现场记录
 
-> 日期：2026-11-10，状态更新于 2026-11-14。**Tauri 已确定，页面承载首增量已归档；项目与设备记忆已授权建档、尚未实施；其他范围仍为待审阅提案**。
+> 日期：2026-11-10，状态更新于 2026-11-14。**Tauri 已确定，页面承载首增量已归档；项目与设备记忆已授权建档并于 2026-11-15 进入实施轮（0.1 布局可行性已验证、配置模型层已落地，其余未实施）；其他范围仍为待审阅提案**。
 > 依据：[产品方向](product.md)、[六阶段路线图](roadmap.md)与[体验讨论记录](2026-11-10-stage-one-experience-and-access.md)。
 > 用户明确要求从 Electron 候选转为 Tauri（D25），本计划已同步；具体版本、WebView 承载 / 采集方案与包划分留待实现设计，本轮仅改文档。
-> 增量入口：首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 实施完成并归档；第二个 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)于同日按用户指令建档，后经另一 Agent 审阅并由编写者修订，尚未实施。其余阶段范围仍按本提案逐步确定。
+> 增量入口：首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 实施完成并归档；第二个 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)于同日按用户指令建档，后经另一 Agent 审阅并由编写者修订；2026-11-15 起进入实施轮，0.1 布局可行性已实机验证并勾选、1.2 配置模型层已落地，其余任务未实施。其余阶段范围仍按本提案逐步确定。
 
 ## 阶段目标
 
@@ -83,7 +83,7 @@ Tauri 系统 WebView 未必支持相同的模拟项，界面按实际能力区�
 | 4 · 记录与手动补拍 | 反馈列表、详情、补充说明、按原条件打开、补拍与前后查看、复制摘要 | 同一问题从发现到修改后查看可一直使用同一条记录 |
 | 5 · 日常试用与收尾 | 换普通真实项目试用，处理失败 / 恢复、检查便携存储、生成本机可运行包并记录体积 | 可试用应用、简短上手与限制说明、包体积 / 资源观测和逐项验收记录 |
 
-首个增量 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 实施完成并归档，规格合入主规格；第二个增量 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)覆盖项目 / 地址与视口配置记忆，经另一 Agent 审阅并修订规划，尚未实施。各自技术方案、任务和证据留在对应 change；本提案不替代实施结果。
+首个增量 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 实施完成并归档，规格合入主规格；第二个增量 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)覆盖项目 / 地址与视口配置记忆，经另一 Agent 审阅并修订规划；2026-11-15 起 0.1 布局可行性已验证并勾选、配置模型层已落地，完整 UI 未实施。各自技术方案、任务和证据留在对应 change；本提案不替代实施结果。
 工程采用 Tauri 的 Rust 原生层与 TypeScript strict 前端，前端使用 pnpm；具体版本、UI 框架、任务核心与 CLI 的语言边界由实现设计确定，不预设仅用 Node.js 的核心或另一套重复任务记录。
 新增 Rust / 前端构建、类型和必要行为测试接入现有公共门禁，保持本地与 CI 同链；视觉、焦点和交互另做人工复核。本轮不安装 Rust / Tauri 或产品依赖。
 

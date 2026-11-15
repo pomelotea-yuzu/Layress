@@ -30,7 +30,7 @@ Tauri 使用系统 WebView，具体采集与模拟能力按平台实测公布，
 ## 📌 当前状态
 
 - 没有可安装产品、npm 发行包或 tag。首个 change [add-tauri-page-host](openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已实施并归档：单窗口三 WebView（工具条 / 被测页面 / 状态栏）、HTTP(S) 导航与权限隔离、基础视口、WKWebView 真实截图与原地预览、便携数据根；能力口径见 [`openspec/specs/desktop-page-host/`](openspec/specs/desktop-page-host/spec.md)。
-- 当前已敲定[产品方向与使用方式](docs/product/product.md)、Tauri 载体和[正式开发路线图](docs/product/roadmap.md)；下一增量 [add-project-device-profiles](openspec/changes/add-project-device-profiles/proposal.md)已授权建档，覆盖项目 / 地址与视口配置记忆，经另一 Agent 审阅并修订规划，尚未实施；[第一阶段计划](docs/product/2026-11-10-stage-one-plan.md)其他范围另行确定。
+- 当前已敲定[产品方向与使用方式](docs/product/product.md)、Tauri 载体和[正式开发路线图](docs/product/roadmap.md)；下一增量 [add-project-device-profiles](openspec/changes/add-project-device-profiles/proposal.md)已授权建档，覆盖项目 / 地址与视口配置记忆，经另一 Agent 审阅并修订规划；2026-11-15 起 0.1 布局可行性已实机验证并勾选、配置模型层已落地，完整 UI 未实施；[第一阶段计划](docs/product/2026-11-10-stage-one-plan.md)其他范围另行确定。
 - 仓库现有资产包括文档、目录归属、公开调研与工程知识、洁净度 / 链接 / 双语 / 构建 / 单测门禁。
 - GitHub [`pomelotea-yuzu/Layress`](https://github.com/pomelotea-yuzu/Layress)为主仓库，Gitee [`yuzu-tea-duck/layress`](https://gitee.com/yuzu-tea-duck/layress)为镜像；远程同步状态以实时命令为准，智能体不 push。
 - 11-03～11-09 旧阶段资料已[封存](docs/research/2026-11-09-phase-closure.md)，可作历史参考；旧验证闸门、四模块划分和桌面平台承诺不自动恢复。

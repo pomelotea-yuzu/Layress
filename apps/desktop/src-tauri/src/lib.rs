@@ -9,16 +9,25 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod capture;
+// 任务 1.3：配置落盘 / 独占写锁 / 串行写 / 原子替换（纯模块，尚未接入启动与命令）。
+mod config_store;
 mod fixture;
+// 任务 1.2：项目配置模型 / 校验 / 稳定错误码（纯逻辑，尚未接入命令与文件存储）。
+mod project_config;
 
 use capture::{
     base64_encode, ensure_writable, persist, png_size, resolve_data_root, snapshot_png, unix_ms,
     CaptureConditions, CaptureImage, CaptureMeta, CapturePage, CaptureState, CapturedViewport,
     DataRoot, MeasuredViewport, SCHEMA,
 };
+use config_store::ConfigStore;
+use project_config::{ConfigError, PresetId, ProjectConfig};
 use serde::Serialize;
 use std::net::TcpStream;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
+#[cfg(debug_assertions)]
+use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionResponse};
 use tauri::{
@@ -96,6 +105,14 @@ struct PageHost {
     data_root_error: Mutex<Option<String>>,
     /// 采集进行中：此时视口边框必须关闭，不得混入截图
     capturing: Mutex<bool>,
+    /// 任务 1.1：启动期打开的配置存储（数据根可写且解析成功时才有）
+    config_store: OnceLock<ConfigStore>,
+    /// 配置不可用 / 损坏 / 未知版本的结构化原因；不自动重建、不回落
+    config_error: Mutex<Option<ConfigError>>,
+    /// 项目设置（编辑）模式：工具层铺满、被测层平移出视口；与预览 / 采集互斥
+    settings: Mutex<bool>,
+    /// 稳定项目 ID 的进程内序号（与毫秒时间戳组合，不作权限来源）
+    project_seq: AtomicU64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -279,14 +296,34 @@ fn bring_status_to_front(app: &AppHandle<tauri::Wry>) {
 #[cfg(not(target_os = "macos"))]
 fn bring_status_to_front(_app: &AppHandle<tauri::Wry>) {}
 
+/// 任务 0.1 探针期间保持铺满：窗口 Resized 会触发 relayout，若不覆盖状态就会把
+/// 工具层复位成 96px（首轮 full3 实测 595×96 / cssH=64 / 控件全被裁）。
+/// 产品正式实现由明确的编辑/预览模式状态承担同样的职责；这里只是 debug 探针的等价占位。
+#[cfg(debug_assertions)]
+static LAYOUT_PROBE_FULL: AtomicBool = AtomicBool::new(false);
+
+#[cfg(debug_assertions)]
+fn layout_probe_holds_full() -> bool {
+    LAYOUT_PROBE_FULL.load(Ordering::Relaxed)
+}
+
+#[cfg(not(debug_assertions))]
+fn layout_probe_holds_full() -> bool {
+    false
+}
+
 fn relayout(app: &AppHandle<tauri::Wry>) {
-    // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）
-    let preview = app
-        .state::<PageHost>()
+    // 显式重排：工具条固定顶部，页面按设定或跟随窗口（E04 不静默改视口）。
+    // 预览 / 项目设置 / 0.1 探针都要求工具层铺满，缩窗触发 relayout 时也必须保持。
+    let host = app.state::<PageHost>();
+    let settings = host.settings.lock().map(|s| *s).unwrap_or(false);
+    let preview = host
         .captures
         .lock()
         .map(|s| s.preview)
-        .unwrap_or(false);
+        .unwrap_or(false)
+        || settings
+        || layout_probe_holds_full();
     apply_layout(app, preview);
 }
 
@@ -511,7 +548,9 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
 
 // ── 地址校验与可达性 ─────────────────────────────────────────────
 
-fn validate_url(raw: &str) -> Result<Url, String> {
+/// 宿主与配置模型共用的 HTTP(S) 地址校验；`project_config` 也走这里，
+/// 避免配置里的 URL 与导航地址出现两套边界。
+pub(crate) fn validate_url(raw: &str) -> Result<Url, String> {
     let raw = raw.trim();
     if raw.is_empty() {
         return Err("地址为空".to_string());
@@ -751,6 +790,17 @@ async fn capture_start(
     app: AppHandle<tauri::Wry>,
     delay_ms: Option<u64>,
 ) -> Result<CaptureOutcome, String> {
+    // 任务 1.1 的最小模式仲裁：项目设置（编辑）中禁止采集。
+    // 完整仲裁表（预览→设置→返回、迟到结果隔离等）仍归任务 3.4，不在此假称已实现。
+    if app
+        .state::<PageHost>()
+        .settings
+        .lock()
+        .map(|s| *s)
+        .unwrap_or(false)
+    {
+        return Err("项目设置编辑中禁止采集；请先关闭设置".to_string());
+    }
     // 预览中重新采集：先恢复原布局，但绝不销毁 / 重载被测视图。
     let in_preview = app
         .state::<PageHost>()
@@ -1051,6 +1101,295 @@ if(m)m.textContent={text_js};if(b)b.className={level_js};}})();"
     status.eval(js).map_err(|e| format!("状态栏更新失败：{e}"))
 }
 
+// ── 任务 1.1：配置模型 / 错误码 / 存储接入 ────────────────────────
+
+/// 配置命令的结构化错误：8 个稳定 code 由 `ConfigError` 带入，前端按 code 映射中文。
+#[derive(Debug, Clone, Serialize)]
+struct CommandError {
+    code: String,
+    message: String,
+}
+
+impl From<ConfigError> for CommandError {
+    fn from(e: ConfigError) -> Self {
+        Self {
+            code: e.code_str().to_string(),
+            message: e.message,
+        }
+    }
+}
+
+fn cmd_err(code: project_config::ConfigErrorCode, message: impl Into<String>) -> CommandError {
+    CommandError::from(ConfigError::new(code, message))
+}
+
+fn preset_name(preset: PresetId) -> &'static str {
+    match preset {
+        PresetId::Desktop => "desktop",
+        PresetId::Tablet => "tablet",
+        PresetId::Phone => "phone",
+        PresetId::Custom => "custom",
+    }
+}
+
+fn parse_preset(raw: &str) -> Result<PresetId, CommandError> {
+    match raw {
+        "desktop" => Ok(PresetId::Desktop),
+        "tablet" => Ok(PresetId::Tablet),
+        "phone" => Ok(PresetId::Phone),
+        "custom" => Ok(PresetId::Custom),
+        other => Err(cmd_err(
+            project_config::ConfigErrorCode::InvalidInput,
+            format!("未知视口预设「{other}」"),
+        )),
+    }
+}
+
+/// 稳定 ID：毫秒时间戳 + 进程内序号；不含路径分隔符，绝不作为文件路径或权限来源。
+fn new_project_id(now_ms: u128, seq: u64) -> String {
+    format!("p-{now_ms}-{seq}")
+}
+
+/// 模式仲裁的最小判据：设置不与静态预览 / 采集中叠加（完整仲裁表归任务 3.4）。
+fn can_enter_settings(preview: bool, capturing: bool) -> bool {
+    !preview && !capturing
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectView {
+    id: String,
+    name: String,
+    start_url: String,
+    last_loaded_url: Option<String>,
+    preset_id: String,
+    width: u32,
+    height: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConfigStateView {
+    revision: u64,
+    active_project_id: Option<String>,
+    projects: Vec<ProjectView>,
+    writable: bool,
+    data_root: String,
+    error: Option<CommandError>,
+}
+
+fn project_view(p: &project_config::Project) -> ProjectView {
+    ProjectView {
+        id: p.id.clone(),
+        name: p.name.clone(),
+        start_url: p.start_url.clone(),
+        last_loaded_url: p.last_loaded_url.clone(),
+        preset_id: preset_name(p.viewport.preset_id).to_string(),
+        width: p.viewport.width,
+        height: p.viewport.height,
+    }
+}
+
+fn view_from_config(
+    config: &ProjectConfig,
+    writable: bool,
+    data_root: String,
+    error: Option<CommandError>,
+) -> ConfigStateView {
+    ConfigStateView {
+        revision: config.revision,
+        active_project_id: config.active_project_id.clone(),
+        projects: config.projects.iter().map(project_view).collect(),
+        writable,
+        data_root,
+        error,
+    }
+}
+
+/// 只有「已保存状态」才发布给前端：读存储里的当前模型，不采用任何乐观展示。
+fn current_view(app: &AppHandle<tauri::Wry>) -> ConfigStateView {
+    let host = app.state::<PageHost>();
+    let error: Option<CommandError> = host
+        .config_error
+        .lock()
+        .ok()
+        .and_then(|s| s.clone())
+        .map(CommandError::from);
+    let data_root = host
+        .data_root
+        .get()
+        .map(|r| r.path.to_string_lossy().to_string())
+        .unwrap_or_default();
+    match host.config_store.get() {
+        Some(store) => view_from_config(&store.config(), store.is_writable(), data_root, error),
+        None => view_from_config(
+            &ProjectConfig::empty(),
+            false,
+            data_root,
+            error.or_else(|| {
+                Some(cmd_err(
+                    project_config::ConfigErrorCode::ReadFailed,
+                    "配置存储未就绪（数据根不可用）",
+                ))
+            }),
+        ),
+    }
+}
+
+#[tauri::command]
+fn config_state(app: AppHandle<tauri::Wry>) -> ConfigStateView {
+    current_view(&app)
+}
+
+#[tauri::command]
+fn config_create_project(
+    app: AppHandle<tauri::Wry>,
+    name: String,
+    start_url: String,
+    preset_id: String,
+) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能创建项目",
+        )
+    })?;
+    let preset = parse_preset(&preset_id)?;
+    let seq = host.project_seq.fetch_add(1, Ordering::Relaxed) + 1;
+    let id = new_project_id(capture::unix_ms(), seq);
+    let mut config = store.config();
+    let expected = config.revision;
+    config
+        .create_project(&id, &name, &start_url, preset)
+        .map_err(CommandError::from)?;
+    store.commit(config, expected).map_err(CommandError::from)?;
+    Ok(current_view(&app))
+}
+
+#[tauri::command]
+fn config_rename_project(
+    app: AppHandle<tauri::Wry>,
+    id: String,
+    name: String,
+) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能重命名项目",
+        )
+    })?;
+    let mut config = store.config();
+    let expected = config.revision;
+    let project = config
+        .projects
+        .iter_mut()
+        .find(|p| p.id == id)
+        .ok_or_else(|| {
+            cmd_err(
+                project_config::ConfigErrorCode::InvalidInput,
+                format!("项目 {id} 不存在"),
+            )
+        })?;
+    project.rename(&name).map_err(CommandError::from)?;
+    store.commit(config, expected).map_err(CommandError::from)?;
+    Ok(current_view(&app))
+}
+
+/// 进入项目设置：工具层铺满工作区、被测层等尺寸平移（0.1 已实机验证的布局）。
+/// 与静态预览 / 采集互斥；进入失败不改变布局，也不写配置。
+#[tauri::command]
+fn settings_enter(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, String> {
+    let host = app.state::<PageHost>();
+    let preview = host.captures.lock().map(|s| s.preview).unwrap_or(false);
+    let capturing = host.capturing.lock().map(|c| *c).unwrap_or(false);
+    if !can_enter_settings(preview, capturing) {
+        return Err("静态预览或采集进行中，不能打开项目设置；请先返回页面 / 完成采集".to_string());
+    }
+    if let Ok(mut flag) = host.settings.lock() {
+        *flag = true;
+    }
+    apply_layout(&app, true);
+    Ok(current_view(&app))
+}
+
+#[tauri::command]
+fn settings_exit(app: AppHandle<tauri::Wry>) {
+    if let Ok(mut flag) = app.state::<PageHost>().settings.lock() {
+        *flag = false;
+    }
+    apply_layout(&app, false);
+    sync_page_frame(&app);
+}
+
+#[cfg(test)]
+mod config_command_tests {
+    use super::*;
+
+    #[test]
+    fn 视口预设名正反映射() {
+        for (raw, expected) in [
+            ("desktop", PresetId::Desktop),
+            ("tablet", PresetId::Tablet),
+            ("phone", PresetId::Phone),
+            ("custom", PresetId::Custom),
+        ] {
+            assert_eq!(parse_preset(raw).unwrap(), expected);
+            assert_eq!(preset_name(expected), raw);
+        }
+        assert_eq!(
+            parse_preset("watch").unwrap_err().code,
+            "CONFIG_INVALID_INPUT"
+        );
+    }
+
+    #[test]
+    fn 结构化错误保留配置错误码() {
+        let e = CommandError::from(ConfigError::new(
+            project_config::ConfigErrorCode::VersionUnsupported,
+            "未知版本",
+        ));
+        assert_eq!(e.code, "CONFIG_VERSION_UNSUPPORTED");
+        assert_eq!(e.message, "未知版本");
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["code"], "CONFIG_VERSION_UNSUPPORTED");
+    }
+
+    #[test]
+    fn 状态视图使用驼峰键名() {
+        let mut config = ProjectConfig::empty();
+        config
+            .create_project("p-a", "项目 A", "https://example.com", PresetId::Phone)
+            .unwrap();
+        let view = view_from_config(&config, true, "/tmp/root".to_string(), None);
+        let json = serde_json::to_value(&view).unwrap();
+        assert_eq!(json["activeProjectId"], "p-a");
+        assert_eq!(json["dataRoot"], "/tmp/root");
+        // 模型保存规范化后的 URL（url crate 补尾斜杠），不是地址栏草稿原串。
+        assert_eq!(json["projects"][0]["startUrl"], "https://example.com/");
+        assert_eq!(json["projects"][0]["presetId"], "phone");
+        assert!(json["error"].is_null());
+    }
+
+    #[test]
+    fn 项目_id_唯一且不含路径分隔符() {
+        let a = new_project_id(1_700_000_000_000, 1);
+        let b = new_project_id(1_700_000_000_000, 2);
+        assert_ne!(a, b);
+        assert!(!a.contains('/') && !a.contains('\\') && !a.contains(".."));
+        assert!(a.starts_with("p-"));
+    }
+
+    #[test]
+    fn 设置模式不与预览或采集叠加() {
+        assert!(can_enter_settings(false, false));
+        assert!(!can_enter_settings(true, false));
+        assert!(!can_enter_settings(false, true));
+        assert!(!can_enter_settings(true, true));
+    }
+}
+
 /// 采集前的最近一次成功现场，供「旧图只作旧现场」显示；失败不覆盖它。
 #[tauri::command]
 fn capture_latest(app: AppHandle<tauri::Wry>) -> Result<Option<CaptureMeta>, String> {
@@ -1207,6 +1546,180 @@ document.title='[layress-probe] '+info;})();";
 #[cfg(not(debug_assertions))]
 fn maybe_run_status_probe(_app: &AppHandle<tauri::Wry>) {}
 
+// ── 任务 0.1：全工作区编辑布局可行性探针（仅 debug 构建） ──────────
+
+/// `LAYRESS_PROBE_LAYOUT=1` 时自动量「常态 → 工具层铺满 → 恢复」三组数据：
+/// 工具层 CSS 视口、#bar 高度、临时诊断表单的控件可见 / 可命中 / 可聚焦数、
+/// 三块视图 bounds 与被测页设定尺寸。结果走既有 `[layress-probe]` 标题通道打到 stderr，
+/// 不写产品数据、不改前端源码（因此不触发 BUILD_TAG 递增）、不进入采集状态机。
+/// 机器只负责记录；控件肉眼可见、状态栏层级、焦点手感仍归人工复核（I11）。
+#[cfg(debug_assertions)]
+const LAYOUT_PROBE_JS: &str = r##"(function(){
+var stage='%STAGE%';
+var form=document.getElementById('__layress_probe_form');
+if(stage==='restore'&&form){form.remove();form=null;}
+if(stage.indexOf('full')===0 && !form){
+  form=document.createElement('div');
+  form.id='__layress_probe_form';
+  form.setAttribute('style','position:fixed;left:16px;top:120px;width:360px;padding:12px;z-index:2147483000;background:#fff;border:1px solid #607d8b;font:13px -apple-system;box-sizing:border-box');
+  form.innerHTML='<div style="margin-bottom:6px">0.1 布局诊断表单（探针临时注入）</div>'+
+    '<input id="pf-name" placeholder="项目名称" style="display:block;width:100%;margin:6px 0">'+
+    '<input id="pf-url" placeholder="起始地址" style="display:block;width:100%;margin:6px 0">'+
+    '<input id="pf-w" placeholder="宽" style="display:block;width:100%;margin:6px 0">'+
+    '<input id="pf-h" placeholder="高" style="display:block;width:100%;margin:6px 0">'+
+    '<button id="pf-save">保存</button> <button id="pf-cancel">取消</button>';
+  document.body.appendChild(form);
+}
+var controls=form?Array.prototype.slice.call(form.querySelectorAll('input,button')):[];
+var visible=0,hit=0,focusable=0,clipped=[];
+controls.forEach(function(el){
+  var r=el.getBoundingClientRect();
+  var inView=r.width>0&&r.height>0&&r.top>=0&&r.left>=0&&r.bottom<=window.innerHeight&&r.right<=window.innerWidth;
+  if(inView){visible++;}else{clipped.push(el.id+':'+Math.round(r.top)+'-'+Math.round(r.bottom));}
+  var top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+  if(top===el||(top&&el.contains(top)))hit++;
+  el.focus();
+  if(document.activeElement===el)focusable++;
+});
+var bar=document.getElementById('bar');
+var report={
+  probe:'r3',stage:stage,cssW:window.innerWidth,cssH:window.innerHeight,dpr:window.devicePixelRatio,
+  barH:bar?Math.round(bar.getBoundingClientRect().height):null,
+  controls:controls.length,visible:visible,hit:hit,focusable:focusable,clipped:clipped,
+  build:(document.getElementById('build-tag')||{}).textContent||null
+};
+document.title='[layress-probe] LAYOUT '+JSON.stringify(report);
+})();"##;
+
+#[cfg(debug_assertions)]
+fn probe_layout_dom(app: &AppHandle<tauri::Wry>, stage: &str) {
+    if let Some(tool) = app.get_webview(TOOL_LABEL) {
+        let _ = tool.eval(LAYOUT_PROBE_JS.replace("%STAGE%", stage));
+    }
+}
+
+#[cfg(debug_assertions)]
+fn probe_layout_bounds(app: &AppHandle<tauri::Wry>, stage: &str) {
+    let tool = app.get_webview(TOOL_LABEL).and_then(|w| w.bounds().ok());
+    let page = app.get_webview(PAGE_LABEL).and_then(|w| w.bounds().ok());
+    let status = app.get_webview(STATUS_LABEL).and_then(|w| w.bounds().ok());
+    let configured = app
+        .state::<PageHost>()
+        .configured
+        .lock()
+        .ok()
+        .and_then(|c| *c);
+    eprintln!(
+        "[layress][layoutprobe] probe=r3 {stage} tool={tool:?} page={page:?} status={status:?} configured={configured:?}"
+    );
+    // 触发一次 title 哨兵，让被测页自报实际视口；铺满前后应一致（尺寸不变，只改位置）。
+    if let Some(page_view) = app.get_webview(PAGE_LABEL) {
+        let _ = page_view.eval("window.__layressReport && window.__layressReport();".to_string());
+    }
+}
+
+/// WKWebView 的 bounds 必须在主线程设置；用 run_on_main_thread + 回执确保已生效再测。
+#[cfg(debug_assertions)]
+fn probe_apply_full(app: &AppHandle<tauri::Wry>, preview: bool) {
+    let handle = app.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let dispatcher = handle.clone();
+    if let Err(e) = dispatcher.run_on_main_thread(move || {
+        apply_layout(&handle, preview);
+        let _ = tx.send(());
+    }) {
+        eprintln!("[layress][layoutprobe] 主线程重排失败：{e}");
+        return;
+    }
+    if rx.recv_timeout(Duration::from_secs(5)).is_err() {
+        eprintln!("[layress][layoutprobe] 主线程重排超时，本次测量可能无效");
+    }
+}
+
+/// r3：探针自己把窗口缩到最小，覆盖 E07 小窗口判据并验证 Resized 时 relayout 仍保持铺满；
+/// 恢复阶段再还原到 1280×800。仅 debug 构建、仅探针启用时执行。
+#[cfg(debug_assertions)]
+fn probe_set_window_size(app: &AppHandle<tauri::Wry>, width: f64, height: f64) {
+    let handle = app.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let dispatcher = handle.clone();
+    if let Err(e) = dispatcher.run_on_main_thread(move || {
+        if let Some(window) = handle.get_window("main") {
+            if let Err(e) = window.set_size(LogicalSize::new(width, height)) {
+                eprintln!("[layress][layoutprobe] 调整窗口尺寸失败：{e}");
+            }
+        }
+        let _ = tx.send(());
+    }) {
+        eprintln!("[layress][layoutprobe] 主线程调整窗口失败：{e}");
+        return;
+    }
+    if rx.recv_timeout(Duration::from_secs(5)).is_err() {
+        eprintln!("[layress][layoutprobe] 调整窗口超时，后续小窗口测量可能无效");
+    }
+}
+
+#[cfg(debug_assertions)]
+fn maybe_run_layout_probe(app: &AppHandle<tauri::Wry>) {
+    if std::env::var_os("LAYRESS_PROBE_LAYOUT").is_none() {
+        return;
+    }
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        eprintln!(
+            "[layress][layoutprobe] 探针 r3 已启动：自动打开样例页、自动缩窗，全程不用点任何按钮；回显里必须有 probe=r3，否则是旧程序"
+        );
+        std::thread::sleep(Duration::from_secs(3));
+        // 0.1 要核对铺满前后被测页尺寸，页面必须一开始就存在；探针自动打开，不必人工点按钮。
+        match handle.state::<PageHost>().sample_base.get().cloned() {
+            Some(base) => match page_navigate(handle.clone(), format!("{base}/")).await {
+                Ok(()) => eprintln!("[layress][layoutprobe] 已自动打开样例页：{base}/"),
+                Err(e) => eprintln!(
+                    "[layress][layoutprobe] 自动打开样例页失败：{e}（本轮被测页证据缺失）"
+                ),
+            },
+            None => eprintln!("[layress][layoutprobe] 样例服务未就绪（本轮被测页证据缺失）"),
+        }
+        std::thread::sleep(Duration::from_secs(1));
+        probe_layout_dom(&handle, "normal");
+        probe_layout_bounds(&handle, "normal");
+        std::thread::sleep(Duration::from_millis(500));
+
+        // 置位后 Resized → relayout 也保持铺满，避免首轮 full3 那种「量到复位后的 96px」。
+        LAYOUT_PROBE_FULL.store(true, Ordering::Relaxed);
+        eprintln!(
+            "[layress][layoutprobe] 开始铺满工具层（约 14 秒）：前 3 轮大窗口，之后自动缩到最小；请看白色表单、底部状态栏和输入框"
+        );
+        for i in 0..6 {
+            if i == 3 {
+                // 主动触发 Resized：既覆盖小窗口判据，也验证竞态修复后 relayout 仍保持铺满。
+                probe_set_window_size(&handle, 520.0, 400.0);
+                eprintln!("[layress][layoutprobe] 已自动缩到最小窗口 520×400，后 3 轮是小窗口判据");
+                std::thread::sleep(Duration::from_millis(900));
+            }
+            // 每轮重新铺满：按当前窗口尺寸重排。
+            probe_apply_full(&handle, true);
+            std::thread::sleep(Duration::from_millis(700));
+            let stage = format!("full{i}");
+            probe_layout_dom(&handle, &stage);
+            probe_layout_bounds(&handle, &stage);
+            std::thread::sleep(Duration::from_millis(1300));
+        }
+
+        // 先复位标志再还原窗口，保证恢复后任何 Resized 都按真实模式重排。
+        LAYOUT_PROBE_FULL.store(false, Ordering::Relaxed);
+        probe_set_window_size(&handle, 1280.0, 800.0);
+        probe_apply_full(&handle, false);
+        std::thread::sleep(Duration::from_millis(700));
+        probe_layout_dom(&handle, "restore");
+        probe_layout_bounds(&handle, "restore");
+        eprintln!("[layress][layoutprobe] 已恢复常态并还原窗口；请把终端里所有 [layress] 开头的行复制给编写者");
+    });
+}
+
+#[cfg(not(debug_assertions))]
+fn maybe_run_layout_probe(_app: &AppHandle<tauri::Wry>) {}
+
 // ── 启动 ─────────────────────────────────────────────────────────
 
 pub fn run() {
@@ -1222,7 +1735,12 @@ pub fn run() {
             capture_cancel,
             capture_latest,
             preview_exit,
-            status_bar_set
+            status_bar_set,
+            config_state,
+            config_create_project,
+            config_rename_project,
+            settings_enter,
+            settings_exit
         ])
         .setup(|app| {
             // 样例服务：失败则明确记录，工具层显示不可用，不静默降级
@@ -1263,6 +1781,29 @@ pub fn run() {
                 if let Ok(mut slot) = app.state::<PageHost>().data_root_error.lock() {
                     *slot = Some(e.clone());
                 }
+            }
+            // 任务 1.1：只在数据根解析成功且可写时打开配置存储；损坏 / 未知版本 / 锁不可用
+            // 都记录结构化原因，界面进入明确的错误状态，不自动重建、不回落到系统用户目录。
+            if error.is_none() {
+                if let Some(r) = &root {
+                    match ConfigStore::open(&r.path) {
+                        Ok(store) => {
+                            eprintln!("[layress] 配置存储已就绪：{}", store.path().display());
+                            let _ = app.state::<PageHost>().config_store.set(store);
+                        }
+                        Err(e) => {
+                            eprintln!("[layress] 配置存储不可用：{e}");
+                            if let Ok(mut slot) = app.state::<PageHost>().config_error.lock() {
+                                *slot = Some(e);
+                            }
+                        }
+                    }
+                }
+            } else if let Ok(mut slot) = app.state::<PageHost>().config_error.lock() {
+                *slot = Some(ConfigError::new(
+                    project_config::ConfigErrorCode::WriteFailed,
+                    error.clone().unwrap_or_else(|| "数据根不可用".to_string()),
+                ));
             }
             emit(
                 app.handle(),
@@ -1324,6 +1865,7 @@ pub fn run() {
             let _ = APP.set(app.handle().clone());
             maybe_run_capture_probe(app.handle());
             maybe_run_status_probe(app.handle());
+            maybe_run_layout_probe(app.handle());
 
             let handle = app.handle().clone();
             window.on_window_event(move |event| match event {

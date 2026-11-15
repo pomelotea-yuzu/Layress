@@ -10,7 +10,7 @@
 - [开发路线图](roadmap.md)：**正式敲定、无日期的阶段索引**，替换原路线图；六阶段目标、完成信号与细分设计入口，近期细化、远期留白，具体方案按需另写；当前活动增量见下方。
 - [第一阶段计划提案](2026-11-10-stage-one-plan.md)：本轮审阅入口；按已选定的 Tauri 单应用规划主窗口、设备配置、原地反馈、记录恢复与手动补拍；首增量已归档，项目 / 设备记忆进入第二个 change 建档，其他范围待审阅。
 - 首个 change [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)：承接第一个页面承载增量，实施设计、规格、任务与证据留在归档目录；**2026-11-14 已实施完成并归档**，规格合入[主规格 desktop-page-host](../../openspec/specs/desktop-page-host/spec.md)；不等于整个阶段计划获批。
-- 当前 change [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)：项目 / 地址与视口配置记忆，2026-11-14 用户授权建档；设计、规格、任务和证据计划留在该目录，经另一 Agent 审阅并修订规划，尚未实施。
+- 当前 change [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)：项目 / 地址与视口配置记忆，2026-11-14 用户授权建档；设计、规格、任务和证据计划留在该目录，经另一 Agent 审阅并修订规划；2026-11-15 实施轮已验证 0.1 布局可行性并落地配置模型层，完整 UI 未实施。
 - [第一阶段体验与接入讨论稿](2026-11-10-stage-one-experience-and-access.md)：设备与页面选择、配置恢复、独立浏览器与悬浮工具的区别、模型操作能力的影响和验收建议；设备选择与记忆为新增已确认要求，其余具体方案仍在讨论，尚未实现。
 - [原路线图快照](2026-11-09-previous-roadmap.md)：重写索引前的旧正文，历史口径保留供查，不作为执行依据。
 - 决策纪要：一次讨论定下一个口径时，结论写这里，过程留在 change 的 design.md
