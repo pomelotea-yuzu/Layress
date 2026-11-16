@@ -144,7 +144,7 @@ ls -ld ~/Library/Application\ Support/layress ~/Library/Caches/layress 2>/dev/nu
 
 ### 1. 4.1 · `--data-dir` 到底写哪里
 
-**`--data-dir=` 后面写一个目录的绝对路径**——这个目录就是应用写截图、元数据、日志的「数据根」。不是文件名、不是 URL、也不是相对路径（相对路径会跟着启动工作目录跑，本轮口径未定义，见 [debt](../../docs/knowledge/debt.md)）。
+**`--data-dir=` 后面写一个目录的绝对路径**——这个目录就是应用写截图、元数据、日志的「数据根」。不是文件名、不是 URL；**显式相对路径（含 `~`）已在解析层以 `DATA_ROOT_RELATIVE_UNSUPPORTED` 拒绝**（任务 1.4，2026-11-16），不再随启动工作目录漂移，根不存在也同样拒绝，两个来源（`--data-dir` / `LAYRESS_DATA_DIR`）分别报错。
 
 它写在整条启动命令**末尾、第二个 `--` 之后**，用等号连写最稳：`pnpm tauri dev -- -- --data-dir=<绝对路径>`。
 第一个 `--` 之后是 cargo runner 参数，第二个 `--` 之后才传给应用（见 `pnpm tauri dev --help` 的 Arguments 段）。
@@ -402,6 +402,19 @@ A / B / C / D 四组全部经用户人工复验通过，[tasks 5.2](../../opensp
 - 构建缓存 `src-tauri/target/`、前端 `dist/`、运行数据根 `.layress/` 均不入库；`Cargo.lock` 入库。
 - 机器 PASS 不等于人工验收：3.x 的截图内容、两种比例下的坐标落点、返回后输入与竞态负例已由用户复验通过；
   弹窗会话单独触发仍未执行；2.2 与 4.1 / 4.3 / 4.4 的 GUI 负例已于 2026-11-13 复验通过；4.2 已移出范围（D30）。
+
+## 任务 1.4 人工复验（开发期，相对根红条可见性待用户确认）
+
+解析层单测已过（两来源分别拒绝、CLI 绝对覆盖 env 相对不误拒、根不存在也拒绝）；**GUI 判据只剩红条实际可见**。每档先按「任务 0.1」第 1 步把旧程序关干净，启动后看**窗口最底部状态栏**：
+
+1. **相对 CLI 根**：`pnpm tauri dev -- -- --data-dir=layress-relative-root`（故意写相对路径）。
+   判据：状态栏红条含 `DATA_ROOT_RELATIVE_UNSUPPORTED`、原始相对值与「改用绝对路径」提示，且在开场提示**之后**显示不被冲掉；终端 stderr 有「数据根解析失败」；此时点「采集」应被拒（数据根未解析）。
+2. **相对 env 根**：`LAYRESS_DATA_DIR=./rel-env pnpm tauri dev`（无 `--`）。
+   判据：红条来源显示「环境变量 LAYRESS_DATA_DIR」，同样拒绝。
+3. **CLI 绝对覆盖 env 相对**：`LAYRESS_DATA_DIR=./rel-env pnpm tauri dev -- -- --data-dir=<任意可写绝对路径>`。
+   判据：不误拒，状态栏显示「来源：命令行 --data-dir，可写」，采集正常。
+
+三句结论（红条看得见吗 / 位置对吗 / 覆盖档没误拒吧）贴回即可；通过后 1.4 勾选。
 
 ## 任务 0.1 布局可行性复验（当前 change，2026-11-15 已实机验证并勾选）
 

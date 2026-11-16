@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261115-2";
+const BUILD_TAG = "v20261116-1";
 
 interface MeasuredViewport {
   w: number;
@@ -564,12 +564,13 @@ async function loadInitialState(): Promise<void> {
       "info",
     );
     // 启动时事件可能早于订阅到达；这里按 page_state 再点亮一次数据根，保证 I13 的「启动可见」。
-    if (state.dataRoot) {
-      showStatusBar(
-        `数据根：${state.dataRoot}（来源：${state.dataRootSource ?? "未解析"}，` +
-          `${state.dataRootWritable ? "可写" : `不可写：${state.dataRootError ?? "原因未取得"}`}）`,
-        state.dataRootWritable ? "info" : "error",
-      );
+    // 任务 1.4：无根（解析失败，如相对路径被拒）也必须亮红条，且排在开场提示之后不被冲掉。
+    if (state.dataRoot || state.dataRootError) {
+      const detail = state.dataRoot
+        ? `数据根：${state.dataRoot}（来源：${state.dataRootSource ?? "未解析"}，` +
+          `${state.dataRootWritable ? "可写" : `不可写：${state.dataRootError ?? "原因未取得"}`}）`
+        : `数据根不可用：${state.dataRootError ?? "原因未取得"}`;
+      showStatusBar(detail, state.dataRootWritable ? "info" : "error");
     }
     // 工具层重载后若 Rust 仍处于预览态，先恢复布局，避免卡在静态画面且没有图片数据。
     if (state.inPreview) {

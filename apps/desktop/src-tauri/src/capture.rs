@@ -206,7 +206,7 @@ pub fn base64_encode(data: &[u8]) -> String {
     out
 }
 
-// ── 数据根（任务 4.1 的最小先行实现，完整验收仍属 4.x）─────────
+// ── 数据根（任务 4.1 最小先行实现；1.4 起显式相对路径在解析层拒绝）─────────
 
 #[derive(Debug, Clone)]
 pub struct DataRoot {
@@ -214,54 +214,95 @@ pub struct DataRoot {
     pub source: String,
 }
 
+/// 数据根解析失败的结构化原因；任务 1.4 要求相对路径拒绝带稳定错误码直达状态栏（E05）。
+#[derive(Debug, Clone)]
+pub enum DataRootError {
+    /// 显式来源（CLI / 环境变量）给了相对路径：解析层直接拒绝，
+    /// 与根是否存在、启动工作目录是什么都无关，不随工作目录漂移解析。
+    RelativeUnsupported { source: String, raw: String },
+    /// 其他解析错误（缺参、可执行文件无父目录等），无独立错误码。
+    Other(String),
+}
+
+impl std::fmt::Display for DataRootError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RelativeUnsupported { source, raw } => write!(
+                f,
+                "DATA_ROOT_RELATIVE_UNSUPPORTED：数据根来源「{source}」给了相对路径「{raw}」，\
+                 已在解析层拒绝；请改用绝对路径（例如可执行文件目录旁的 .layress/）"
+            ),
+            Self::Other(m) => write!(f, "{m}"),
+        }
+    }
+}
+
+/// 相对路径判定在解析层完成：不查文件系统，因此根不存在也同样拒绝。
+fn absolute_or_reject(source: &str, raw: &std::ffi::OsStr) -> Result<PathBuf, DataRootError> {
+    let path = PathBuf::from(raw);
+    if path.is_absolute() {
+        Ok(path)
+    } else {
+        Err(DataRootError::RelativeUnsupported {
+            source: source.to_string(),
+            raw: raw.to_string_lossy().into_owned(),
+        })
+    }
+}
+
 /// 优先级：`--data-dir` > `LAYRESS_DATA_DIR` > 可执行文件目录旁 `.layress/`。
-/// 不依赖启动工作目录，不回落任何系统用户目录（I13 / E09）。
-/// 抽成纯函数是为了让优先级与「不回落」口径有单测兜住，而不是只写在注释里。
+/// 不依赖启动工作目录，不回落任何系统用户目录（I13 / E09）；
+/// 两个显式来源给出相对路径时分别以 `DATA_ROOT_RELATIVE_UNSUPPORTED` 拒绝（任务 1.4）。
+/// 抽成纯函数是为了让优先级与「不回落 / 拒相对」口径有单测兜住，而不是只写在注释里。
 fn resolve_data_root_from(
     args: &[std::ffi::OsString],
     env_dir: Option<std::ffi::OsString>,
     exe: &Path,
-) -> Result<DataRoot, String> {
+) -> Result<DataRoot, DataRootError> {
     for (i, arg) in args.iter().enumerate() {
         let s = arg.to_string_lossy();
         if let Some(v) = s.strip_prefix("--data-dir=") {
             if !v.is_empty() {
-                return Ok(DataRoot {
-                    path: PathBuf::from(v),
-                    source: "命令行 --data-dir".to_string(),
-                });
+                // `=` 形式的原始值取等号后的子串，错误消息里不能回显前缀
+                return absolute_or_reject("命令行 --data-dir", std::ffi::OsStr::new(v))
+                    .map(|path| DataRoot {
+                        path,
+                        source: "命令行 --data-dir".to_string(),
+                    });
             }
         }
         if s == "--data-dir" {
             if let Some(next) = args.get(i + 1) {
                 return Ok(DataRoot {
-                    path: PathBuf::from(next),
+                    path: absolute_or_reject("命令行 --data-dir", next)?,
                     source: "命令行 --data-dir".to_string(),
                 });
             }
-            return Err("--data-dir 缺少路径参数".to_string());
+            return Err(DataRootError::Other("--data-dir 缺少路径参数".to_string()));
         }
     }
     if let Some(v) = env_dir {
         if !v.is_empty() {
             return Ok(DataRoot {
-                path: PathBuf::from(v),
+                path: absolute_or_reject("环境变量 LAYRESS_DATA_DIR", &v)?,
                 source: "环境变量 LAYRESS_DATA_DIR".to_string(),
             });
         }
     }
-    let dir = exe
-        .parent()
-        .ok_or_else(|| "可执行文件没有父目录".to_string())?;
+    let dir = exe.parent().ok_or_else(|| {
+        DataRootError::Other("可执行文件没有父目录".to_string())
+    })?;
     Ok(DataRoot {
         path: dir.join(".layress"),
         source: "可执行文件目录旁 .layress/".to_string(),
     })
 }
 
-pub fn resolve_data_root() -> Result<DataRoot, String> {
+pub fn resolve_data_root() -> Result<DataRoot, DataRootError> {
     let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
-    let exe = std::env::current_exe().map_err(|e| format!("无法定位可执行文件：{e}"))?;
+    let exe = std::env::current_exe().map_err(|e| {
+        DataRootError::Other(format!("无法定位可执行文件：{e}"))
+    })?;
     resolve_data_root_from(&args, std::env::var_os("LAYRESS_DATA_DIR"), &exe)
 }
 
@@ -552,6 +593,71 @@ mod tests {
                 "默认数据根回落了系统用户目录：{forbidden}"
             );
         }
+    }
+
+    /// 任务 1.4 / E05：显式相对根在解析层拒绝，两来源分别报错且互不串味；
+    /// 相对性判定不查文件系统，因此根不存在也拒绝（全部用不存在的相对值）。
+    #[test]
+    fn 显式相对根两来源分别解析层拒绝() {
+        use std::ffi::OsString;
+        let a = |s: &str| OsString::from(s);
+        let exe = Path::new("/opt/layress/bin/layress-desktop");
+        // CLI：`=` 形式、空格形式、常见相对写法各拒绝一次
+        for args in [
+            vec![a("layress"), a("--data-dir=rel/root")],
+            vec![a("layress"), a("--data-dir"), a("./x")],
+            vec![a("layress"), a("--data-dir"), a("../up")],
+        ] {
+            let err = resolve_data_root_from(&args, None, exe).unwrap_err();
+            let DataRootError::RelativeUnsupported { source, raw } = &err else {
+                panic!("应为相对路径拒绝，实际 {err:?}");
+            };
+            assert_eq!(source, "命令行 --data-dir");
+            assert!(!raw.starts_with("--data-dir"), "原始值不得回显参数前缀：{raw}");
+            assert!(
+                err.to_string().contains("DATA_ROOT_RELATIVE_UNSUPPORTED") && err.to_string().contains("绝对路径"),
+                "错误消息须含稳定码与绝对路径提示：{err}"
+            );
+        }
+        // 环境变量来源单独拒绝，source 不与 CLI 混淆
+        let err = resolve_data_root_from(&[a("layress")], Some(a("env/rel")), exe).unwrap_err();
+        let DataRootError::RelativeUnsupported { source, raw } = &err else {
+            panic!("应为相对路径拒绝，实际 {err:?}");
+        };
+        assert_eq!(source, "环境变量 LAYRESS_DATA_DIR");
+        assert_eq!(raw, "env/rel");
+        // 波浪号由 shell 展开，程序收到字面 `~` 即相对路径，同样拒绝
+        assert!(matches!(
+            resolve_data_root_from(&[a("layress")], Some(a("~/data")), exe),
+            Err(DataRootError::RelativeUnsupported { .. })
+        ));
+    }
+
+    /// 任务 1.4 / E05：有效绝对 CLI 根覆盖相对 env 值时不得误拒（优先级不变）；
+    /// 反向（CLI 相对 + env 绝对）仍以 CLI 为准并拒绝 CLI 的相对值。
+    #[test]
+    fn cli_绝对根覆盖_env_相对根不误拒() {
+        use std::ffi::OsString;
+        let a = |s: &str| OsString::from(s);
+        let exe = Path::new("/opt/layress/bin/layress-desktop");
+        let covered = resolve_data_root_from(
+            &[a("layress"), a("--data-dir"), a("/cli/root")],
+            Some(a("rel/env")),
+            exe,
+        )
+        .unwrap();
+        assert_eq!(covered.path, PathBuf::from("/cli/root"));
+        assert!(covered.source.contains("命令行"));
+        let cli_relative = resolve_data_root_from(
+            &[a("layress"), a("--data-dir=cli/rel")],
+            Some(a("/env/root")),
+            exe,
+        )
+        .unwrap_err();
+        assert!(matches!(
+            cli_relative,
+            DataRootError::RelativeUnsupported { ref source, .. } if source.contains("命令行")
+        ));
     }
 
     /// E09：不可写数据根必须明确失败，不改写目标、不在别处静默兜底建目录。

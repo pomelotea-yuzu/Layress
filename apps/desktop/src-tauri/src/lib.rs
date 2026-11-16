@@ -1754,37 +1754,45 @@ pub fn run() {
             }
 
             // 数据根：启动即解析并做可写检查，结果进日志、事件与 UI；不可写明确失败，不回落。
-            let (root, error) = match resolve_data_root() {
-                Ok(root) => match ensure_writable(&root.path) {
-                    Ok(()) => {
-                        eprintln!(
-                            "[layress] 数据根：{}（来源：{}，可写：是）",
-                            root.path.display(),
-                            root.source
-                        );
-                        (Some(root), None)
-                    }
+            // 任务 1.4：显式相对路径在解析层拒绝，错误码直达 config_error / 状态栏红条。
+            let (root, root_err): (Option<capture::DataRoot>, Option<(project_config::ConfigErrorCode, String)>) =
+                match resolve_data_root() {
+                    Ok(root) => match ensure_writable(&root.path) {
+                        Ok(()) => {
+                            eprintln!(
+                                "[layress] 数据根：{}（来源：{}，可写：是）",
+                                root.path.display(),
+                                root.source
+                            );
+                            (Some(root), None)
+                        }
+                        Err(e) => {
+                            eprintln!("[layress] 数据根不可写，采集将明确失败：{e}");
+                            (Some(root), Some((project_config::ConfigErrorCode::WriteFailed, e)))
+                        }
+                    },
                     Err(e) => {
-                        eprintln!("[layress] 数据根不可写，采集将明确失败：{e}");
-                        (Some(root), Some(e))
+                        eprintln!("[layress] 数据根解析失败，采集将明确失败：{e}");
+                        let code = match &e {
+                            capture::DataRootError::RelativeUnsupported { .. } => {
+                                project_config::ConfigErrorCode::DataRootRelativeUnsupported
+                            }
+                            capture::DataRootError::Other(_) => project_config::ConfigErrorCode::WriteFailed,
+                        };
+                        (None, Some((code, e.to_string())))
                     }
-                },
-                Err(e) => {
-                    eprintln!("[layress] 数据根解析失败，采集将明确失败：{e}");
-                    (None, Some(e))
-                }
-            };
+                };
             if let Some(r) = &root {
                 let _ = app.state::<PageHost>().data_root.set(r.clone());
             }
-            if let Some(e) = &error {
+            if let Some((_, message)) = &root_err {
                 if let Ok(mut slot) = app.state::<PageHost>().data_root_error.lock() {
-                    *slot = Some(e.clone());
+                    *slot = Some(message.clone());
                 }
             }
             // 任务 1.1：只在数据根解析成功且可写时打开配置存储；损坏 / 未知版本 / 锁不可用
             // 都记录结构化原因，界面进入明确的错误状态，不自动重建、不回落到系统用户目录。
-            if error.is_none() {
+            if root_err.is_none() {
                 if let Some(r) = &root {
                     match ConfigStore::open(&r.path) {
                         Ok(store) => {
@@ -1800,10 +1808,10 @@ pub fn run() {
                     }
                 }
             } else if let Ok(mut slot) = app.state::<PageHost>().config_error.lock() {
-                *slot = Some(ConfigError::new(
-                    project_config::ConfigErrorCode::WriteFailed,
-                    error.clone().unwrap_or_else(|| "数据根不可用".to_string()),
-                ));
+                let (code, message) = root_err
+                    .clone()
+                    .unwrap_or((project_config::ConfigErrorCode::WriteFailed, "数据根不可用".to_string()));
+                *slot = Some(ConfigError::new(code, message));
             }
             emit(
                 app.handle(),
@@ -1812,9 +1820,9 @@ pub fn run() {
                         .as_ref()
                         .map(|r| r.path.to_string_lossy().to_string())
                         .unwrap_or_default(),
-                    source: root.map(|r| r.source).unwrap_or_default(),
-                    writable: error.is_none(),
-                    error,
+                    source: root.as_ref().map(|r| r.source.clone()).unwrap_or_default(),
+                    writable: root_err.is_none(),
+                    error: root_err.as_ref().map(|(_, m)| m.clone()),
                 },
             );
 
