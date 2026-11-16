@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261116-1";
+const BUILD_TAG = "v20261116-2";
 
 interface MeasuredViewport {
   w: number;
@@ -213,6 +213,7 @@ interface ConfigStateView {
 const settingsPanel = document.getElementById("settings");
 const settingsState = document.getElementById("settings-state");
 const settingsList = document.getElementById("settings-list");
+const btnRebuild = document.getElementById("settings-rebuild") as HTMLButtonElement | null;
 const settingsName = document.getElementById("settings-name") as HTMLInputElement | null;
 const settingsUrl = document.getElementById("settings-url") as HTMLInputElement | null;
 const settingsPreset = document.getElementById("settings-preset") as HTMLSelectElement | null;
@@ -250,6 +251,53 @@ function renderConfig(view: ConfigStateView): void {
           .join("；")
       : "尚无项目记录；临时浏览不会自动记忆";
   }
+  // 任务 1.5：只有「文件不可用」三类错误才提供备份重建；两段确认在按钮事件里
+  const rebuildable =
+    view.error?.code === "CONFIG_READ_FAILED" ||
+    view.error?.code === "CONFIG_CORRUPT" ||
+    view.error?.code === "CONFIG_VERSION_UNSUPPORTED";
+  if (btnRebuild) {
+    btnRebuild.hidden = !rebuildable;
+    if (!rebuildable) disarmRebuild();
+  }
+}
+
+/** 重建按钮的两段确认状态：第一次点击只进入待确认，再点才真正调用。 */
+let rebuildArmed = false;
+let rebuildDisarmTimer: ReturnType<typeof setTimeout> | null = null;
+
+function disarmRebuild(): void {
+  rebuildArmed = false;
+  if (rebuildDisarmTimer) {
+    clearTimeout(rebuildDisarmTimer);
+    rebuildDisarmTimer = null;
+  }
+  if (btnRebuild) {
+    btnRebuild.textContent = "备份并重建空配置";
+    btnRebuild.classList.remove("danger");
+  }
+}
+
+async function rebuildProject(): Promise<void> {
+  if (!btnRebuild) return;
+  if (!rebuildArmed) {
+    rebuildArmed = true;
+    btnRebuild.textContent = "⚠ 会清空项目记忆（截图保留）——再点一次确认";
+    btnRebuild.classList.add("danger");
+    rebuildDisarmTimer = setTimeout(disarmRebuild, 6000);
+    showStatusBar("再次点击「备份并重建空配置」确认；取消请等待或关闭面板", "info");
+    return;
+  }
+  disarmRebuild();
+  showStatusBar("正在备份并重建项目配置 …", "pending");
+  try {
+    const view = await invoke<ConfigStateView>("config_rebuild");
+    renderConfig(view);
+    showStatusBar(`✓ 已备份原配置并重建为空配置（revision ${view.revision}）`, "ok");
+  } catch (e) {
+    showStatusBar(`✗ 重建失败：${commandErrorText(e)}`, "error");
+    await refreshConfig();
+  }
 }
 
 async function refreshConfig(): Promise<void> {
@@ -271,6 +319,7 @@ async function openSettings(): Promise<void> {
 }
 
 async function closeSettings(): Promise<void> {
+  disarmRebuild();
   try {
     await invoke("settings_exit");
     settingsPanel?.classList.remove("show");
@@ -592,6 +641,7 @@ function bindUi(): void {
   btnSettings?.addEventListener("click", () => void openSettings());
   document.getElementById("settings-save")?.addEventListener("click", () => void saveProject());
   document.getElementById("settings-cancel")?.addEventListener("click", () => void closeSettings());
+  btnRebuild?.addEventListener("click", () => void rebuildProject());
   assertElement<HTMLButtonElement>("btn-size").addEventListener("click", () => void applySize());
   assertElement<HTMLButtonElement>("btn-capture").addEventListener("click", () => void capture());
   assertElement<HTMLButtonElement>("btn-cancel").addEventListener("click", () => void cancelCapture());

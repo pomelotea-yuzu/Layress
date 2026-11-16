@@ -21,6 +21,10 @@ use std::sync::Mutex;
 
 pub const CONFIG_FILE: &str = "projects.json";
 pub const LOCK_FILE: &str = "projects.lock";
+/// 本能力创建的备份名前缀 / 后缀与份数上限（design §6 / 任务 1.5）。
+pub const BACKUP_PREFIX: &str = "projects.backup.";
+pub const BACKUP_SUFFIX: &str = ".json";
+pub const MAX_BACKUPS: usize = 10;
 
 fn err(code: ConfigErrorCode, message: impl Into<String>) -> ConfigError {
     ConfigError::new(code, message)
@@ -201,6 +205,179 @@ impl ConfigStore {
             )),
         }
     }
+}
+
+/// 备份重建的结果：备份落点与重建后的空配置 revision。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RebuildOutcome {
+    pub backup_path: PathBuf,
+    pub revision: u64,
+}
+
+/// 本能力创建的备份计数（design §6：最多 10 份，不自动淘汰、不自动读取）。
+fn count_backups(dir: &Path) -> usize {
+    fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    let name = e.file_name();
+                    let name = name.to_string_lossy();
+                    name.starts_with(BACKUP_PREFIX) && name.ends_with(BACKUP_SUFFIX)
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+/// 备份唯一后缀：unix-ms + 进程号 + 进程内计数派生的 base36 串；
+/// 命名冲突由排他创建兜底，冲突时换后缀重试。
+fn backup_suffix(n: u32) -> String {
+    const DIGITS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    let mut x = n
+        ^ (std::process::id() as u32)
+        ^ (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.subsec_nanos())
+            .unwrap_or(0));
+    let mut s = String::new();
+    for _ in 0..6 {
+        s.push(DIGITS[(x % 36) as usize] as char);
+        x /= 36;
+    }
+    s
+}
+
+/// 确认后的备份重建（任务 1.5 / design §6 / E06）。调用前提：用户已在前端明确确认
+/// 「会清空项目记忆、保留截图」。流程：独占锁 → 读原始字节 → 上限检查 →
+/// 排他创建唯一备份并写入原始字节 → 原子替换为空配置。
+/// 取消不调用本函数即无副作用；任一步失败保留原文件与既有备份，不启用新配置。
+pub fn rebuild_with_backup(root: &Path, fault: WriteFault) -> Result<RebuildOutcome, ConfigError> {
+    let dir = root.join("config");
+    fs::create_dir_all(&dir).map_err(|e| {
+        err(
+            ConfigErrorCode::WriteFailed,
+            format!("配置目录不可创建（{}）：{e}", dir.display()),
+        )
+    })?;
+    let lock_path = dir.join(LOCK_FILE);
+    let lock = OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(&lock_path)
+        .map_err(|e| {
+            err(
+                ConfigErrorCode::ReadFailed,
+                format!("配置锁不可打开（{}）：{e}", lock_path.display()),
+            )
+        })?;
+    lock.try_lock().map_err(|e| match e {
+        TryLockError::WouldBlock => err(
+            ConfigErrorCode::Locked,
+            "另一实例占用配置，重建被拒绝（只读实例禁重建）",
+        ),
+        e => err(ConfigErrorCode::ReadFailed, format!("配置锁检测失败：{e:?}")),
+    })?;
+    let path = dir.join(CONFIG_FILE);
+    let original = fs::read(&path).map_err(|e| {
+        if e.kind() == io::ErrorKind::NotFound {
+            err(
+                ConfigErrorCode::InvalidInput,
+                format!("配置文件不存在（{}），无需重建", path.display()),
+            )
+        } else {
+            err(
+                ConfigErrorCode::ReadFailed,
+                format!("配置读取失败（{}）：{e}", path.display()),
+            )
+        }
+    })?;
+    // 当前文件若能解析为合法配置就不允许重建，避免误触清空好配置；
+    // 未知版本同样允许显式重建（design §6：用户显式重建也保留原始备份）。
+    if ProjectConfig::from_json(&original).is_ok() {
+        return Err(err(
+            ConfigErrorCode::InvalidInput,
+            "当前配置可以正常读取，无需重建；如仍要清空请先在界面删除项目（删除归后续增量）",
+        ));
+    }
+    if count_backups(&dir) >= MAX_BACKUPS {
+        return Err(err(
+            ConfigErrorCode::WriteFailed,
+            format!(
+                "备份已满（上限 {MAX_BACKUPS} 份，目录 {}）；请自行清理 {}*{BACKUP_SUFFIX} 后重试，本能力不自动删除备份",
+                dir.display(),
+                BACKUP_PREFIX
+            ),
+        ));
+    }
+    // 排他创建唯一备份并完整写入原始字节；这是「保留原文件」的关键步骤。
+    let backup_path = {
+        let mut attempt = 0u32;
+        loop {
+            attempt += 1;
+            let candidate = dir.join(format!(
+                "{BACKUP_PREFIX}{}.{}{BACKUP_SUFFIX}",
+                crate::capture::unix_ms(),
+                backup_suffix(attempt)
+            ));
+            match OpenOptions::new().create_new(true).write(true).open(&candidate) {
+                Ok(mut file) => {
+                    file.write_all(&original).map_err(|e| {
+                        let _ = fs::remove_file(&candidate);
+                        err(
+                            ConfigErrorCode::WriteFailed,
+                            format!("备份写入失败（{}）：{e}", candidate.display()),
+                        )
+                    })?;
+                    file.sync_all().map_err(|e| {
+                        let _ = fs::remove_file(&candidate);
+                        err(
+                            ConfigErrorCode::WriteFailed,
+                            format!("备份同步失败（{}）：{e}", candidate.display()),
+                        )
+                    })?;
+                    break candidate;
+                }
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                    if attempt > 8 {
+                        return Err(err(
+                            ConfigErrorCode::WriteFailed,
+                            "备份命名连续冲突，放弃本轮重建",
+                        ));
+                    }
+                    continue;
+                }
+                Err(e) => {
+                    return Err(err(
+                        ConfigErrorCode::WriteFailed,
+                        format!("备份不可创建（{}）：{e}", candidate.display()),
+                    ));
+                }
+            }
+        }
+    };
+    // 备份成功后原子替换为空配置；提交失败保留这份备份并计入上限（design §6），
+    // 正式文件由 atomic_write 保证仍是完整旧版本。
+    let empty = {
+        let mut config = ProjectConfig::empty();
+        config
+            .commit_revision()
+            .map_err(|e| err(e.code, e.message))?;
+        config
+    };
+    let bytes = empty.to_json()?;
+    let seq = AtomicU64::new(0);
+    atomic_write(&dir, &path, &bytes, &seq, fault).map_err(|e| {
+        err(
+            e.code,
+            format!("{e}；原配置文件未改动，备份保留于 {}", backup_path.display()),
+        )
+    })?;
+    Ok(RebuildOutcome {
+        backup_path,
+        revision: empty.revision,
+    })
 }
 
 fn read_config(path: &Path) -> Result<ProjectConfig, ConfigError> {
@@ -518,6 +695,158 @@ mod tests {
         assert_eq!(store.revision(), 1);
         assert_eq!(store.config(), parsed);
         drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// 任务 1.5 / E06：确认重建成功——原始字节唯一备份、正式文件变空配置、
+    /// 截图与元数据不动、备份不作为活动配置被读取。
+    #[test]
+    fn 备份重建成功且原字节保留截图不动() {
+        let root = temp_root("rebuild-ok");
+        let dir = root.join("config");
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(CONFIG_FILE);
+        let corrupt = b"{broken json from v99";
+        fs::write(&path, corrupt).unwrap();
+        let cap_dir = root.join("captures");
+        fs::create_dir_all(&cap_dir).unwrap();
+        fs::write(cap_dir.join("cap-1.png"), b"png-bytes").unwrap();
+        fs::write(cap_dir.join("cap-1.json"), b"meta-bytes").unwrap();
+
+        let outcome = rebuild_with_backup(&root, WriteFault::None).unwrap();
+        assert!(outcome.backup_path.is_file(), "备份已生成");
+        let name = outcome.backup_path.file_name().unwrap().to_string_lossy().to_string();
+        assert!(
+            name.starts_with(BACKUP_PREFIX) && name.ends_with(BACKUP_SUFFIX),
+            "备份命名符合 projects.backup.<unix-ms>.<后缀>.json：{name}"
+        );
+        assert_eq!(fs::read(&outcome.backup_path).unwrap(), corrupt, "原始字节完整备份");
+        // 重建后的空配置 revision 从旧值推进到 1
+        let mut expected = ProjectConfig::empty();
+        expected.commit_revision().unwrap();
+        assert_eq!(fs::read(&path).unwrap(), expected.to_json().unwrap(), "正式文件为空配置");
+        assert_eq!(fs::read(cap_dir.join("cap-1.png")).unwrap(), b"png-bytes", "截图不删");
+        assert_eq!(fs::read(cap_dir.join("cap-1.json")).unwrap(), b"meta-bytes", "元数据不改");
+        // 备份不作为活动配置：重新打开只读正式文件（空配置），备份仍在且仍可读原字节
+        let store = ConfigStore::open(&root).unwrap();
+        assert_eq!(store.config(), expected);
+        assert_eq!(fs::read(&outcome.backup_path).unwrap(), corrupt, "备份不被自动读取或删除");
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// 任务 1.5 / E06：达到 10 份上限时以 CONFIG_WRITE_FAILED 拒绝重建，
+    /// 原文件与既有备份一字不动，不自动淘汰。
+    #[test]
+    fn 备份达上限拒绝且原文件与既有备份不变() {
+        let root = temp_root("rebuild-full");
+        let dir = root.join("config");
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(CONFIG_FILE);
+        let corrupt = b"{still corrupt";
+        fs::write(&path, corrupt).unwrap();
+        for i in 0..MAX_BACKUPS {
+            fs::write(
+                dir.join(format!("{BACKUP_PREFIX}2026{i:03}.aaaaaa{BACKUP_SUFFIX}")),
+                b"old",
+            )
+            .unwrap();
+        }
+        let e = rebuild_with_backup(&root, WriteFault::None).unwrap_err();
+        assert_eq!(e.code_str(), "CONFIG_WRITE_FAILED");
+        assert!(e.message.contains("备份已满"), "原因注明备份已满：{}", e.message);
+        assert_eq!(fs::read(&path).unwrap(), corrupt, "原文件不变");
+        assert_eq!(count_backups(&dir), MAX_BACKUPS, "不自动淘汰备份");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// 任务 1.5 / E06：备份阶段失败（目录不可写）——原文件不变、不产生半份备份。
+    #[test]
+    fn 备份失败原文件不变() {
+        let root = temp_root("rebuild-bkfail");
+        let dir = root.join("config");
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(CONFIG_FILE);
+        let corrupt = b"{backup fail case";
+        fs::write(&path, corrupt).unwrap();
+        // 预建锁文件：让锁打开成功，把失败点精确落在备份创建阶段（目录无写权限）
+        fs::write(dir.join(LOCK_FILE), b"").unwrap();
+        // 目录去写权限（owner 仍可读），备份 create_new 必然失败
+        let mut perm = fs::metadata(&dir).unwrap().permissions();
+        perm.set_readonly(true);
+        fs::set_permissions(&dir, perm).unwrap();
+        let result = rebuild_with_backup(&root, WriteFault::None);
+        // 先还原权限，保证夹具可清理
+        let mut perm = fs::metadata(&dir).unwrap().permissions();
+        perm.set_readonly(false);
+        fs::set_permissions(&dir, perm).unwrap();
+        let e = result.unwrap_err();
+        assert_eq!(e.code_str(), "CONFIG_WRITE_FAILED", "备份失败报写入失败：{e}");
+        assert_eq!(fs::read(&path).unwrap(), corrupt, "原文件逐字节不变");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// 任务 1.5 / E06：备份成功但空配置提交失败——备份保留并计入上限，
+    /// 正式文件仍是完整旧版本（写入继续禁用，可重试）。
+    #[test]
+    fn 提交失败备份保留并计入上限() {
+        let root = temp_root("rebuild-commitfail");
+        let dir = root.join("config");
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(CONFIG_FILE);
+        let corrupt = b"{commit will fail";
+        fs::write(&path, corrupt).unwrap();
+        let e = rebuild_with_backup(&root, WriteFault::Rename).unwrap_err();
+        assert_eq!(e.code_str(), "CONFIG_WRITE_FAILED");
+        assert!(e.message.contains("备份保留"), "失败消息指明备份位置：{e}");
+        assert_eq!(fs::read(&path).unwrap(), corrupt, "正式文件仍是完整旧版本");
+        assert_eq!(count_backups(&dir), 1, "提交失败后的备份也计数");
+        assert_eq!(tmp_count(&root), 0, "本次临时文件已清理");
+        // 重试一次（不再注入）应当成功
+        let outcome = rebuild_with_backup(&root, WriteFault::None).unwrap();
+        assert_eq!(count_backups(&dir), 2, "重试新增一份备份");
+        assert!(
+            fs::read(&outcome.backup_path).unwrap().starts_with(b"{commit will fail"),
+            "第二次重建备份的仍是原始损坏字节"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// 任务 1.5 / E06：第二实例持锁时重建以 CONFIG_LOCKED 拒绝（复用真实子进程持锁）。
+    /// 锁检查先于读原字节，因此夹具不预置正式文件也不影响。
+    #[test]
+    fn 双实例持锁时重建被拒() {
+        let root = temp_root("rebuild-locked");
+        fs::create_dir_all(root.join("config")).unwrap();
+        let exe = std::env::current_exe().unwrap();
+        let mut child = Command::new(&exe)
+            .env("LAYRESS_CONFIG_TEST_ROOT", &root)
+            .env("LAYRESS_CONFIG_TEST_ROLE", "hold_lock")
+            .args(["--exact", "config_store::tests::子进程持锁", "--nocapture"])
+            .spawn()
+            .unwrap();
+        let sentinel = root.join("child-ready");
+        let started = Instant::now();
+        let deadline = started + Duration::from_secs(10);
+        while !sentinel.exists() && Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(50));
+        }
+        eprintln!(
+            "[dbg] sentinel={} elapsed={:?} child_status={:?}",
+            sentinel.exists(),
+            started.elapsed(),
+            child.try_wait().map(|s| s.map(|s| s.code()))
+        );
+        assert!(sentinel.exists(), "子进程未在超时内持锁就绪");
+        let e = rebuild_with_backup(&root, WriteFault::None).unwrap_err();
+        assert_eq!(e.code_str(), "CONFIG_LOCKED", "持锁期间重建被拒（锁检查先于读文件）");
+        child.kill().unwrap();
+        child.wait().unwrap();
+        // 锁释放后：此时才预置损坏正式文件（子进程持锁期间 open 读不到文件不影响其持锁），
+        // 重试应当成功备份并重建
+        fs::write(root.join("config").join(CONFIG_FILE), b"{locked corrupt").unwrap();
+        let outcome = rebuild_with_backup(&root, WriteFault::None).unwrap();
+        assert!(outcome.backup_path.is_file());
         fs::remove_dir_all(root).unwrap();
     }
 }

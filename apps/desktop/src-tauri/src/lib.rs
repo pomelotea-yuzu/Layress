@@ -1297,6 +1297,65 @@ fn config_rename_project(
     Ok(current_view(&app))
 }
 
+/// 用户确认后的备份重建（任务 1.5 / design §6 / E06）。仅当配置存储未就绪且
+/// 错误属于「文件不可用」三类（读取失败 / 损坏 / 未知版本）时允许；第二实例
+/// （CONFIG_LOCKED）与数据根错误不在内。成功后立即重新打开存储并清除错误状态。
+/// 前端必须先做两段确认（会清空项目记忆、保留截图），本命令不做二次弹窗。
+#[tauri::command]
+fn config_rebuild(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    if host.config_store.get().is_some() {
+        return Err(cmd_err(
+            project_config::ConfigErrorCode::InvalidInput,
+            "配置存储正常，无需重建",
+        ));
+    }
+    let existing = host.config_error.lock().ok().and_then(|s| s.clone());
+    let code = existing
+        .as_ref()
+        .map(|e| e.code)
+        .ok_or_else(|| cmd_err(project_config::ConfigErrorCode::InvalidInput, "没有记录配置错误，无需重建"))?;
+    match code {
+        project_config::ConfigErrorCode::ReadFailed
+        | project_config::ConfigErrorCode::Corrupt
+        | project_config::ConfigErrorCode::VersionUnsupported => {}
+        _ => {
+            return Err(cmd_err(
+                code,
+                "当前错误类型不支持备份重建（如另一实例占用或数据根未解析），先解除对应问题",
+            ));
+        }
+    }
+    let root = host
+        .data_root
+        .get()
+        .cloned()
+        .ok_or_else(|| cmd_err(code, "数据根未解析，不能重建"))?;
+    let outcome = config_store::rebuild_with_backup(&root.path, config_store::WriteFault::None)
+        .map_err(CommandError::from)?;
+    eprintln!(
+        "[layress] 配置已备份重建：备份 {}，空配置 revision {}",
+        outcome.backup_path.display(),
+        outcome.revision
+    );
+    match config_store::ConfigStore::open(&root.path) {
+        Ok(store) => {
+            let _ = app.state::<PageHost>().config_store.set(store);
+            if let Ok(mut slot) = app.state::<PageHost>().config_error.lock() {
+                *slot = None;
+            }
+        }
+        Err(e) => {
+            // 理论上不应发生：重建刚以同一根成功写入合法空配置；如实记录不冒充成功
+            eprintln!("[layress] 重建后重新打开配置存储失败：{e}");
+            if let Ok(mut slot) = app.state::<PageHost>().config_error.lock() {
+                *slot = Some(e);
+            }
+        }
+    }
+    Ok(current_view(&app))
+}
+
 /// 进入项目设置：工具层铺满工作区、被测层等尺寸平移（0.1 已实机验证的布局）。
 /// 与静态预览 / 采集互斥；进入失败不改变布局，也不写配置。
 #[tauri::command]
@@ -1739,6 +1798,7 @@ pub fn run() {
             config_state,
             config_create_project,
             config_rename_project,
+            config_rebuild,
             settings_enter,
             settings_exit
         ])
