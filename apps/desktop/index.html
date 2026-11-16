@@ -76,6 +76,9 @@
         width: 320px; max-width: 100%; box-sizing: border-box; }
       #settings .actions { display: flex; gap: 8px; align-items: center; }
       #settings-rebuild.danger { color: #fff; background: #c62828; border-color: #c62828; }
+      #settings-viewport .viewport-row { display: flex; gap: 6px; align-items: center; }
+      #settings-viewport input[type="number"] { width: 88px; font-size: 13px; padding: 4px 6px;
+        box-sizing: border-box; }
       /* 任务 2.1 项目列表：条目可点选进编辑；活动项目实心圆点标示 */
       .project-item { padding: 4px 6px; border-radius: 4px; cursor: pointer; line-height: 1.6;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -105,7 +108,7 @@
         <span id="slow-wrap" title="开发期复验用：勾选后采集在拿到截图后额外等待 5 秒，期间点「刷新」/「取消」/ 再次「采集」可验证本次结果失效且不写盘。仅开发构建生效">
           <input id="slow-capture" type="checkbox" /><label for="slow-capture">慢采 5s</label>
         </span>
-        <span id="build-tag" class="stale" data-build="v20261116-3"
+        <span id="build-tag" class="stale" data-build="v20261116-4"
           title="工具层脚本版本：显示 v... 才说明窗口加载的是当前代码；红色「加载中」或不出现 ⇒ 旧窗口，复验作废">加载中…</span>
       </div>
       <div class="row">
@@ -160,6 +163,16 @@
           <option value="tablet">平板 768×1024</option>
           <option value="phone">手机 390×844</option>
         </select>
+      </div>
+      <div id="settings-viewport" hidden>
+        <label>视口（按项目保存；应用后套到被测页，非真机模拟）</label>
+        <div class="viewport-row">
+          <input id="settings-vp-w" type="number" min="16" max="4096" step="1" placeholder="宽" />
+          <span>×</span>
+          <input id="settings-vp-h" type="number" min="16" max="4096" step="1" placeholder="高" />
+          <button id="settings-vp-rotate" type="button" title="交换宽高，保留预设身份；方形不变">旋转</button>
+          <button id="settings-vp-apply" type="button" title="预设变化走预设默认尺寸；否则按宽高存为自定义并应用到被测页">应用视口</button>
+        </div>
       </div>
       <div class="actions">
         <button id="settings-save" type="button">新建项目并保存</button>

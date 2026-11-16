@@ -1332,6 +1332,94 @@ fn config_update_project(
     Ok(current_view(&app))
 }
 
+/// 设置项目视口（任务 2.2 / E02）。两个互斥分支由前端显式选择：
+/// - `preset_id = Some`：应用通用预设的默认尺寸（桌面 1280×800 / 平板 768×1024 / 手机 390×844）；
+/// - `preset_id = None` 且宽高齐全：保存为自定义（preset 变 custom）。
+/// 非法尺寸被模型层拒绝且不改已保存视口；应用成功只写配置，
+/// 实际应用到被测页由前端随后调 `page_set_size` 完成（两步各自反馈）。
+#[tauri::command]
+fn config_set_viewport(
+    app: AppHandle<tauri::Wry>,
+    id: String,
+    preset_id: Option<String>,
+    width: Option<u32>,
+    height: Option<u32>,
+) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能设置视口",
+        )
+    })?;
+    let mut config = store.config();
+    let expected = config.revision;
+    let project = config
+        .projects
+        .iter_mut()
+        .find(|p| p.id == id)
+        .ok_or_else(|| {
+            cmd_err(
+                project_config::ConfigErrorCode::InvalidInput,
+                format!("项目 {id} 不存在"),
+            )
+        })?;
+    match preset_id {
+        Some(raw) => {
+            let preset = parse_preset(&raw)?;
+            if preset == PresetId::Custom {
+                return Err(cmd_err(
+                    project_config::ConfigErrorCode::InvalidInput,
+                    "自定义预设请走宽高分支（preset 留空并给宽高），不接受字面 custom",
+                ));
+            }
+            project.viewport = project_config::Viewport::for_preset(preset);
+        }
+        None => {
+            let (w, h) = match (width, height) {
+                (Some(w), Some(h)) => (w, h),
+                _ => {
+                    return Err(cmd_err(
+                        project_config::ConfigErrorCode::InvalidInput,
+                        "自定义视口需要同时提供宽和高",
+                    ));
+                }
+            };
+            project.viewport.set_custom(w, h)?;
+        }
+    }
+    store.commit(config, expected).map_err(CommandError::from)?;
+    Ok(current_view(&app))
+}
+
+/// 旋转项目视口（任务 2.2 / E02）：交换宽高但保留预设身份；方形尺寸交换后不变。
+#[tauri::command]
+fn config_rotate_viewport(app: AppHandle<tauri::Wry>, id: String) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能旋转视口",
+        )
+    })?;
+    let mut config = store.config();
+    let expected = config.revision;
+    let project = config
+        .projects
+        .iter_mut()
+        .find(|p| p.id == id)
+        .ok_or_else(|| {
+            cmd_err(
+                project_config::ConfigErrorCode::InvalidInput,
+                format!("项目 {id} 不存在"),
+            )
+        })?;
+    project.viewport.rotate();
+    project.viewport.validate().map_err(CommandError::from)?;
+    store.commit(config, expected).map_err(CommandError::from)?;
+    Ok(current_view(&app))
+}
+
 /// 用户确认后的备份重建（任务 1.5 / design §6 / E06）。仅当配置存储未就绪且
 /// 错误属于「文件不可用」三类（读取失败 / 损坏 / 未知版本）时允许；第二实例
 /// （CONFIG_LOCKED）与数据根错误不在内。成功后立即重新打开存储并清除错误状态。
@@ -1874,6 +1962,8 @@ pub fn run() {
             config_create_project,
             config_rename_project,
             config_update_project,
+            config_set_viewport,
+            config_rotate_viewport,
             config_rebuild,
             settings_enter,
             settings_exit

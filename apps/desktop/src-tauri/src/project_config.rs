@@ -135,15 +135,11 @@ impl Viewport {
     }
 
     /// 旋转交换宽高但保留预设身份；方形尺寸交换后不变。
-    /// 视口 GUI 归任务 2.2，模型层先行落地并测试；接线时删除本 allow。
-    #[allow(dead_code)]
     pub fn rotate(&mut self) {
         std::mem::swap(&mut self.width, &mut self.height);
     }
 
     /// 手改任一宽高即变为自定义；坏值先拒绝，不修改当前视口。
-    /// 视口 GUI 归任务 2.2，模型层先行落地并测试；接线时删除本 allow。
-    #[allow(dead_code)]
     pub fn set_custom(&mut self, width: u32, height: u32) -> ConfigResult<()> {
         let next = Self {
             preset_id: PresetId::Custom,
