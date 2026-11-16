@@ -129,7 +129,7 @@
 - 新增 debug-only `LAYRESS_PROBE_LAYOUT=1`（`lib.rs`）：复用既有 `[layress-probe]` 标题通道，自动记录常态 / 铺满 6 轮 / 恢复三组数据——工具层 CSS 视口与 `#bar` 高、临时诊断表单 6 个控件的可见 / `elementFromPoint` 命中 / 可聚焦数、三块视图 bounds、`configured` 与被测页 title 哨兵回报；铺满由 `run_on_main_thread` 执行 `apply_layout(app, true)`，每轮重排以适配窗口缩放。
 - 不改前端源码 ⇒ 徽标仍 `v20261114-2`，不触发任务 1.1 的递增要求；不进入采集状态机、不写产品数据、release 为空实现。探针注入的诊断表单是临时 DOM，不代表项目 UI 已实现。
 - 实跑：`cargo test --lib` 27/27、`check-repo.mjs --all` 与 `--staged` 退出码 0（本机 macOS arm64）。**GUI 启动、小窗口、控件肉眼可见、状态栏层级、焦点手感、预览→设置→返回、编辑中拒绝采集全部未执行**；机器 PASS 不替代人工（I11），release 构建未实跑。
-- 操作清单与判据见 [app README「任务 0.1」](../../../apps/desktop/README.md)；通过前 0.1 不勾选、1.1 之后完整 UI 不扩展；失败退路按 design §1 同窗口 bounds / CSS 修正，仍失败如实标阻塞。
+- 操作清单与判据见 [复验清单归档「任务 0.1」](../../../docs/reviews/checklists/README.md)；通过前 0.1 不勾选、1.1 之后完整 UI 不扩展；失败退路按 design §1 同窗口 bounds / CSS 修正，仍失败如实标阻塞。
 
 ### 0.1 首轮回显（2026-11-15，用户实机提供；判定：布局可行 / 任务未通过）
 
@@ -236,11 +236,11 @@
 - **启动接线**（`lib.rs` setup）：解析失败时按错误类型设稳定码——相对路径 ⇒ `DATA_ROOT_RELATIVE_UNSUPPORTED`（本错误码首次有实现路径抛出，模块内对应 `allow(dead_code)` 已删），其他解析错误维持既有 `CONFIG_WRITE_FAILED` 口径；`config_error` / `data_root_error` / `PageEvent::DataRoot` 三通道同轮更新，采集仍由「无根拒绝写盘」与 `data_root_error` 挡住。
 - **前端**（徽标 `v20261115-2` → `v20261116-1`，`index.html` 同步）：`loadInitialState` 的数据根红条改为「有根或有无根错误都点亮」——相对根拒绝时 `dataRoot` 为空但 `dataRootError` 非空，此前不显示红条，正是 spec「解析失败无根时状态栏就绪后红条可见」的缺口；红条仍排在开场提示之后不被冲掉。相对根时 `config_store` 不打开，设置面板显示「配置不可用（DATA_ROOT_RELATIVE_UNSUPPORTED）」、保存命令失败、采集被拒 ⇒ 两类失败均禁用持久化与采集，不创建替代根。
 - **实跑**（macOS arm64）：`cargo test --lib` **43 通过 / 0 失败**（41 + 新增 2：显式相对根两来源分别解析层拒绝、CLI 绝对覆盖 env 相对不误拒），`node scripts/check-repo.mjs --all` 退出码 0（徽标一致 `v20261116-1`、tsc / vite、Rust check、洁净度 / 链接 / 双语、失败传播自测）。
-- **单列不勾 1.4**：红条实际可见性（三档：相对 CLI 根 / 相对 env 根 / CLI 绝对覆盖）待用户按 [app README](../../../apps/desktop/README.md)「任务 1.4 人工复验」三句确认；Windows 盘符路径在 Unix 解析层的表现属平台差异，随 Windows 实测单列；debt「相对路径解析基准」解析层部分已销账、红条部分待复验。
+- **单列不勾 1.4**：红条实际可见性（三档：相对 CLI 根 / 相对 env 根 / CLI 绝对覆盖）待用户按 [复验清单归档](../../../docs/reviews/checklists/README.md)「任务 1.4 人工复验」三句确认；Windows 盘符路径在 Unix 解析层的表现属平台差异，随 Windows 实测单列；debt「相对路径解析基准」解析层部分已销账、红条部分待复验。
 
 ### 1.4 复验收口：勾选（2026-11-16 09:21，用户实机三档）
 
-- 数据源：用户按 [app README](../../../apps/desktop/README.md)「任务 1.4 人工复验」三档实机操作后确认「都没问题」：① 相对 CLI 根红条可见且判据齐备（`DATA_ROOT_RELATIVE_UNSUPPORTED` + 原始值 + 绝对路径提示，不被开场提示冲掉）；② 相对 env 根来源正确；③ CLI 绝对覆盖 env 相对不误拒。窗口徽标按清单为 `v20261116-1`。
+- 数据源：用户按 [复验清单归档](../../../docs/reviews/checklists/README.md)「任务 1.4 人工复验」三档实机操作后确认「都没问题」：① 相对 CLI 根红条可见且判据齐备（`DATA_ROOT_RELATIVE_UNSUPPORTED` + 原始值 + 绝对路径提示，不被开场提示冲掉）；② 相对 env 根来源正确；③ CLI 绝对覆盖 env 相对不误拒。窗口徽标按清单为 `v20261116-1`。
 - 结论：**任务 1.4 勾选**（范围：解析层相对根拒绝、优先级、无根红条可见、app README / I13 同步、debt 解析层销账）。E05 标「相对根解析层 + 红条可见性通过」，E07 标「无根红条启动可见通过」。
 - **仍不覆盖**：1.5 备份重建与 10 份上限、2.x 视口 / 地址 / 项目切换 UI、3.x 编排与 3.4 仲裁、4.1 徽标内容指纹、4.2 全量人工复验、4.3 归档合入；不可写有根路径沿归档 change 4.1 已人工复验的证据，不在本项重复执行；Windows 盘符路径表现随 Windows 实测单列；D30 与云端 CI 状态不变。机器门禁与单测不替代人工（I11），本轮人工结论依据用户回显。
 
@@ -250,4 +250,8 @@
 - **命令接线**（`lib.rs`）：`config_rebuild` 仅当配置存储未就绪且错误属于 `READ_FAILED` / `CORRUPT` / `VERSION_UNSUPPORTED` 三类时允许；`LOCKED` / `DATA_ROOT_RELATIVE_UNSUPPORTED` 等一律拒绝。成功后重新 `ConfigStore::open` 并清除 `config_error`。
 - **前端**（徽标 `v20261115-2` → `v20261116-1` → `v20261116-2`，`index.html` 同步）：设置面板新增「备份并重建空配置」按钮，仅在三类错误时显示；**两段确认**——第一次点击只进入红色待确认态（6 秒自动复位），再点才调用；关闭面板自动复位。成功 / 失败均经底部状态栏（I15）。
 - **实跑**（macOS arm64）：`cargo test --lib` **48 通过 / 0 失败**（43 + 新增 5：备份重建成功且原字节保留截图不动、备份达上限拒绝且原文件与既有备份不变、备份失败原文件不变、提交失败备份保留并计入上限、双实例持锁时重建被拒——含真实子进程锁），`node scripts/check-repo.mjs --all` 退出码 0。调试期间以探针证实跨进程 `flock` 互斥正常（子进程持锁时 `ConfigStore::open` 只读、直接 `try_lock` WouldBlock、rebuild 首次调用返回 `CONFIG_LOCKED`），调试输出已全部移除。
-- **单列不勾 1.5**：错误态红条 / 设置面板表达、两段确认交互、备份文件 GUI 核对（清单见 [app README](../../../apps/desktop/README.md)「任务 1.5 人工复验」）待用户确认；「取消恢复」路径由前端两段确认承载（不点第二次即无任何写入），其 GUI 行为随人工复验核对；断电耐久性、Windows / Linux 权限语义、真实写盘观测（D30）单列。机器 PASS 不替代人工（I11）。
+- **单列不勾 1.5**：错误态红条 / 设置面板表达、两段确认交互、备份文件 GUI 核对（清单见 [复验清单归档](../../../docs/reviews/checklists/README.md)「任务 1.5 人工复验」）待用户确认；「取消恢复」路径由前端两段确认承载（不点第二次即无任何写入），其 GUI 行为随人工复验核对；断电耐久性、Windows / Linux 权限语义、真实写盘观测（D30）单列。机器 PASS 不替代人工（I11）。
+
+### 2026-11-16 补记：复验清单归档与新流程（用户定）
+
+- 用户决定：app README 只留结构与口径，历次复验清单（3.2 / 2.2 / 4.x / 5.2 / 0.1 / 1.1 / 1.4 / 1.5）迁入 [`docs/reviews/checklists/README.md`](../../../docs/reviews/checklists/README.md)，章节标题未改（旧文锚点仍可跳转），相对链接按新深度修正；本 README 中指向 app README 清单的引用同步改指归档。**此后复验步骤直接在对话中提供，不再写入 app README**；结论仍记入本文件。app README 保留「本地命令」「口径」与归档指针。
