@@ -18,6 +18,7 @@
 
 ## 门禁
 
+- [2026-11-16][P0] 用户真终端每次启动必现整窗冻结（点不了任何东西），WorkBuddy 沙箱后台跑同一命令连续 4 次均正常，同机同时段同配置 ⇒ `sample` 抓冻结进程主线程栈定位死锁环：主线程正在处理 **pending webview**（尚未创建完成）的 IPC 回调 → 工具层 JS 已发出 `invoke("status_bar_set")` → 命令在主线程同步执行 → `Webview::eval` 状态栏 webview → `eval_script` 拿 `Mutex<WindowId>`——**该锁正被 pending 创建流程持有**，主线程重入不可重入锁自我死锁 ⇒ Rust 侧注入状态栏的 `eval` 一律后台 `spawn`（fire-and-forget），永不在调用线程同步 eval 其他 webview；vite 冷启动时序稳定撞上、热缓存错开，这类竞态「沙箱复现不了」不代表没有 ⇒ 证据：用户 2026-11-16 13:12 `/tmp/layress-stack.txt`（主线程栈完整呈现 NSApplication → WebKit IPC → prepare_pending_webview → run_invoke_handler → status_bar_set → eval → Mutex::lock）、修复后 51/51。
 - [2026-11-03][P1] `.gitignore` 拦不住垃圾 ⇒ 它是默认放行机制，一个 `git add -f` 就能把数百 MB 的二进制写进历史且删不干净（前置项目的运行时目录里实际躺着一个 374 MB 安装包）⇒ 拒绝逻辑必须由 `scripts/check-hygiene.mjs` 执行并在 pre-commit + CI 双跑 ⇒ 证据：本仓 8 项门禁实测（垃圾场路径/体积/`.env`/凭据/无理由豁免/带理由豁免/忽略泄露）。
 - [2026-11-03][P0] CI 显示全绿但门禁根本没跑 ⇒ Gitee Go 的 `commands` 逐条执行、**单条失败不短路**，前面红了整体仍判绿；且 `build@nodejs` 插件可能静默跳过自带的 Node 安装，容器里没有可用 `node` ⇒ 所有校验用 `&&` 链成**一条**命令，由最终退出码判败；Node 在命令里自装，`nodeVersion` 字段只当必填占位 ⇒ 来源：前置项目首跑实证，本仓 [`.workflow/ci.yml`](../../.workflow/ci.yml) 已按此写。
 - [2026-11-03][P1] 豁免清单会变成考古现场 ⇒ 提交进去的 glob 后来没有一个文件命中，没人敢删 ⇒ `check-hygiene.mjs --all` 把零命中的豁免报成警告，删掉即可 ⇒ 只在 `--all` 判定，staged 模式本次提交没碰到该文件属正常。
@@ -98,6 +99,7 @@
 
 ## CI 与状态栏反馈（任务 5.1 回显 / 5.2，2026-11-14）
 
+- [2026-11-16][P1] 用户实机启动恢复「卡住」（终端停在「启动恢复：项目…」后无任何输出，Ctrl+C 才退出），同一配置在本机复跑却秒级成功 ⇒ 2026-11-13 条目的欠账当场兑现：`check_reachable` 的 `to_socket_addrs` 走系统解析器**无 Rust 层超时**，DNS 黑洞 / 慢网时恢复链无限挂住，且成功路径原本无 stderr 日志，终端只剩弱推断 ⇒ 预检外层加 `recv_timeout` 6s 总闸（> connect 3s + DNS 余量），超时明确报错可重试；成功路径补「项目页已打开」终端行——**启动恢复 / 切换这类「每进程一次」的编排必须两条路径都有终端证据，否则人工复验只能靠没报错猜** ⇒ 证据：2026-11-16 12:20 用户日志（恢复后无输出 + ^C）、同配置 12:23 复跑秒级成功（`项目页已打开：https://example.com/`）、加闸后复跑通过、`cargo test --lib` 51/51。
 - [2026-11-14][P1] 5.1 把构建门禁接入公共链后，Gitee Go 首次 CI 红而 GitHub Actions 绿 ⇒ Gitee 流水线只自装 Node 20，缺 Rust / pnpm 12 / Linux WebView 系统依赖 / `pnpm install`；`check-build.mjs` 的「工具链缺失即失败、不提供跳过开关」正确挡住「文档门禁绿 ⇒ 编译根本没跑」的假绿，不是脚本缺陷 ⇒ **每个调用公共链的 CI 入口都必须提供等价工具链前置**，逐端记录首次回显；不给门禁加环境跳过开关，也不把「配置已写」冒充「云端已通过」 ⇒ 证据：2026-11-13 16:04 Gitee 日志（前三项全过、`exit status 255`）、[change 证据 5.1](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/evidence-index.md)、D31。
 - [2026-11-14][P1] 底部状态栏是**单条文本覆盖通道**，把所有操作都收敛到 `showStatusBar`（I15）后会互相盖：启动提示盖数据根、`applySize` 成功绿条盖「窗口容纳不下」红条、常态 Viewport / 加载事件盖失败红条 ⇒ 后写者赢，与消息重要程度无关；且 Rust 在 `page_set_size` 内部先 `emit_viewport` 再返回，前端 `await` 后的回写必然晚于事件 ⇒ 启动提示先写、数据根后写；成功反馈交给 Viewport 事件按「设定值 / 可见性」变化信号统一给，删掉 `applySize` 回写；常态 Viewport 回报不占状态栏，只在信号变化时写 ⇒ 证据：`main.ts` 的 `lastViewSignal` 与 `loadInitialState` / `applySize` / `Viewport` 分支，本轮 `pnpm build:desktop` 退出码 0；判据仍需 GUI 人工复核。
 - [2026-11-14][P2] 一次性把 CI 工具链补进 Gitee 流水线却无法本机验证 ⇒ `.workflow/ci.yml` 的 apt 权限、镜像可达性、crates 下载耗时都取决于 Gitee 容器，本机只有 YAML 解析与单链结构可查 ⇒ 配置改动只声明「已补齐前置、云端复验待 push」，并在 debt 登记容器能力未实测；不要把 YAML 解析通过写成 CI 通过 ⇒ 证据：本机 `ruby -ryaml` 解析回显（commands 1 条、12 个 `&&`）、[change 证据 5.1](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/evidence-index.md)。

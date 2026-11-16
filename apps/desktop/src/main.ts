@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261116-6";
+const BUILD_TAG = "v20261116-8";
 
 interface MeasuredViewport {
   w: number;
@@ -86,6 +86,15 @@ interface PageStateInfo {
   dataRootError: string | null;
   inPreview: boolean;
   lastCapture: CaptureMeta | null;
+  restoreFailure: RestoreFailureInfo | null;
+}
+
+/** 任务 3.1：页面打开失败的可重试状态（启动恢复 / 项目切换共用）。 */
+interface RestoreFailureInfo {
+  projectId: string;
+  projectName: string;
+  targetUrl: string;
+  message: string;
 }
 
 interface PageEventPayload {
@@ -207,6 +216,8 @@ interface ConfigStateView {
   writable: boolean;
   dataRoot: string;
   error: { code: string; message: string } | null;
+  /** 任务 3.1：活动项目已提交但页面打开失败时非空；可点「重试打开当前项目」。 */
+  restoreFailure: RestoreFailureInfo | null;
 }
 
 // 新增 DOM 一律可选获取：旧窗口 HTML 与 Vite HMR 不同步时降级，不让整个脚本崩掉。
@@ -214,6 +225,7 @@ const settingsPanel = document.getElementById("settings");
 const settingsState = document.getElementById("settings-state");
 const settingsList = document.getElementById("settings-list");
 const btnRebuild = document.getElementById("settings-rebuild") as HTMLButtonElement | null;
+const btnRetry = document.getElementById("settings-retry") as HTMLButtonElement | null;
 const settingsName = document.getElementById("settings-name") as HTMLInputElement | null;
 const settingsUrl = document.getElementById("settings-url") as HTMLInputElement | null;
 const settingsPreset = document.getElementById("settings-preset") as HTMLSelectElement | null;
@@ -304,13 +316,30 @@ function renderConfig(view: ConfigStateView): void {
         const item = document.createElement("div");
         item.className = "project-item" + (p.id === view.activeProjectId ? " active" : "");
         item.dataset.projectId = p.id;
-        item.title = `完整 ID：${p.id}；点击载入到表单编辑`;
+        item.title = `完整 ID：${p.id}；点击文字进编辑，点「切换」重新打开该项目`;
         const mark = p.id === view.activeProjectId ? "● " : "○ ";
-        item.textContent =
+        const label = document.createElement("span");
+        label.textContent =
           `${mark}${p.name}（${shortId(p.id)} · ${p.startUrl} · ${p.presetId} ${p.width}×${p.height}）`;
+        item.appendChild(label);
+        // 任务 3.1：显式切换动作。两段确认由按钮事件承担；点文字仍是编辑入口
+        const switchBtn = document.createElement("button");
+        switchBtn.type = "button";
+        switchBtn.className = "switch-btn";
+        switchBtn.dataset.switchId = p.id;
+        switchBtn.textContent = p.id === view.activeProjectId ? "重开" : "切换";
+        switchBtn.title =
+          p.id === view.activeProjectId
+            ? "重开当前项目页面（页面已打开时不重载）"
+            : "切换到此项目：先持久提交，再销毁旧页、按该项目视口重新打开（未保存输入不恢复）";
+        item.appendChild(switchBtn);
         settingsList.appendChild(item);
       }
     }
+  }
+  // 任务 3.1：有活动项目且无配置错误时提供「重试打开当前项目」（启动恢复 / 切换失败后）
+  if (btnRetry) {
+    btnRetry.hidden = view.error != null || view.activeProjectId == null;
   }
   // 任务 1.5：只有「文件不可用」三类错误才提供备份重建；两段确认在按钮事件里
   const rebuildable =
@@ -366,6 +395,108 @@ async function refreshConfig(): Promise<void> {
     renderConfig(await invoke<ConfigStateView>("config_state"));
   } catch (e) {
     showStatusBar(`✗ 读取项目配置失败：${commandErrorText(e)}`, "error");
+  }
+}
+
+// ── 任务 3.1：跨项目切换（可取消）与重试打开 ──────────────────────
+
+/** 切换按钮的两段确认状态：第一次点击只武装，再点才真正切换；超时 / 改点其他项自动取消。 */
+let switchArmedId: string | null = null;
+let switchDisarmTimer: ReturnType<typeof setTimeout> | null = null;
+
+function disarmSwitch(): void {
+  switchArmedId = null;
+  if (switchDisarmTimer) {
+    clearTimeout(switchDisarmTimer);
+    switchDisarmTimer = null;
+  }
+  const btn = document.querySelector<HTMLButtonElement>(".switch-btn.armed");
+  if (btn) {
+    btn.classList.remove("armed");
+    btn.textContent = btn.dataset.switchId === lastConfigView?.activeProjectId ? "重开" : "切换";
+  }
+}
+
+/** 切换到指定项目 / 重开当前项目。跨项目切换先两段确认（可取消）：
+ * 明确提示会话不恢复；确认后先持久提交再重建被测页（顺序在 Rust 命令内）。
+ * 重选当前项目：页面已打开 ⇒ 不重载、保持原会话（Rust 端同判 no-op 双保险）；
+ * 页面未打开（此前恢复 / 切换失败）⇒ 走命令真打开。 */
+async function activateProject(id: string): Promise<void> {
+  const view = lastConfigView;
+  const p = view?.projects.find((x) => x.id === id);
+  if (!view || !p) return;
+  const isSame = p.id === view.activeProjectId;
+  if (isSame) {
+    let pageOpen = false;
+    try {
+      pageOpen = !!(await invoke<PageStateInfo>("page_state")).pageOpen;
+    } catch {
+      // 状态取不到时按「未打开」处理，走命令让 Rust 判定（有 no-op 保护）
+    }
+    if (pageOpen) {
+      showStatusBar(`已是当前项目「${p.name}」：页面保持原会话，未重载`, "ok");
+      return;
+    }
+    showStatusBar(`当前项目页面未打开，正在打开「${p.name}」 …`, "pending");
+  } else if (switchArmedId !== id) {
+    // 第一段：武装确认；改点其他项 / 超时自动取消
+    disarmSwitch();
+    switchArmedId = id;
+    const btn = document.querySelector<HTMLButtonElement>(`[data-switch-id="${id}"]`);
+    if (btn) {
+      btn.classList.add("armed");
+      btn.textContent = "确认切换";
+    }
+    switchDisarmTimer = setTimeout(disarmSwitch, 6000);
+    showStatusBar(
+      `⚠ 将重新打开项目「${p.name}」：当前页面未保存的输入和弹窗不会恢复。再点一次「确认切换」执行；不操作即取消`,
+      "error",
+    );
+    return;
+  }
+  disarmSwitch();
+  if (!isSame) {
+    showStatusBar("正在切换项目：先持久提交，再重建被测页 …", "pending");
+  }
+  try {
+    const next = await invoke<ConfigStateView>("config_activate_project", { id });
+    renderConfig(next);
+    if (next.restoreFailure) {
+      // 活动项目已提交但页面打开失败：旧页已销毁，不冒充切换成功；保持面板开放重试
+      showStatusBar(
+        `✗ 已切换活动项目「${p.name}」，但页面打开失败：${next.restoreFailure.message}；可点「重试打开当前项目」`,
+        "error",
+      );
+      return;
+    }
+    await closeSettings();
+    showStatusBar(
+      isSame
+        ? `✓ 已打开项目「${p.name}」页面`
+        : `✓ 已切换到项目「${p.name}」；旧页面会话已销毁，未保存输入不恢复`,
+      "ok",
+    );
+  } catch (e) {
+    // 持久提交失败：整体未开始切换，当前项目与页面保留（design §4）
+    showStatusBar(`✗ 切换未执行（当前项目与页面保留）：${commandErrorText(e)}`, "error");
+    await refreshConfig();
+  }
+}
+
+/** 重试打开当前活动项目（启动恢复 / 切换后页面打开失败的显式重试）。 */
+async function retryRestore(): Promise<void> {
+  if (!lastConfigView?.activeProjectId) {
+    showStatusBar("当前没有活动项目，无需恢复；先在下方选择或新建项目", "info");
+    return;
+  }
+  showStatusBar("正在重试打开当前项目：先应用视口再导航 …", "pending");
+  try {
+    await invoke("config_retry_restore");
+    await refreshConfig();
+    showStatusBar("✓ 当前项目页面已打开（最近地址优先，为空回退起始地址）", "ok");
+  } catch (e) {
+    showStatusBar(`✗ 重试失败：${commandErrorText(e)}；项目配置保留，可再次重试`, "error");
+    await refreshConfig();
   }
 }
 
@@ -466,6 +597,7 @@ async function openSettings(): Promise<void> {
 
 async function closeSettings(): Promise<void> {
   disarmRebuild();
+  disarmSwitch();
   try {
     await invoke("settings_exit");
     settingsPanel?.classList.remove("show");
@@ -802,6 +934,15 @@ async function loadInitialState(): Promise<void> {
       await invoke("preview_exit");
       hidePreview();
     }
+    // 任务 3.1：启动恢复失败（离线 / 目标不可达）时红条最后写，保证不被前面的提示冲掉；
+    // 活动项目与配置已保留，重试入口在项目设置的「重试打开当前项目」。
+    if (state.restoreFailure) {
+      const f = state.restoreFailure;
+      showStatusBar(
+        `✗ 启动恢复失败：${f.targetUrl} —— ${f.message}；项目「${f.projectName}」配置已保留，打开项目设置可重试`,
+        "error",
+      );
+    }
   } catch (e) {
     showStatusBar(`✗ 状态读取失败：${String(e)}`, "error");
   }
@@ -818,11 +959,21 @@ function bindUi(): void {
   document.getElementById("settings-save")?.addEventListener("click", () => void saveProject());
   document.getElementById("settings-cancel")?.addEventListener("click", () => void closeSettings());
   btnRebuild?.addEventListener("click", () => void rebuildProject());
+  btnRetry?.addEventListener("click", () => void retryRestore());
   // 任务 2.1：列表条目点选进编辑模式；「新建」退出编辑回到空表单（取消不提交）
+  // 任务 3.1：点「切换 / 重开」按钮走显式切换（两段确认），点文字仍是编辑入口
   settingsList?.addEventListener("click", (ev) => {
+    const switchBtn = (ev.target as HTMLElement).closest<HTMLElement>("[data-switch-id]");
+    if (switchBtn?.dataset.switchId) {
+      void activateProject(switchBtn.dataset.switchId);
+      return;
+    }
     const target = (ev.target as HTMLElement).closest<HTMLElement>("[data-project-id]");
     const p = lastConfigView?.projects.find((x) => x.id === target?.dataset.projectId);
-    if (p) enterEditMode(p);
+    if (p) {
+      disarmSwitch();
+      enterEditMode(p);
+    }
   });
   document.getElementById("settings-new")?.addEventListener("click", () => {
     resetProjectForm();

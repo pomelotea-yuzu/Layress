@@ -54,6 +54,11 @@ const PREVIEW_OFFSCREEN_GAP: f64 = 2000.0;
 /// 被测页面无 IPC 能力，借 title 变化回传真实视口与会话标识。
 const TITLE_PREFIX: &str = "\u{200b}LW ";
 const REACHABILITY_TIMEOUT: Duration = Duration::from_secs(3);
+/// 可达性预检的**总超时**：`to_socket_addrs` 走系统解析器，DNS 阶段没有 Rust 层
+/// 超时（登记过的欠账）；DNS 黑洞 / 网络无响应时整条恢复链会无限挂住，终端无任何
+/// 后续输出，看起来就是「卡死」（2026-11-16 用户实机复验复现）。总闸 6s > 单次
+/// connect 3s + DNS 余量，正常慢网仍能成功，真黑洞明确报错可重试。
+const REACHABILITY_TOTAL_TIMEOUT: Duration = Duration::from_secs(6);
 
 const MEASURE_SCRIPT: &str = r#"(function(){
   // 视口边框样式（工具辅助标记，pointer-events:none 不拦截页面交互）；
@@ -113,6 +118,27 @@ struct PageHost {
     settings: Mutex<bool>,
     /// 稳定项目 ID 的进程内序号（与毫秒时间戳组合，不作权限来源）
     project_seq: AtomicU64,
+    /// 被测页代号：每次销毁 / 创建页面递增。旧页（已销毁或待销毁）的迟到回调
+    /// 与当前代号不符，不得记忆最近地址或污染视口测量（3.1「旧页不挂到新项目」）
+    page_gen: AtomicU64,
+    /// 页面打开失败的可重试状态（启动恢复 / 项目切换 / 重试共用）：
+    /// 活动项目已提交、旧页已不保留，目标与原因如实记录，等待用户显式重试
+    restore_failure: Mutex<Option<RestoreFailure>>,
+    /// 页面打开编排互斥（任务 3.1）：恢复 / 切换 / 重试并发进入会互相销毁对方
+    /// 刚创建的被测页、抢占同一标签（2026-11-16 实机日志：两条步骤行并行、
+    /// 4/4 缺失）⇒ 进行中直接拒绝第二次点击，明确提示稍后再试
+    page_open_busy: Mutex<bool>,
+}
+
+/// 页面打开失败的可重试状态。设计 §4：目标页面不可达时活动项目及其已存配置
+/// 仍为目标项目；旧页不得继续作为该项目画面。不自动改回起始地址冒充恢复成功。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RestoreFailure {
+    project_id: String,
+    project_name: String,
+    target_url: String,
+    message: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -428,6 +454,13 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
         return Ok(());
     }
 
+    // 创建即换代：此后旧页（即将销毁或刚销毁）的迟到回调与本代号不符，
+    // 不得记忆最近地址或污染视口测量（任务 3.1 / design §4「旧页不挂到新项目」）。
+    let gen = {
+        let state = app.state::<PageHost>();
+        state.page_gen.fetch_add(1, Ordering::Relaxed) + 1
+    };
+
     let builder = tauri::webview::WebviewBuilder::new(PAGE_LABEL, WebviewUrl::External(url))
         .incognito(true)
         .initialization_script(MEASURE_SCRIPT)
@@ -446,7 +479,7 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
             }
             ok
         })
-        .on_page_load(|webview, payload| {
+        .on_page_load(move |webview, payload| {
             let app = webview.app_handle().clone();
             let phase = match payload.event() {
                 PageLoadEvent::Started => "loading",
@@ -467,16 +500,34 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
                 // 导航会重置 DOM，加载完成后按当前状态重新应用视口边框
                 sync_page_frame(&app);
                 emit_viewport(&app);
-                // 任务 2.3：可归属当前项目的主文档完成加载 → 记忆最近地址
-                remember_last_loaded_url(&app, &payload.url().to_string());
+                // 任务 2.3：可归属当前项目的主文档完成加载 → 记忆最近地址。
+                // 任务 3.1：先核对页面代号——只有当前代页面的完成加载才可归属；
+                // 已销毁旧页的迟到完成事件不得写进新活动项目的最近地址。
+                let current_gen = app
+                    .state::<PageHost>()
+                    .page_gen
+                    .load(Ordering::Relaxed);
+                if gen == current_gen {
+                    remember_last_loaded_url(&app, &payload.url().to_string());
+                } else {
+                    eprintln!(
+                        "[layress] 过期页面（gen {gen} ≠ 当前 {current_gen}）的完成加载事件，不记忆地址：{}",
+                        payload.url()
+                    );
+                }
             }
         })
-        .on_document_title_changed(|webview, title| {
+        .on_document_title_changed(move |webview, title| {
             let Some(rest) = title.strip_prefix(TITLE_PREFIX) else {
                 return; // 非哨兵标题（页面自身标题），忽略
             };
             if let Ok(m) = serde_json::from_str::<MeasuredViewport>(rest) {
                 let app = webview.app_handle().clone();
+                // 过期页面的测量不采信：旧页哨兵不得污染当前项目的视口数据
+                let current_gen = app.state::<PageHost>().page_gen.load(Ordering::Relaxed);
+                if gen != current_gen {
+                    return;
+                }
                 if let Ok(mut slot) = app.state::<PageHost>().measured.lock() {
                     *slot = Some(m);
                 }
@@ -548,6 +599,138 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
     Ok(())
 }
 
+/// 销毁被测页（任务 3.1 项目切换 / design §4）：旧页绝不挂到新项目名下。
+/// 销毁前立即换代并清空旧页测量值，让尚未排空的旧页回调失去记忆 / 测量资格；
+/// close 的登记簿移除是同步的，随后可用同一标签创建新的隔离被测页。
+fn destroy_page_webview(app: &AppHandle<tauri::Wry>) {
+    let Some(page) = app.get_webview(PAGE_LABEL) else {
+        return;
+    };
+    let state = app.state::<PageHost>();
+    state.page_gen.fetch_add(1, Ordering::Relaxed);
+    if let Ok(mut slot) = state.measured.lock() {
+        *slot = None;
+    }
+    if let Err(e) = page.close() {
+        eprintln!("[layress] 销毁旧被测页失败（后续创建可能因标签占用而失败）：{e}");
+    }
+}
+
+/// 恢复目标地址：最近完成加载的地址优先，为空回退起始地址（design §1）。
+/// 纯函数，单测直接断言；失效目标不自动改回起始地址冒充恢复成功。
+fn restore_target(project: &project_config::Project) -> String {
+    project
+        .last_loaded_url
+        .clone()
+        .unwrap_or_else(|| project.start_url.clone())
+}
+
+/// 记录页面打开失败的可重试状态；用户可显式重试，不自动兜底。
+fn record_restore_failure(
+    app: &AppHandle<tauri::Wry>,
+    project: &project_config::Project,
+    target: &str,
+    message: &str,
+) {
+    let failure = RestoreFailure {
+        project_id: project.id.clone(),
+        project_name: project.name.clone(),
+        target_url: target.to_string(),
+        message: message.to_string(),
+    };
+    if let Ok(mut slot) = app.state::<PageHost>().restore_failure.lock() {
+        *slot = Some(failure);
+    }
+    eprintln!(
+        "[layress] 页面打开失败（活动项目 {} 已提交，可重试）：{message}",
+        project.name
+    );
+}
+
+/// 项目页打开编排（任务 3.1：启动恢复 / 项目切换 / 重试共用）。
+/// **并发互斥**：恢复 / 切换 / 重试同时只允许一个在跑（断网时用户连点重试 /
+/// 切换 + 重试混操作会并发进入，互相销毁对方刚创建的被测页、抢占同一标签，
+/// 2026-11-16 实机复现）；进行中再次进入明确拒绝，不排队不覆盖。
+async fn open_project_page(
+    app: &AppHandle<tauri::Wry>,
+    project: &project_config::Project,
+) -> Result<String, String> {
+    {
+        let host = app.state::<PageHost>();
+        let mut busy = host
+            .page_open_busy
+            .lock()
+            .map_err(|_| "页面编排互斥锁不可用".to_string())?;
+        if *busy {
+            return Err("上一次页面打开（恢复 / 切换 / 重试）仍在进行中，请等它结束再点".to_string());
+        }
+        *busy = true;
+    }
+    let result = open_project_page_inner(app, project).await;
+    if let Ok(mut busy) = app.state::<PageHost>().page_open_busy.lock() {
+        *busy = false;
+    }
+    result
+}
+
+/// 编排本体（互斥由 `open_project_page` 外层负责）。
+/// 顺序固定（design §1 §4）：作废采集 / 退出预览 → 销毁旧页 → 可达预检 →
+/// **先应用视口** → 创建新的隔离、非持久被测页并导航。
+/// 失败时不留半开页面：旧页已销毁、目标项目配置已保留，调用方进入可重试状态。
+/// 成功时清空重试状态并返回实际导航目标。
+async fn open_project_page_inner(
+    app: &AppHandle<tauri::Wry>,
+    project: &project_config::Project,
+) -> Result<String, String> {
+    let target_raw = restore_target(project);
+    let url = validate_url(&target_raw)
+        .map_err(|e| format!("恢复目标地址无效（{target_raw}）：{e}"))?;
+    // 逐步插桩：启动恢复 / 切换是「每进程一次」的编排，任何一步静默卡住
+    // 都会让终端只剩「启动恢复：项目…」一行弱证据，无法定位卡点。
+    eprintln!(
+        "[layress] 恢复步骤 1/4：目标 {target_raw}，视口 {}×{}，开始可达预检（总闸 {}s）",
+        project.viewport.width,
+        project.viewport.height,
+        REACHABILITY_TOTAL_TIMEOUT.as_secs()
+    );
+    invalidate_capture(app, "项目切换 / 启动恢复：在途采集已作废，旧结果不作新项目画面");
+    // 若处于静态预览先退出：切换销毁旧页，旧预览不再成立（编辑模式由前端关闭面板收尾）
+    let preview = app
+        .state::<PageHost>()
+        .captures
+        .lock()
+        .map(|s| s.preview)
+        .unwrap_or(false);
+    if preview {
+        exit_preview(app)?;
+    }
+    destroy_page_webview(app);
+    // 预检失败 ⇒ 保持无页面 + 可重试，不创建半开页面，也不保留旧页冒充新项目画面
+    check_reachable(&url)
+        .await
+        .map_err(|e| format!("目标不可达（{target_raw}）：{e}；项目配置已保留，可重试打开"))?;
+    eprintln!("[layress] 恢复步骤 2/4：可达预检通过，应用视口");
+    // 先应用视口，再创建被测页并导航
+    apply_configured_size_internal(
+        app,
+        f64::from(project.viewport.width),
+        f64::from(project.viewport.height),
+    )?;
+    eprintln!("[layress] 恢复步骤 3/4：视口已应用，创建被测页并导航");
+    ensure_and_navigate(app, url)?;
+    if let Ok(mut slot) = app.state::<PageHost>().restore_failure.lock() {
+        *slot = None;
+    }
+    // 成功路径必须有终端证据：启动恢复 / 切换 / 重试共用本编排，绿条只在 GUI 可见，
+    // 终端日志回显是本仓人工复验的主要证据渠道，缺了就只剩「没报错」这种弱推断。
+    eprintln!(
+        "[layress] 恢复步骤 4/4 完成：项目页已打开 {target_raw}（项目「{}」，旧页已销毁）",
+        project.name
+    );
+    emit(app, PageEvent::Url(target_raw.clone()));
+    Ok(target_raw)
+}
+
 // ── 地址校验与可达性 ─────────────────────────────────────────────
 
 /// 宿主与配置模型共用的 HTTP(S) 地址校验；`project_config` 也走这里，
@@ -604,11 +787,26 @@ fn probe_reachable(url: &Url) -> Result<(), String> {
 
 /// 导航前做 TCP 可达性预检：失败明确报错且不触碰当前页面（E03）。
 /// DNS 与 connect 放在阻塞线程，避免拖住 UI 线程；`connect_timeout` 只约束连接阶段。
+/// DNS 阶段系统解析器无 Rust 层超时，外层用通道 `recv_timeout` 设**总闸**：
+/// 超时明确报错可重试，不把恢复 / 切换链挂死；超时后探测线程自行结束（getaddrinfo
+/// 受系统解析器超时约束），不回收也不影响主流程。
 async fn check_reachable(url: &Url) -> Result<(), String> {
     let owned = url.clone();
-    tauri::async_runtime::spawn_blocking(move || probe_reachable(&owned))
-        .await
-        .map_err(|e| format!("可达性检查任务失败：{e}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(probe_reachable(&owned));
+        });
+        match rx.recv_timeout(REACHABILITY_TOTAL_TIMEOUT) {
+            Ok(result) => result,
+            Err(_) => Err(format!(
+                "可达性预检超时（超过 {}s，DNS 或网络无响应）；请检查网络后重试",
+                REACHABILITY_TOTAL_TIMEOUT.as_secs()
+            )),
+        }
+    })
+    .await
+    .map_err(|e| format!("可达性检查任务失败：{e}"))?
 }
 
 /// E03 的纯逻辑部分：地址校验与可达性预检各有一正一反样本。
@@ -758,12 +956,17 @@ fn remember_last_loaded_url(app: &AppHandle<tauri::Wry>, url: &str) {
     }
 }
 
-#[tauri::command]
-fn page_set_size(app: AppHandle<tauri::Wry>, width: f64, height: f64) -> Result<(), String> {
+/// 设定视口的共用实现（命令与项目切换 / 启动恢复编排共用）：先写设定值，
+/// 再按当前预览态重排布局、同步边框并回报视口事件（任务 3.1）。
+fn apply_configured_size_internal(
+    app: &AppHandle<tauri::Wry>,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
     if !(16.0..=4096.0).contains(&width) || !(16.0..=4096.0).contains(&height) {
         return Err("尺寸超出允许范围（16–4096）".to_string());
     }
-    invalidate_capture(&app, "视口变更已作废在途采集");
+    invalidate_capture(app, "视口变更已作废在途采集");
     {
         let state = app.state::<PageHost>();
         let mut cfg = state
@@ -778,10 +981,15 @@ fn page_set_size(app: AppHandle<tauri::Wry>, width: f64, height: f64) -> Result<
         .lock()
         .map(|s| s.preview)
         .unwrap_or(false);
-    apply_layout(&app, preview);
-    sync_page_frame(&app);
-    emit_viewport(&app);
+    apply_layout(app, preview);
+    sync_page_frame(app);
+    emit_viewport(app);
     Ok(())
+}
+
+#[tauri::command]
+fn page_set_size(app: AppHandle<tauri::Wry>, width: f64, height: f64) -> Result<(), String> {
+    apply_configured_size_internal(&app, width, height)
 }
 
 /// 工具层初始化时取一次全量状态。
@@ -814,6 +1022,7 @@ fn page_state(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String> {
         "dataRootError": root_error,
         "inPreview": in_preview,
         "lastCapture": last,
+        "restoreFailure": state.restore_failure.lock().ok().and_then(|f| f.clone()),
     }))
 }
 
@@ -1115,24 +1324,62 @@ fn capture_delay(_delay_ms: Option<u64>) -> Duration {
     Duration::ZERO
 }
 
-/// 采集结果条：可信工具层调用，Rust 转发到**无能力**的底部状态栏 WebView。
-/// 状态栏 HTML 无脚本、不出现在任何 capability 里，只接受这里注入的文本与级别。
-#[tauri::command]
-fn status_bar_set(app: AppHandle<tauri::Wry>, text: String, level: String) -> Result<(), String> {
-    let status = app
-        .get_webview(STATUS_LABEL)
-        .ok_or_else(|| "底部状态栏未就绪".to_string())?;
-    let level = match level.as_str() {
-        "ok" | "error" | "pending" => level,
+/// 状态栏文本注入的共用实现（命令与启动恢复 / 项目切换编排共用，任务 3.1）。
+/// **eval 一律后台 spawn 执行**（fire-and-forget）：tauri 命令在主线程的 IPC
+/// 回调里同步 eval 其他 webview 时，若目标 webview 尚在 pending 创建阶段，
+/// `Mutex<WindowId>` 会被创建流程持有 → 主线程重入锁自我死锁、整窗冻结
+/// （2026-11-16 实机 sample 栈实证：status_bar_set → eval → Mutex::lock）。
+/// 后台 spawn 后 worker 线程最多阻塞等锁，主线程永不冻结；写入失败仅记录。
+fn set_status_bar(app: &AppHandle<tauri::Wry>, text: &str, level: &str) -> bool {
+    // 状态栏 webview 未就绪：直接报告未写入，让调用方（如启动恢复轮询）等待重试
+    if app.get_webview(STATUS_LABEL).is_none() {
+        return false;
+    }
+    let app = app.clone();
+    let text = text.to_string();
+    let level = match level {
+        "ok" | "error" | "pending" => level.to_string(),
         _ => "info".to_string(),
     };
-    let text_js = serde_json::to_string(&text).map_err(|e| format!("状态文本序列化失败：{e}"))?;
-    let level_js = serde_json::to_string(&level).map_err(|e| format!("状态级别序列化失败：{e}"))?;
-    let js = format!(
-        "(function(){{var b=document.getElementById('bar');var m=document.getElementById('msg');\
+    tauri::async_runtime::spawn(async move {
+        let text_js = match serde_json::to_string(&text) {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("[layress] 状态文本序列化失败：{e}");
+                return;
+            }
+        };
+        let level_js = match serde_json::to_string(&level) {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("[layress] 状态级别序列化失败：{e}");
+                return;
+            }
+        };
+        let js = format!(
+            "(function(){{var b=document.getElementById('bar');var m=document.getElementById('msg');\
 if(m)m.textContent={text_js};if(b)b.className={level_js};}})();"
-    );
-    status.eval(js).map_err(|e| format!("状态栏更新失败：{e}"))
+        );
+        let Some(status) = app.get_webview(STATUS_LABEL) else {
+            return;
+        };
+        if let Err(e) = status.eval(js) {
+            eprintln!("[layress] 状态栏更新失败：{e}");
+        }
+    });
+    true
+}
+
+/// 采集结果条：可信工具层调用，Rust 转发到**无能力**的底部状态栏 WebView。
+/// 状态栏 HTML 无脚本、不出现在任何 capability 里，只接受这里注入的文本与级别。
+/// 写入是后台异步的（见 set_status_bar 死锁注释），本命令立即返回。
+#[tauri::command]
+fn status_bar_set(app: AppHandle<tauri::Wry>, text: String, level: String) -> Result<(), String> {
+    if set_status_bar(&app, &text, &level) {
+        Ok(())
+    } else {
+        Err("底部状态栏未就绪".to_string())
+    }
 }
 
 // ── 任务 1.1：配置模型 / 错误码 / 存储接入 ────────────────────────
@@ -1210,6 +1457,8 @@ struct ConfigStateView {
     writable: bool,
     data_root: String,
     error: Option<CommandError>,
+    /// 页面打开失败的可重试状态（任务 3.1）：活动项目已提交但页面未打开时非空
+    restore_failure: Option<RestoreFailure>,
 }
 
 fn project_view(p: &project_config::Project) -> ProjectView {
@@ -1237,6 +1486,7 @@ fn view_from_config(
         writable,
         data_root,
         error,
+        restore_failure: None,
     }
 }
 
@@ -1249,12 +1499,13 @@ fn current_view(app: &AppHandle<tauri::Wry>) -> ConfigStateView {
         .ok()
         .and_then(|s| s.clone())
         .map(CommandError::from);
+    let restore_failure = host.restore_failure.lock().ok().and_then(|f| f.clone());
     let data_root = host
         .data_root
         .get()
         .map(|r| r.path.to_string_lossy().to_string())
         .unwrap_or_default();
-    match host.config_store.get() {
+    let mut view = match host.config_store.get() {
         Some(store) => view_from_config(&store.config(), store.is_writable(), data_root, error),
         None => view_from_config(
             &ProjectConfig::empty(),
@@ -1267,7 +1518,9 @@ fn current_view(app: &AppHandle<tauri::Wry>) -> ConfigStateView {
                 ))
             }),
         ),
-    }
+    };
+    view.restore_failure = restore_failure;
+    view
 }
 
 #[tauri::command]
@@ -1513,6 +1766,160 @@ fn config_rebuild(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, Command
     Ok(current_view(&app))
 }
 
+/// 跨项目切换（任务 3.1 / design §1 §4）。两段可取消确认由前端完成，本命令是
+/// 确认后的落点：
+/// ①**先持久提交**目标活动项目——失败则整体不开始切换，当前项目与页面保留；
+/// ②持久成功后编排页面：作废采集 / 退出预览 → 销毁旧页 → 可达预检 →
+///   先应用视口 → 创建新的隔离被测页并导航（最近地址优先，为空回退起始地址）。
+/// 页面阶段失败进入 `restoreFailure` 可重试状态：旧页已销毁不挂到新项目名下，
+/// 目标项目及其已存配置仍是活动项目（design §4）。
+/// 重选当前项目且页面已打开：直接返回，不重载、不重建会话。
+#[tauri::command]
+async fn config_activate_project(
+    app: AppHandle<tauri::Wry>,
+    id: String,
+) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能切换项目",
+        )
+    })?;
+    let mut config = store.config();
+    // 重选当前项目且页面已打开：无意义重载必须避免（design §1）
+    let page_open = app.get_webview(PAGE_LABEL).is_some();
+    if config.active_project_id.as_deref() == Some(id.as_str()) && page_open {
+        return Ok(current_view(&app));
+    }
+    let expected = config.revision;
+    if !config.projects.iter().any(|p| p.id == id) {
+        return Err(cmd_err(
+            project_config::ConfigErrorCode::InvalidInput,
+            format!("项目 {id} 不存在"),
+        ));
+    }
+    config.active_project_id = Some(id.clone());
+    // 先持久提交；失败则不开始切换（design §4），当前项目与页面原样保留
+    store.commit(config, expected).map_err(CommandError::from)?;
+    let project = store
+        .config()
+        .project(&id)
+        .cloned()
+        .ok_or_else(|| cmd_err(project_config::ConfigErrorCode::ReadFailed, "提交后读取目标项目失败"))?;
+    let target = restore_target(&project);
+    match open_project_page(&app, &project).await {
+        Ok(_) => {
+            set_status_bar(
+                &app,
+                &format!(
+                    "✓ 已切换到项目「{}」：视口已应用，正在打开 {target}（旧页面会话已销毁，未保存输入不恢复）",
+                    project.name
+                ),
+                "ok",
+            );
+        }
+        Err(e) => {
+            record_restore_failure(&app, &project, &target, &e);
+            set_status_bar(
+                &app,
+                &format!("✗ 已切换活动项目「{}」，但页面打开失败：{e}", project.name),
+                "error",
+            );
+        }
+    }
+    Ok(current_view(&app))
+}
+
+/// 重试打开当前活动项目（任务 3.1 / E04「离线重试」）：启动恢复或切换的页面
+/// 阶段失败后由用户显式重试；无活动项目则明确拒绝，不猜目标。
+#[tauri::command]
+async fn config_retry_restore(app: AppHandle<tauri::Wry>) -> Result<(), String> {
+    let host = app.state::<PageHost>();
+    let store = host
+        .config_store
+        .get()
+        .ok_or_else(|| "配置存储未就绪，不能重试恢复".to_string())?;
+    let config = store.config();
+    let active_id = config
+        .active_project_id
+        .clone()
+        .ok_or_else(|| "当前没有活动项目，无需恢复；先在项目设置中选择或新建".to_string())?;
+    let project = config
+        .project(&active_id)
+        .cloned()
+        .ok_or_else(|| "活动项目记录不存在".to_string())?;
+    let target = restore_target(&project);
+    match open_project_page(&app, &project).await {
+        Ok(_) => {
+            set_status_bar(
+                &app,
+                &format!("✓ 已打开项目「{}」：{target}", project.name),
+                "ok",
+            );
+            Ok(())
+        }
+        Err(e) => {
+            record_restore_failure(&app, &project, &target, &e);
+            Err(e)
+        }
+    }
+}
+
+/// 任一开发期探针环境变量生效时跳过启动恢复：探针自动打开样例页 / 布局测量，
+/// 与恢复共用 PAGE_LABEL，两个编排会互相销毁对方的被测页。
+fn restore_suppressed_by_probe() -> bool {
+    std::env::var_os("LAYRESS_PROBE_CAPTURE").is_some()
+        || std::env::var_os("LAYRESS_PROBE_TOOL").is_some()
+        || std::env::var_os("LAYRESS_PROBE_LAYOUT").is_some()
+}
+
+/// 启动恢复（任务 3.1 / design §1）：加载最近活动项目，先应用视口再打开最近
+/// 完成加载的地址（为空回退起始地址）。失败显示可重试目标、保留项目配置，
+/// 不自动改回起始地址冒充恢复成功；每个进程只尝试一次，失败后由用户显式重试。
+/// 无配置存储（数据根不可用 / 损坏待重建）或无活动项目时保持既有开场，不恢复。
+/// 任一开发期探针生效时跳过恢复（探针与恢复共用被测页标签，见 run() 调用处）。
+async fn startup_restore(app: &AppHandle<tauri::Wry>) {
+    let host = app.state::<PageHost>();
+    let Some(store) = host.config_store.get() else {
+        return;
+    };
+    let config = store.config();
+    let Some(active_id) = config.active_project_id.clone() else {
+        return;
+    };
+    let Some(project) = config.project(&active_id).cloned() else {
+        return;
+    };
+    // 状态栏 / 工具层 WebView 可能尚未就绪：短暂轮询第一次提示，最多约 3 秒
+    let announce = format!("正在恢复上次项目「{}」…", project.name);
+    for _ in 0..20 {
+        if set_status_bar(app, &announce, "pending") {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(150));
+    }
+    eprintln!("[layress] 启动恢复：项目「{}」", project.name);
+    match open_project_page(app, &project).await {
+        Ok(_) => {
+            let target = restore_target(&project);
+            set_status_bar(
+                app,
+                &format!(
+                    "✓ 已恢复上次项目「{}」：{target}（业务状态未恢复，不自动重放输入）",
+                    project.name
+                ),
+                "ok",
+            );
+        }
+        Err(e) => {
+            let target = restore_target(&project);
+            record_restore_failure(app, &project, &target, &e);
+            set_status_bar(app, &format!("✗ 启动恢复失败：{e}"), "error");
+        }
+    }
+}
+
 /// 进入项目设置：工具层铺满工作区、被测层等尺寸平移（0.1 已实机验证的布局）。
 /// 与静态预览 / 采集互斥；进入失败不改变布局，也不写配置。
 #[tauri::command]
@@ -1586,6 +1993,24 @@ mod config_command_tests {
         assert_eq!(json["projects"][0]["startUrl"], "https://example.com/");
         assert_eq!(json["projects"][0]["presetId"], "phone");
         assert!(json["error"].is_null());
+        assert!(json["restoreFailure"].is_null(), "无页面失败时重试状态为空");
+    }
+
+    /// 任务 3.1 / E04：恢复目标 = 最近完成加载的地址优先，为空回退起始地址；
+    /// 失效目标不自动改回起始地址（不冒充恢复成功，由可重试状态承担）。
+    #[test]
+    fn 恢复目标最近地址优先且为空回退起始地址() {
+        let mut config = ProjectConfig::empty();
+        config
+            .create_project("p-a", "项目 A", "https://example.com/start", PresetId::Desktop)
+            .unwrap();
+        let plain = &config.projects[0];
+        assert_eq!(restore_target(plain), "https://example.com/start");
+        let mut visited = plain.clone();
+        visited
+            .set_last_loaded_url("https://example.com/final")
+            .unwrap();
+        assert_eq!(restore_target(&visited), "https://example.com/final");
     }
 
     #[test]
@@ -1999,6 +2424,8 @@ pub fn run() {
             config_set_viewport,
             config_rotate_viewport,
             config_rebuild,
+            config_activate_project,
+            config_retry_restore,
             settings_enter,
             settings_exit
         ])
@@ -2134,6 +2561,18 @@ pub fn run() {
             maybe_run_capture_probe(app.handle());
             maybe_run_status_probe(app.handle());
             maybe_run_layout_probe(app.handle());
+
+            // 任务 3.1：启动恢复最近活动项目（先应用视口再导航，失败可重试）。
+            // 探针模式（自动打开样例页 / 布局测量）与恢复共用 PAGE_LABEL，互斥：
+            // 任一探针环境变量生效时跳过恢复，避免两个编排抢同一页面标签。
+            if !restore_suppressed_by_probe() {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    startup_restore(&handle).await;
+                });
+            } else {
+                eprintln!("[layress] 探针模式：跳过启动恢复（避免与探针抢被测页标签）");
+            }
 
             let handle = app.handle().clone();
             window.on_window_event(move |event| match event {
