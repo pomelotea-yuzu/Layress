@@ -38,6 +38,9 @@ pub enum WriteFault {
     Write,
     Sync,
     Rename,
+    /// 备份创建阶段失败。不用「目录去写权限」模拟：root / Windows 管理员等
+    /// 特权用户无视权限位，会导致依赖该手段的测试在 root CI 上假绿反转。
+    Backup,
     #[cfg(test)]
     Crash,
 }
@@ -309,6 +312,12 @@ pub fn rebuild_with_backup(root: &Path, fault: WriteFault) -> Result<RebuildOutc
                 dir.display(),
                 BACKUP_PREFIX
             ),
+        ));
+    }
+    if fault == WriteFault::Backup {
+        return Err(err(
+            ConfigErrorCode::WriteFailed,
+            "注入：备份创建阶段失败",
         ));
     }
     // 排他创建唯一备份并完整写入原始字节；这是「保留原文件」的关键步骤。
@@ -760,7 +769,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
-    /// 任务 1.5 / E06：备份阶段失败（目录不可写）——原文件不变、不产生半份备份。
+    /// 任务 1.5 / E06：备份阶段失败（注入）——原文件不变、不产生半份备份。
     #[test]
     fn 备份失败原文件不变() {
         let root = temp_root("rebuild-bkfail");
@@ -769,20 +778,14 @@ mod tests {
         let path = dir.join(CONFIG_FILE);
         let corrupt = b"{backup fail case";
         fs::write(&path, corrupt).unwrap();
-        // 预建锁文件：让锁打开成功，把失败点精确落在备份创建阶段（目录无写权限）
+        // 预建锁文件：让锁打开成功，把失败点精确落在备份创建阶段（注入）。
+        // 不用目录去写权限模拟：root / 特权用户无视权限位，CI 上会失效。
         fs::write(dir.join(LOCK_FILE), b"").unwrap();
-        // 目录去写权限（owner 仍可读），备份 create_new 必然失败
-        let mut perm = fs::metadata(&dir).unwrap().permissions();
-        perm.set_readonly(true);
-        fs::set_permissions(&dir, perm).unwrap();
-        let result = rebuild_with_backup(&root, WriteFault::None);
-        // 先还原权限，保证夹具可清理
-        let mut perm = fs::metadata(&dir).unwrap().permissions();
-        perm.set_readonly(false);
-        fs::set_permissions(&dir, perm).unwrap();
+        let result = rebuild_with_backup(&root, WriteFault::Backup);
         let e = result.unwrap_err();
         assert_eq!(e.code_str(), "CONFIG_WRITE_FAILED", "备份失败报写入失败：{e}");
         assert_eq!(fs::read(&path).unwrap(), corrupt, "原文件逐字节不变");
+        assert_eq!(count_backups(&dir), 0, "失败的备份不残留文件");
         fs::remove_dir_all(root).unwrap();
     }
 
