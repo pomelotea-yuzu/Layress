@@ -467,6 +467,8 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
                 // 导航会重置 DOM，加载完成后按当前状态重新应用视口边框
                 sync_page_frame(&app);
                 emit_viewport(&app);
+                // 任务 2.3：可归属当前项目的主文档完成加载 → 记忆最近地址
+                remember_last_loaded_url(&app, &payload.url().to_string());
             }
         })
         .on_document_title_changed(|webview, title| {
@@ -722,6 +724,38 @@ fn page_refresh(app: AppHandle<tauri::Wry>) -> Result<(), String> {
     let current = page.url().map_err(|e| format!("读取当前地址失败：{e}"))?;
     invalidate_capture(&app, "刷新前已作废在途采集");
     page.navigate(current).map_err(|e| format!("刷新失败：{e}"))
+}
+
+/// 任务 2.3 / spec Req 2：可归属当前项目的主文档**完成加载**才记忆最近地址。
+/// 事实记忆不等于业务通过；无活动项目（临时浏览）不记忆；同地址重复加载不推进
+/// revision；失败 / 取消不产生 Finished 事件天然排除；跨项目「过期结果」隔离
+/// 归 3.2 编排（当前单活动项目语义下无该场景，单列）。SPA history / hash 变化
+/// 不触发主文档加载，不追踪（首版明示限制）。
+fn remember_last_loaded_url(app: &AppHandle<tauri::Wry>, url: &str) {
+    let host = app.state::<PageHost>();
+    let Some(store) = host.config_store.get() else {
+        return; // 配置存储未就绪（如相对根被拒）：不记忆
+    };
+    let mut config = store.config();
+    let Some(active_id) = config.active_project_id.clone() else {
+        return; // 临时浏览：不自动记忆（spec「没有项目记录」场景）
+    };
+    let expected = config.revision;
+    let Some(project) = config.projects.iter_mut().find(|p| p.id == active_id) else {
+        return;
+    };
+    if project.last_loaded_url.as_deref() == Some(url) {
+        return; // 同地址重复完成加载：不推进 revision
+    }
+    if let Err(e) = project.set_last_loaded_url(url) {
+        eprintln!("[layress] 最近地址不可记忆（{e}），跳过：{url}");
+        return;
+    }
+    match store.commit(config, expected) {
+        Ok(_) => eprintln!("[layress] 最近地址已记忆：{url} → 项目 {active_id}"),
+        // 记忆失败不阻塞页面，也不冒充已保存
+        Err(e) => eprintln!("[layress] 最近地址记忆失败（不阻塞页面）：{e}"),
+    }
 }
 
 #[tauri::command]

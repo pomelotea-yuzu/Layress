@@ -201,8 +201,6 @@ impl Project {
     }
 
     /// 仅由「可归属的主文档完成加载」回调调用；失败 / 取消 / 过期结果不得调用。
-    /// 最近地址记忆归任务 2.3；接线时删除本 allow。
-    #[allow(dead_code)]
     pub fn set_last_loaded_url(&mut self, raw: &str) -> ConfigResult<()> {
         self.last_loaded_url = Some(normalize_url(raw)?);
         Ok(())

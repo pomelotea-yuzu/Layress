@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261116-5";
+const BUILD_TAG = "v20261116-6";
 
 interface MeasuredViewport {
   w: number;
@@ -250,6 +250,7 @@ function resetProjectForm(): void {
   if (save) save.textContent = "新建项目并保存";
   document.getElementById("settings-new")?.setAttribute("hidden", "");
   document.getElementById("settings-viewport")?.setAttribute("hidden", "");
+  document.getElementById("settings-last-loaded")?.setAttribute("hidden", "");
 }
 
 function enterEditMode(p: ConfigStateView["projects"][number]): void {
@@ -265,6 +266,15 @@ function enterEditMode(p: ConfigStateView["projects"][number]): void {
   if (save) save.textContent = `保存修改（${shortId(p.id)}）`;
   document.getElementById("settings-new")?.removeAttribute("hidden");
   document.getElementById("settings-viewport")?.removeAttribute("hidden");
+  // 任务 2.3：最近地址事实记忆（只读展示）；显式打开起始地址后由完成加载自动更新
+  const lastRow = document.getElementById("settings-last-loaded");
+  const lastValue = document.getElementById("settings-last-loaded-value");
+  if (lastValue) {
+    lastValue.textContent =
+      p.lastLoadedUrl ?? "暂无（尚未在该项目下完成过主文档加载；临时浏览不记忆）";
+  }
+  lastRow?.removeAttribute("hidden");
+  document.getElementById("settings-open-start")?.removeAttribute("hidden");
   showStatusBar(
     `正在编辑 ${p.name}（${shortId(p.id)}）；保存才提交，关闭面板即取消且不导航`,
     "info",
@@ -407,8 +417,21 @@ async function commitViewport(p: ConfigStateView["projects"][number]): Promise<v
   }
 }
 
-async function rotateViewport(): Promise<void> {
+/** 任务 2.3 / E04：显式打开起始地址——导航成功完成加载后才更新最近地址；
+ * 仅编辑起始地址不会触发（不导航）。 */
+async function openStartUrl(): Promise<void> {
   const p = editingProject();
+  if (!p) return;
+  showStatusBar(`正在打开起始地址：${p.startUrl} …`, "pending");
+  try {
+    await invoke("page_navigate", { raw: p.startUrl });
+    // 成功与完成加载由 PageEvent 回报；最近地址由 loaded 回调自动记忆
+  } catch (e) {
+    showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
+  }
+}
+
+async function rotateViewport(): Promise<void> {  const p = editingProject();
   if (!p) return;
   showStatusBar("正在旋转视口 …", "pending");
   try {
@@ -806,6 +829,7 @@ function bindUi(): void {
     showStatusBar("已回到新建模式；编辑未保存即取消，已保存配置不变", "info");
   });
   document.getElementById("settings-vp-rotate")?.addEventListener("click", () => void rotateViewport());
+  document.getElementById("settings-open-start")?.addEventListener("click", () => void openStartUrl());
   assertElement<HTMLButtonElement>("btn-size").addEventListener("click", () => void applySize());
   assertElement<HTMLButtonElement>("btn-capture").addEventListener("click", () => void capture());
   assertElement<HTMLButtonElement>("btn-cancel").addEventListener("click", () => void cancelCapture());

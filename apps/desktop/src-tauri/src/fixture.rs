@@ -63,10 +63,21 @@ fn handle(mut stream: TcpStream) {
         "/" | "/index.html" => ok_html(INDEX_HTML),
         "/sub" => ok_html(SUB_HTML),
         "/download" => download_response(),
+        // 任务 2.3 / E03：可控重定向端点。302 到 /redirect-target；
+        // 用于核对 payload.url() 在重定向完成后的归属是否等于已知最终端点。
+        "/redirect" => redirect_response("/redirect-target"),
+        "/redirect-target" => ok_html(INDEX_HTML),
         _ => not_found(),
     };
     let _ = stream.write_all(&response);
     let _ = stream.flush();
+}
+
+fn redirect_response(location: &str) -> Vec<u8> {
+    format!(
+        "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n"
+    )
+    .into_bytes()
 }
 
 fn ok_html(body: &str) -> Vec<u8> {
@@ -95,4 +106,47 @@ fn not_found() -> Vec<u8> {
         len = body.len()
     )
     .into_bytes()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+
+    /// 手写一个极简 GET（std only，不引依赖），返回 (状态行, 全部响应头, 响应体)。
+    fn http_get(base: &str, path: &str) -> (String, Vec<(String, String)>, String) {
+        let mut stream = TcpStream::connect(base.trim_start_matches("http://")).unwrap();
+        write!(stream, "GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n").unwrap();
+        let mut raw = String::new();
+        let _ = stream.read_to_string(&mut raw);
+        let (head, body) = raw.split_once("\r\n\r\n").unwrap_or((raw.as_str(), ""));
+        let mut lines = head.lines();
+        let status = lines.next().unwrap_or("").to_string();
+        let headers = lines
+            .filter_map(|l| l.split_once(": "))
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        (status, headers, body.to_string())
+    }
+
+    /// 任务 2.3 / E03：重定向夹具——/redirect 302 到 /redirect-target（200）。
+    /// 先核对「已知最终端点」，GUI 轮再用它核对 payload.url() 的归属可靠性。
+    #[test]
+    fn 重定向端点302到已知最终端点() {
+        let base = start().unwrap();
+        let (status, headers, _) = http_get(&base, "/redirect");
+        assert!(status.starts_with("HTTP/1.1 302"), "重定向端点应返回 302：{status}");
+        let location = headers
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case("location"))
+            .map(|(_, v)| v.clone())
+            .expect("302 必须带 Location");
+        assert_eq!(location, "/redirect-target");
+        // 跟随到最终端点：200 且内容为哨兵样例页
+        let final_path = format!("{base}{location}");
+        let path = final_path.trim_start_matches(&base);
+        let (status2, _, body2) = http_get(&base, path);
+        assert!(status2.starts_with("HTTP/1.1 200"), "最终端点应 200：{status2}");
+        assert!(body2.contains("layress"), "最终端点应为样例页哨兵内容");
+    }
 }
