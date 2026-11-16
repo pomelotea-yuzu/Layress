@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261116-2";
+const BUILD_TAG = "v20261116-3";
 
 interface MeasuredViewport {
   w: number;
@@ -232,7 +232,41 @@ function commandErrorText(e: unknown): string {
 }
 
 /** 只渲染 Rust 返回的「已保存状态」，不做乐观展示。 */
+let lastConfigView: ConfigStateView | null = null;
+/** 任务 2.1 编辑模式：非 null 时保存走 config_update_project，ID 不变。 */
+let editingProjectId: string | null = null;
+
+function shortId(id: string): string {
+  const tail = id.split("-").pop() ?? id;
+  return `#${tail}`;
+}
+
+function resetProjectForm(): void {
+  editingProjectId = null;
+  if (settingsName) settingsName.value = "";
+  if (settingsUrl) settingsUrl.value = "";
+  if (settingsPreset) settingsPreset.value = "desktop";
+  const save = document.getElementById("settings-save");
+  if (save) save.textContent = "新建项目并保存";
+  document.getElementById("settings-new")?.setAttribute("hidden", "");
+}
+
+function enterEditMode(p: ConfigStateView["projects"][number]): void {
+  editingProjectId = p.id;
+  if (settingsName) settingsName.value = p.name;
+  if (settingsUrl) settingsUrl.value = p.startUrl;
+  if (settingsPreset) settingsPreset.value = p.presetId;
+  const save = document.getElementById("settings-save");
+  if (save) save.textContent = `保存修改（${shortId(p.id)}）`;
+  document.getElementById("settings-new")?.removeAttribute("hidden");
+  showStatusBar(
+    `正在编辑 ${p.name}（${shortId(p.id)}）；保存才提交，关闭面板即取消且不导航`,
+    "info",
+  );
+}
+
 function renderConfig(view: ConfigStateView): void {
+  lastConfigView = view;
   if (btnSettings) {
     const active = view.projects.find((p) => p.id === view.activeProjectId);
     btnSettings.textContent = view.error
@@ -245,11 +279,22 @@ function renderConfig(view: ConfigStateView): void {
       : `已保存 ${view.projects.length} 个项目 · revision ${view.revision} · ${view.writable ? "可写" : "只读"}`;
   }
   if (settingsList) {
-    settingsList.textContent = view.projects.length
-      ? view.projects
-          .map((p) => `${p.name}（${p.startUrl} · ${p.presetId} ${p.width}×${p.height}）`)
-          .join("；")
-      : "尚无项目记录；临时浏览不会自动记忆";
+    if (!view.projects.length) {
+      settingsList.textContent =
+        "尚无项目记录；临时浏览不会自动记忆。同名项目允许，以稳定 ID 区分（条目内 #序号）。";
+    } else {
+      settingsList.textContent = "";
+      for (const p of view.projects) {
+        const item = document.createElement("div");
+        item.className = "project-item" + (p.id === view.activeProjectId ? " active" : "");
+        item.dataset.projectId = p.id;
+        item.title = `完整 ID：${p.id}；点击载入到表单编辑`;
+        const mark = p.id === view.activeProjectId ? "● " : "○ ";
+        item.textContent =
+          `${mark}${p.name}（${shortId(p.id)} · ${p.startUrl} · ${p.presetId} ${p.width}×${p.height}）`;
+        settingsList.appendChild(item);
+      }
+    }
   }
   // 任务 1.5：只有「文件不可用」三类错误才提供备份重建；两段确认在按钮事件里
   const rebuildable =
@@ -335,16 +380,28 @@ async function saveProject(): Promise<void> {
   const presetId = settingsPreset?.value ?? "desktop";
   showStatusBar("正在保存项目配置 …", "pending");
   try {
-    const view = await invoke<ConfigStateView>("config_create_project", {
-      name,
-      // Tauri 2 把 Rust 命令的 snake_case 参数映射为前端 camelCase；写成 snake_case 键会报 missing required key。
-      startUrl,
-      presetId,
-    });
+    let view: ConfigStateView;
+    if (editingProjectId) {
+      // 任务 2.1：编辑既有项目——ID 不变，仅名称与起始地址；不导航、不覆盖最近地址
+      view = await invoke<ConfigStateView>("config_update_project", {
+        id: editingProjectId,
+        name,
+        startUrl,
+      });
+    } else {
+      view = await invoke<ConfigStateView>("config_create_project", {
+        name,
+        // Tauri 2 把 Rust 命令的 snake_case 参数映射为前端 camelCase；写成 snake_case 键会报 missing required key。
+        startUrl,
+        presetId,
+      });
+    }
     renderConfig(view);
-    if (settingsName) settingsName.value = "";
-    if (settingsUrl) settingsUrl.value = "";
-    showStatusBar(`✓ 项目已保存：${name.trim()} · revision ${view.revision}`, "ok");
+    resetProjectForm();
+    showStatusBar(
+      `✓ 项目已保存：${name.trim()} · revision ${view.revision}（当前页面不变，不导航）`,
+      "ok",
+    );
   } catch (e) {
     showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
   }
@@ -642,6 +699,16 @@ function bindUi(): void {
   document.getElementById("settings-save")?.addEventListener("click", () => void saveProject());
   document.getElementById("settings-cancel")?.addEventListener("click", () => void closeSettings());
   btnRebuild?.addEventListener("click", () => void rebuildProject());
+  // 任务 2.1：列表条目点选进编辑模式；「新建」退出编辑回到空表单（取消不提交）
+  settingsList?.addEventListener("click", (ev) => {
+    const target = (ev.target as HTMLElement).closest<HTMLElement>("[data-project-id]");
+    const p = lastConfigView?.projects.find((x) => x.id === target?.dataset.projectId);
+    if (p) enterEditMode(p);
+  });
+  document.getElementById("settings-new")?.addEventListener("click", () => {
+    resetProjectForm();
+    showStatusBar("已回到新建模式；编辑未保存即取消，已保存配置不变", "info");
+  });
   assertElement<HTMLButtonElement>("btn-size").addEventListener("click", () => void applySize());
   assertElement<HTMLButtonElement>("btn-capture").addEventListener("click", () => void capture());
   assertElement<HTMLButtonElement>("btn-cancel").addEventListener("click", () => void cancelCapture());

@@ -199,8 +199,6 @@ impl Project {
     }
 
     /// 编辑起始地址不导航、不覆盖最近地址；这两点由编排层保证，本函数只改字段。
-    /// 起始地址编辑 UI 归任务 2.1；接线时删除本 allow。
-    #[allow(dead_code)]
     pub fn set_start_url(&mut self, raw: &str) -> ConfigResult<()> {
         self.start_url = normalize_url(raw)?;
         Ok(())

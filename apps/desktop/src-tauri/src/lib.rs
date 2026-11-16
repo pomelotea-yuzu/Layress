@@ -1297,6 +1297,41 @@ fn config_rename_project(
     Ok(current_view(&app))
 }
 
+/// 编辑既有项目的名称与起始地址（任务 2.1）。ID 不变；仅保存字段不导航、
+/// 不覆盖最近地址（E04：单独编辑起始地址的判据由编排层「不触发导航」保证）。
+/// 无效输入被拒且已保存配置不变；保存成功才发布新状态。
+#[tauri::command]
+fn config_update_project(
+    app: AppHandle<tauri::Wry>,
+    id: String,
+    name: String,
+    start_url: String,
+) -> Result<ConfigStateView, CommandError> {
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能编辑项目",
+        )
+    })?;
+    let mut config = store.config();
+    let expected = config.revision;
+    let project = config
+        .projects
+        .iter_mut()
+        .find(|p| p.id == id)
+        .ok_or_else(|| {
+            cmd_err(
+                project_config::ConfigErrorCode::InvalidInput,
+                format!("项目 {id} 不存在"),
+            )
+        })?;
+    project.rename(&name).map_err(CommandError::from)?;
+    project.set_start_url(&start_url).map_err(CommandError::from)?;
+    store.commit(config, expected).map_err(CommandError::from)?;
+    Ok(current_view(&app))
+}
+
 /// 用户确认后的备份重建（任务 1.5 / design §6 / E06）。仅当配置存储未就绪且
 /// 错误属于「文件不可用」三类（读取失败 / 损坏 / 未知版本）时允许；第二实例
 /// （CONFIG_LOCKED）与数据根错误不在内。成功后立即重新打开存储并清除错误状态。
@@ -1446,6 +1481,46 @@ mod config_command_tests {
         assert!(!can_enter_settings(true, false));
         assert!(!can_enter_settings(false, true));
         assert!(!can_enter_settings(true, true));
+    }
+
+    /// 任务 2.1 / E01：编辑起始地址与重命名共用一条更新路径——ID 不变、
+    /// URL 规范化、不覆盖最近地址；无效输入被拒且已保存字段不变。
+    #[test]
+    fn 编辑起始地址更新字段且无效输入不改原值() {
+        let mut config = ProjectConfig::empty();
+        config
+            .create_project("p-a", "项目 A", "http://localhost:4173/a", PresetId::Desktop)
+            .unwrap();
+        config.projects[0]
+            .set_last_loaded_url("https://example.com/final")
+            .unwrap();
+        let revision_before = config.revision;
+
+        // 有效编辑：改名 + 新起始地址；ID / 最近地址 / 预设尺寸不变，URL 规范化
+        let project = config.projects.iter_mut().find(|p| p.id == "p-a").unwrap();
+        project.rename("改名后的 A").unwrap();
+        project.set_start_url("  HTTP://Example.com:8080/new  ").unwrap();
+        let stored = project.clone();
+        assert_eq!(stored.id, "p-a");
+        assert_eq!(stored.name, "改名后的 A");
+        assert_eq!(stored.start_url, "http://example.com:8080/new");
+        assert_eq!(
+            stored.last_loaded_url.as_deref(),
+            Some("https://example.com/final"),
+            "编辑起始地址不覆盖最近地址"
+        );
+        assert_eq!((stored.viewport.width, stored.viewport.height), (1280, 800));
+
+        // 无效编辑：坏 scheme 被拒，已保存字段保持上一轮成功值
+        let project = config.projects.iter_mut().find(|p| p.id == "p-a").unwrap();
+        let err = project.set_start_url("file:///etc/passwd").unwrap_err();
+        assert_eq!(err.code_str(), "CONFIG_INVALID_INPUT");
+        assert_eq!(config.projects[0].start_url, "http://example.com:8080/new");
+        assert_eq!(config.projects[0].name, "改名后的 A");
+        assert_eq!(config.revision, revision_before, "失败不推进 revision");
+
+        // 不存在的 ID：命令层查询语义（find 返回 None），与视图一致性由驼峰键名测试覆盖
+        assert!(config.projects.iter_mut().find(|p| p.id == "p-missing").is_none());
     }
 }
 
@@ -1798,6 +1873,7 @@ pub fn run() {
             config_state,
             config_create_project,
             config_rename_project,
+            config_update_project,
             config_rebuild,
             settings_enter,
             settings_exit
