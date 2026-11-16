@@ -4,6 +4,7 @@
 > 2026-11-15 更新：**0.1 布局可行性的运行证据已取得**（r3 实机回显 + 人工三句，见文末「0.1 r3 回显与勾选」）；
 > E07 / E09 的布局层判据已通过，其余 E 项与业务仲裁的运行证据仍全部未执行，下表相应行仍为判据与拟用方法，不是已通过记录。
 > 文档 / 编译 / 行为测试、GUI 人工复验、未执行项分列。只有实际获得结果后才登记时间、命令、退出码和相对路径。
+> 2026-11-16 更新：**任务 1.2 / 1.3 机器层证据齐备并收口勾选**；Gitee / GitHub CI 双绿已由用户确认登记。见文末「1.2 / 1.3 收口」。
 
 ## 证据映射
 
@@ -112,6 +113,7 @@
 - 用户提供 2026-11-14 14:51 Gitee Go 原始日志：Node 20.19.0 与 `npm install -g pnpm@12.18.0` 均成功，`pnpm -v` 报 `Failed to switch pnpm to v12.18.0` / `spawnSync Unknown system error -8`，命令在工具链前置阶段即失败，Rust / WebView / 公共链三步都未跑到；GitHub Actions 同一提交用户回显通过。
 - 2026-11-15 已定位为容器预装 pnpm 10 抢在 12.18.0 之前并按 `packageManager` pin 自切换（受管 shim 无法被 spawn），修 `.workflow/ci.yml`：PATH 前置 npm prefix/bin、关闭 `manage-package-manager-versions`、版本自证、rustup 改 USTC 二进制、crates 用 rsproxy sparse。本机 `sh -n` 与 `check-repo.mjs --all`（13/13）通过。
 - **云端复验仍待用户 push**；E01–E10 的运行证据仍全部未执行、16 项任务仍全未勾选（模型层单测见下节），本 change 的实施与验收状态不因 CI 配置修订改变。根因与规避见 `docs/knowledge/engineering.md`，欠账行见 `docs/knowledge/debt.md`。
+- > **2026-11-16 补记**：上行「待用户 push」为当时口径。本机当日实跑 `git ls-remote` 确认 Gitee 与 GitHub 的 `main` 均为 `951d634`（等于本地 HEAD，无未推提交），且**用户确认 push 后 Gitee 与 GitHub CI 双绿**（原始日志未入库，依据为用户回显）；debt「Gitee Go 容器工具链」欠账据此销账。CI 配置本身的最后修改仍在本仓 `ef87388`，云端跑的是该配置。
 
 ## 实施轮启动记录（2026-11-15，仅纯配置模型层）
 
@@ -219,3 +221,11 @@
 - 徽标 `v20261115-2` 窗口下的完整链路已由人工确认：设置面板铺满 → 新建项目 → 落盘 → 状态栏反馈 → 负例拒绝 → 关闭返回。机器侧 `cargo test --lib` 41/41、三条命令参数断言、徽标一致断言、`check-repo.mjs --all` / `--staged` 退出码 0。
 - 结论：**任务 1.1 勾选**（范围：配置模型 / 8 错误码 / 存储接入 / 设置面板 / 徽标纪律），E07 / E09 中 1.1 相关部分标记通过；**仍不覆盖** 2.x 完整 UI（视口应用、地址记忆、项目切换）、3.4 完整模式仲裁、1.4 数据根相对路径、1.5 备份重建、4.1 徽标内容指纹、4.2 全量人工复验、4.3 归档合入、D30 与 Gitee 云端复验。
 - 本会话 12 个零碎本地提交按用户要求合并为一个实施轮提交（未 push，无远程历史改写）；规划闭环与 CI 修复两个提交保留。
+
+### 1.2 / 1.3 收口：勾选（2026-11-16，机器层证据）
+
+- **背景**：两项此前唯一未勾理由是「未接入启动与命令」（见各自 11-15 历史节）；任务 1.1 已于 11-15 完成接线并人工复验通过，收口条件成立。本轮**未新增功能代码**，只做 allow 纪律收口：两个模块的注释均承诺「接线后删除 crate 级 `#![allow(dead_code)]`」，本轮兑现——删除后由 `cargo check` 暴露真实未接线清单（6 组警告），再按归属加窄范围 allow 并注明任务：`DataRootRelativeUnsupported`→1.4、`rotate` / `set_custom`→2.2、`set_start_url`→2.1、`set_last_loaded_url`→2.3、`expect_revision`→3.x 编排、`reload` / `try_acquire` / `revision()` / `lock_path()` 与 `lock` / `lock_path` 字段→2.x 重取锁编排与测试。后续接线时删除对应 allow，即天然的接线清单。
+- **1.2 判据核对**（`project_config.rs` + 14 项单测）：schema / revision / 稳定 ID / 名称 / URL / 尺寸 / 引用校验齐备；`from_json` 先按 schema 字段分码，未知版本≠损坏；存储层 `read_config` 把 `NotFound`（空配置，不是损坏）与读取 I/O 失败（`CONFIG_READ_FAILED`）分开，测试「读取失败损坏与未知版本分码」三分支覆盖；坏 JSON / 重复 ID / 悬空引用 / 坏 URL / 坏尺寸一律判损坏不发布模型。
+- **1.3 判据核对**（`config_store.rs` + 9 项单测）：根内配置文件 + 同目录锁 / 临时文件；`try_lock` 独占写锁、`Mutex` 串行写队列、`create_new` + `write_all` + `sync_all` + `rename` 原子替换；写入 / 同步 / 替换三类注入失败原文件逐字节不变且临时文件清理；过期 revision 拒绝且不推进；真实子进程在替换前中断（退出码 9）后正式文件仍为完整旧版本、重开只读正式文件；双实例持锁只读 + `CONFIG_LOCKED` + 锁释放后 `try_acquire` 重取并重读 revision。
+- **实跑**（macOS arm64 / Node 22.22.2 / cargo 1.99.1）：`cargo check` 0 警告、`cargo test --lib` **41 通过 / 0 失败**、`node scripts/check-repo.mjs --all` 退出码 0。
+- **单列不随勾选**：备份重建与 10 份上限（1.5）、只读实例完整 GUI 交互与只读态展示（2.x / 4.2）、断电耐久性与 Windows / Linux 文件锁语义、E05 / E06 / E08 的 GUI 与真实文件人工部分、启动红条与相对根拒绝（1.4）、真实写盘观测（D30）。机器 PASS 不替代人工（I11）。

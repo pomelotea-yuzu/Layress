@@ -40,10 +40,13 @@ cargo test --lib      # 采集 / 配置模型 / 配置存储（含真实子进�
 LAYRESS_PROBE_CAPTURE=1 pnpm tauri dev
 ```
 
-**任务 1.3 配置存储（实施轮，尚未接入启动）**：`src/config_store.rs` 提供 `<data-root>/config/projects.json` 的
+**任务 1.2 / 1.3 配置模型与存储（2026-11-16 收口勾选）**：`src/project_config.rs` 提供配置模型 / 校验 /
+8 个稳定错误码；`src/config_store.rs` 提供 `<data-root>/config/projects.json` 的
 独占写锁（`std::fs::File::try_lock`，MSRV 1.89，见 D33）、进程内串行写队列、同目录临时文件 + fsync + 原子替换、
 revision 过期拒绝与分层错误码；真实子进程的双实例 / 中断测试同样在 `cargo test --lib` 覆盖范围内。
-模块暂未接 Tauri 命令，产品启动不会创建配置文件；备份重建（1.5）与启动错误红条（1.4）未实现。
+1.1 已接入启动与 Tauri 命令（`config_state` / `config_create_project` / `config_rename_project`）；
+**仍属后续任务**：备份重建与 10 份上限（1.5）、启动错误红条与相对根拒绝（1.4）、
+视口与地址 GUI（2.x）、重取锁编排（2.x/3.x）——模块内未接线 API 均以窄范围 `allow(dead_code)` 注明归属，接线时删除。
 
 **真终端启动（重要）**：WorkBuddy 会话用内置 Node 运行时（`pnpm` 是 corepack shim），
 真终端的 PATH 通常既没有 `pnpm` 也没有 `~/.cargo/bin`；系统自带 node / npm 不够用。

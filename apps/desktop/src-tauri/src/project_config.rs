@@ -5,8 +5,8 @@
 //! - 工具层 UI 与编排属任务 0.1 / 2.x / 3.x，界面可行性前置尚未人工验证。
 //! 因此模型校验通过**不等于**任何 GUI 或持久化行为已实现，证据与未执行项见 change 的 evidence-index。
 //!
-//! 接线前允许未使用的公开项；接到命令与存储后删除此 allow。
-#![allow(dead_code)]
+//! 接线后已移除 crate 级 `#![allow(dead_code)]`；个别尚未被产品路径使用的 API
+//! 按所属任务加窄范围 allow 并注明归属，不允许整模块静默放行。
 
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +23,8 @@ pub enum ConfigErrorCode {
     WriteFailed,
     Locked,
     Stale,
+    /// 数据根相对路径拒绝属任务 1.4，尚未有实现路径抛出；接线时删除本 allow。
+    #[allow(dead_code)]
     DataRootRelativeUnsupported,
 }
 
@@ -133,11 +135,15 @@ impl Viewport {
     }
 
     /// 旋转交换宽高但保留预设身份；方形尺寸交换后不变。
+    /// 视口 GUI 归任务 2.2，模型层先行落地并测试；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn rotate(&mut self) {
         std::mem::swap(&mut self.width, &mut self.height);
     }
 
     /// 手改任一宽高即变为自定义；坏值先拒绝，不修改当前视口。
+    /// 视口 GUI 归任务 2.2，模型层先行落地并测试；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn set_custom(&mut self, width: u32, height: u32) -> ConfigResult<()> {
         let next = Self {
             preset_id: PresetId::Custom,
@@ -193,12 +199,16 @@ impl Project {
     }
 
     /// 编辑起始地址不导航、不覆盖最近地址；这两点由编排层保证，本函数只改字段。
+    /// 起始地址编辑 UI 归任务 2.1；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn set_start_url(&mut self, raw: &str) -> ConfigResult<()> {
         self.start_url = normalize_url(raw)?;
         Ok(())
     }
 
     /// 仅由「可归属的主文档完成加载」回调调用；失败 / 取消 / 过期结果不得调用。
+    /// 最近地址记忆归任务 2.3；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn set_last_loaded_url(&mut self, raw: &str) -> ConfigResult<()> {
         self.last_loaded_url = Some(normalize_url(raw)?);
         Ok(())
@@ -333,6 +343,9 @@ impl ProjectConfig {
     }
 
     /// 写入前核对持有者读到的 revision；过期写入不得提交，也不得改内存模型。
+    /// 任务 1.3 的过期检查在 `config_store::commit` 内完成；本方法供 3.x
+    /// 编排层直接持模型校验时使用，接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn expect_revision(&self, expected: u64) -> ConfigResult<()> {
         if self.revision != expected {
             return Err(ConfigError::new(

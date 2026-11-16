@@ -8,7 +8,9 @@
 //! 未知版本 / 写入失败的分层错误码，以及真实子进程的双实例与中断测试。
 //! **尚未接入 Tauri 命令与启动流程**（归任务 1.1 / 2.x），因此模块接线前允许未使用项；
 //! 备份重建、只读实例完整交互、启动错误红条分别归 1.5 / 1.4，不在这里假称已实现。
-#![allow(dead_code)]
+//!
+//! 1.1 接线后已移除 crate 级 `#![allow(dead_code)]`；仍只被测试或后续任务
+//! （1.5 备份重建 / 2.x 编排）使用的项，按归属加窄范围 allow 并注明。
 
 use crate::project_config::{ConfigError, ConfigErrorCode, ProjectConfig};
 use std::fs::{self, File, OpenOptions, TryLockError};
@@ -42,7 +44,11 @@ pub enum WriteFault {
 pub struct ConfigStore {
     dir: PathBuf,
     path: PathBuf,
+    /// 锁文件路径仅供 `lock_path()`（测试与 2.x 诊断使用）；接线时删除本 allow。
+    #[allow(dead_code)]
     lock_path: PathBuf,
+    /// `lock` 仅供 `try_acquire`（重取锁编排归 2.x）与测试使用；接线时删除本 allow。
+    #[allow(dead_code)]
     lock: Option<File>,
     writable: bool,
     state: Mutex<ProjectConfig>,
@@ -98,6 +104,9 @@ impl ConfigStore {
         self.state.lock().map(|s| s.clone()).unwrap_or_else(|_| ProjectConfig::empty())
     }
 
+    /// 当前 revision；产品路径经 `config_state` 发布完整配置，本方法供测试
+    /// 与 2.x 重取锁编排使用，接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn revision(&self) -> u64 {
         self.state.lock().map(|s| s.revision).unwrap_or(0)
     }
@@ -110,6 +119,8 @@ impl ConfigStore {
         &self.path
     }
 
+    /// 仅供测试与 2.x 设置面板诊断；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn lock_path(&self) -> &Path {
         &self.lock_path
     }
@@ -155,6 +166,8 @@ impl ConfigStore {
     }
 
     /// 重读磁盘（重取锁后必须调用，避免沿用旧 revision）。
+    /// 重取锁编排归任务 2.x，本模块只保证语义并被测试覆盖；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn reload(&self) -> Result<(), ConfigError> {
         let next = read_config(&self.path)?;
         let mut state = self
@@ -166,6 +179,8 @@ impl ConfigStore {
     }
 
     /// 第二实例在锁释放后显式重取；成功即重读最新 revision，再启用写入。
+    /// 重取锁编排归任务 2.x，本模块只保证语义并被测试覆盖；接线时删除本 allow。
+    #[allow(dead_code)]
     pub fn try_acquire(&mut self) -> Result<bool, ConfigError> {
         if self.writable {
             return Ok(true);
