@@ -108,7 +108,7 @@
         <span id="slow-wrap" title="开发期复验用：勾选后采集在拿到截图后额外等待 5 秒，期间点「刷新」/「取消」/ 再次「采集」可验证本次结果失效且不写盘。仅开发构建生效">
           <input id="slow-capture" type="checkbox" /><label for="slow-capture">慢采 5s</label>
         </span>
-        <span id="build-tag" class="stale" data-build="v20261116-4"
+        <span id="build-tag" class="stale" data-build="v20261116-5"
           title="工具层脚本版本：显示 v... 才说明窗口加载的是当前代码；红色「加载中」或不出现 ⇒ 旧窗口，复验作废">加载中…</span>
       </div>
       <div class="row">
@@ -165,13 +165,12 @@
         </select>
       </div>
       <div id="settings-viewport" hidden>
-        <label>视口（按项目保存；应用后套到被测页，非真机模拟）</label>
+        <label>视口（随「保存修改」一并提交；旋转立即生效；非真机模拟）</label>
         <div class="viewport-row">
           <input id="settings-vp-w" type="number" min="16" max="4096" step="1" placeholder="宽" />
           <span>×</span>
           <input id="settings-vp-h" type="number" min="16" max="4096" step="1" placeholder="高" />
-          <button id="settings-vp-rotate" type="button" title="交换宽高，保留预设身份；方形不变">旋转</button>
-          <button id="settings-vp-apply" type="button" title="预设变化走预设默认尺寸；否则按宽高存为自定义并应用到被测页">应用视口</button>
+          <button id="settings-vp-rotate" type="button" title="立即保存并应用：交换宽高，保留预设身份；方形不变">旋转</button>
         </div>
       </div>
       <div class="actions">

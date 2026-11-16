@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261116-4";
+const BUILD_TAG = "v20261116-5";
 
 interface MeasuredViewport {
   w: number;
@@ -375,6 +375,38 @@ async function applyConfiguredSize(width: number, height: number, label: string)
   }
 }
 
+/** 表单里的视口相对已保存值是否有改动；有则随「保存修改」一并提交。 */
+function viewportDirty(p: ConfigStateView["projects"][number]): boolean {
+  const presetSel = settingsPreset?.value ?? "";
+  const [width, height] = viewportInputs();
+  return presetSel !== p.presetId || width !== p.width || height !== p.height;
+}
+
+function viewportInputs(): [number, number] {
+  const w = document.getElementById("settings-vp-w") as HTMLInputElement | null;
+  const h = document.getElementById("settings-vp-h") as HTMLInputElement | null;
+  return [Number(w?.value), Number(h?.value)];
+}
+
+/** 提交表单当前视口：预设变化走预设分支，否则按宽高走自定义分支。 */
+async function commitViewport(p: ConfigStateView["projects"][number]): Promise<void> {
+  const presetSel = settingsPreset?.value ?? "";
+  const [width, height] = viewportInputs();
+  if (presetSel !== p.presetId) {
+    await invoke<ConfigStateView>("config_set_viewport", { id: p.id, presetId: presetSel });
+  } else {
+    if (!Number.isInteger(width) || !Number.isInteger(height)) {
+      throw new Error("视口宽高必须是整数（16–4096）");
+    }
+    await invoke<ConfigStateView>("config_set_viewport", {
+      id: p.id,
+      presetId: null,
+      width,
+      height,
+    });
+  }
+}
+
 async function rotateViewport(): Promise<void> {
   const p = editingProject();
   if (!p) return;
@@ -396,46 +428,6 @@ function syncViewportInputs(p: ConfigStateView["projects"][number] | null): void
   if (p && vpW && vpH) {
     vpW.value = String(p.width);
     vpH.value = String(p.height);
-  }
-}
-
-async function applyViewport(): Promise<void> {
-  const p = editingProject();
-  if (!p) return;
-  const vpW = document.getElementById("settings-vp-w") as HTMLInputElement | null;
-  const vpH = document.getElementById("settings-vp-h") as HTMLInputElement | null;
-  const presetSel = settingsPreset?.value ?? "";
-  const width = Number(vpW?.value);
-  const height = Number(vpH?.value);
-  showStatusBar("正在保存项目视口 …", "pending");
-  try {
-    let view: ConfigStateView;
-    if (presetSel !== p.presetId) {
-      // 预设变化：走预设分支，尺寸取预设默认值（手改宽高请先把预设调回 custom 之外的原值或直接改数字）
-      view = await invoke<ConfigStateView>("config_set_viewport", { id: p.id, presetId: presetSel });
-    } else {
-      // 预设不变：按输入框宽高存为自定义（custom 亦走此分支，保留 custom 身份）
-      if (!Number.isInteger(width) || !Number.isInteger(height)) {
-        showStatusBar("✗ 宽高必须是整数（16–4096）", "error");
-        return;
-      }
-      view = await invoke<ConfigStateView>("config_set_viewport", {
-        id: p.id,
-        presetId: null,
-        width,
-        height,
-      });
-    }
-    renderConfig(view);
-    const np = editingProject();
-    syncViewportInputs(np);
-    if (presetSel !== p.presetId && np) {
-      await applyConfiguredSize(np.width, np.height, `预设 ${np.presetId}`);
-    } else {
-      await applyConfiguredSize(width, height, "自定义");
-    }
-  } catch (e) {
-    showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
   }
 }
 
@@ -464,16 +456,31 @@ async function saveProject(): Promise<void> {
   const name = settingsName?.value ?? "";
   const startUrl = settingsUrl?.value ?? "";
   const presetId = settingsPreset?.value ?? "desktop";
+  const editing = editingProjectId ? editingProject() : null;
+  // 任务 2.2（用户 2026-11-16 定）：视口改动随「保存修改」一并提交，
+  // 避免下意识只点保存而漏掉视口；非法宽高在提交前拦下，两个字段都不落盘。
+  if (editing && viewportDirty(editing)) {
+    const [width, height] = viewportInputs();
+    if (!Number.isInteger(width) || !Number.isInteger(height)) {
+      showStatusBar("✗ 视口宽高必须是整数（16–4096）；修正后 再保存", "error");
+      return;
+    }
+  }
   showStatusBar("正在保存项目配置 …", "pending");
   try {
     let view: ConfigStateView;
-    if (editingProjectId) {
+    if (editingProjectId && editing) {
       // 任务 2.1：编辑既有项目——ID 不变，仅名称与起始地址；不导航、不覆盖最近地址
       view = await invoke<ConfigStateView>("config_update_project", {
         id: editingProjectId,
         name,
         startUrl,
       });
+      // 视口有改动则随保存一并提交（同一「保存」语义，分命令执行）
+      if (viewportDirty(editing)) {
+        await commitViewport(editing);
+        view = await invoke<ConfigStateView>("config_state");
+      }
     } else {
       view = await invoke<ConfigStateView>("config_create_project", {
         name,
@@ -483,11 +490,14 @@ async function saveProject(): Promise<void> {
       });
     }
     renderConfig(view);
+    const wasEditing = editing;
     resetProjectForm();
-    showStatusBar(
-      `✓ 项目已保存：${name.trim()} · revision ${view.revision}（当前页面不变，不导航）`,
-      "ok",
-    );
+    showStatusBar(`✓ 项目已保存：${name.trim()} · revision ${view.revision}（当前页面不变，不导航）`, "ok");
+    // 编辑保存且视口有改动：把新视口套到被测页；应用失败单独红条，不冒充成功
+    if (wasEditing) {
+      const np = lastConfigView?.projects.find((p) => p.id === wasEditing.id);
+      if (np) await applyConfiguredSize(np.width, np.height, np.presetId);
+    }
   } catch (e) {
     showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
   }
@@ -796,7 +806,6 @@ function bindUi(): void {
     showStatusBar("已回到新建模式；编辑未保存即取消，已保存配置不变", "info");
   });
   document.getElementById("settings-vp-rotate")?.addEventListener("click", () => void rotateViewport());
-  document.getElementById("settings-vp-apply")?.addEventListener("click", () => void applyViewport());
   assertElement<HTMLButtonElement>("btn-size").addEventListener("click", () => void applySize());
   assertElement<HTMLButtonElement>("btn-capture").addEventListener("click", () => void capture());
   assertElement<HTMLButtonElement>("btn-cancel").addEventListener("click", () => void cancelCapture());
