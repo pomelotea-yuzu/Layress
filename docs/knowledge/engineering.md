@@ -140,3 +140,5 @@
 - [2026-11-18][P2] 三人合并验收的口径争议（每项是否都要人工）按 E 映射解耦：E07/E08/E09 的状态栏 / 迟到隔离 / capability / 退出顺序落在同一被测窗口流程，拆三轮重复 ⇒ 3.2/3.3/3.4 合并为一轮 GUI 复验，但 evidence 必须逐 checkbox 分列、徽标每次前端改动递增、未执行项单列归 4.2 ⇒ 证据：`design.md` §7、`evidence-index.md`「3.2–3.4 合并验收口径」、用户 2026-11-18 确认。
 
 - [2026-11-18][P1] 静态预览中打开设置再关闭，回到空白页而非预览图 ⇒ 前端进入设置时 `preview.classList.remove("show")` 暂隐预览层，关闭时 Rust 正确返回 `restorePreview=true`，但前端只调 `computeScaleAndRender()` 重算尺寸、**漏了把 `show` 加回**，DOM 隐藏 + 工具层铺满即白屏 ⇒ 恢复分支必须先 `preview.classList.add("show")` 再 `computeScaleAndRender`（顺序反了 canvas 尺寸基于隐藏元素算）；凡「暂隐再恢复」的模式切换，进入时摘掉的显示类必须在恢复分支对称加回，机器检查不出这种 DOM 状态不对称，只有实机看得见 ⇒ 证据：`main.ts::closeSettings`、`evidence-index.md`「预览返回白屏」、用户 12:48 实机截图。
+
+- [2026-11-18][P1] 预览中改视口后关闭设置，红条正确但工作区白屏（只在边缘漏出被测页字迹）⇒ Rust `settings_exit` 的现场失效分支写完红条直接 `return`，漏掉 `apply_layout(false)` 与 `exit_preview`，被测层仍在 offscreen、工具层仍铺满，且 `captures.preview` 残留使 Resize 再次铺满 ⇒ 失效分支必须真正退出预览态（`exit_preview` 清标志 + 复位布局 + 发事件），前端同步 `hidePreview()` 清旧图数据；「判失效」不只是写红条，还要把模式状态机复位到实时页 ⇒ 证据：`lib.rs::settings_exit`、`main.ts::closeSettings`、`evidence-index.md`「现场失效分支白屏」、用户 12:54 实机截图。

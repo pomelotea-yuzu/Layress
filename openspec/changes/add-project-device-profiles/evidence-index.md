@@ -382,3 +382,11 @@
 - **修复**：`closeSettings` 的 `restorePreview` 分支先 `preview.classList.add("show")` 再重算（顺序不能反，否则 canvas 尺寸基于隐藏元素）。徽标 `v20261118-2` → `v20261118-3`，`index.html` 的 `data-build` 同步。
 - **机器验证**：`check-repo.mjs --all` 退出码 0，徽标一致 `v20261118-3`，55/55 单测。**GUI 复验待重跑**（读旧 JS 会白屏，必须认新徽标）。
 - **归属**：任务 3.4「返回原预览不重建会话」的第一轮实机失败，修复后归合并轮重验；不因机器绿就勾完成（I11）。
+
+### 3.4 复验中发现并修复（二）：现场失效分支白屏（2026-11-18 12:54）
+
+- **现象**：预览中改视口（旋转）后关闭设置，红条「原静态预览已失效」正确出现，但工作区白屏——只有边缘露出被测页字迹碎片。
+- **根因**：`settings_exit` 的 `scene_invalidated=true` 分支写完红条直接 `return`，**跳过 `apply_layout(false)` / `exit_preview`**——被测层仍停在预览态的 offscreen 平移位、工具层仍铺满；且 `captures.preview` 标志残留，窗口 Resize 会再次按预览铺满，白屏复现。前端也残留 `currentMeta` 旧图数据。
+- **修复**：Rust 失效分支改调 `exit_preview(&app)`（清 preview 标志 + 复位布局 + 发 Preview false）；前端失效分支补 `hidePreview()` 清旧图 / 标记。徽标 `v20261118-3` → `v20261118-4`，`data-build` 同步。
+- **机器验证**：`check-repo.mjs --all` 退出码 0，徽标一致 `v20261118-4`，55/55 单测。**GUI 待重验**（旧 JS / 旧 Rust 会白屏）。
+- **归属**：任务 3.4「场景变化回实时页」第一轮实机失败，修复后归合并轮重验；不因红条正确就判通过（I11）。

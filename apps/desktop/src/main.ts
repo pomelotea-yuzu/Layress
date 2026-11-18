@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261118-3";
+const BUILD_TAG = "v20261118-4";
 
 interface MeasuredViewport {
   w: number;
@@ -648,6 +648,10 @@ async function closeSettings(): Promise<void> {
       showStatusBar("✓ 已返回原静态预览：会话与标记保持，未重建页面", "ok");
     } else if (!result.sceneInvalidated) {
       showStatusBar("已关闭项目设置，回到实时页面", "info");
+    } else {
+      // 现场已失效：清掉旧预览的图片与标记，不让残余数据冒充当前现场。
+      // Rust 已写「原预览失效」红条，此处不覆盖提示。
+      hidePreview();
     }
     // sceneInvalidated 时 Rust 已写「原预览失效」红条，不在此覆盖
     await refreshConfig();

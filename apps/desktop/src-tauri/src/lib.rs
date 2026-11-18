@@ -2286,6 +2286,10 @@ fn settings_exit(app: AppHandle<tauri::Wry>) -> SettingsExitResult {
                 "⚠ 编辑导致项目 / 地址 / 视口变化，原静态预览已失效；已回到实时页面，不恢复旧现场",
                 "error",
             );
+            // 必须真正退出预览态：清 captures.preview 标志 + 把被测层从 offscreen
+            // 平移回原位 + 工具层复位。裸 return 会留下「工具层铺满、被测层仍在
+            // 窗口外」的白屏，且 preview 标志残留使后续 Resize 再次铺满（复验实证）。
+            let _ = exit_preview(&app);
             return SettingsExitResult {
                 restore_preview: false,
                 scene_invalidated: true,
