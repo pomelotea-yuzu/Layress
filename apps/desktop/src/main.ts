@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261116-8";
+const BUILD_TAG = "v20261118-2";
 
 interface MeasuredViewport {
   w: number;
@@ -87,6 +87,8 @@ interface PageStateInfo {
   inPreview: boolean;
   lastCapture: CaptureMeta | null;
   restoreFailure: RestoreFailureInfo | null;
+  /** 任务 3.3：已应用但未保存的状态；配置写入失败时非空。 */
+  unsaved: { projectId: string; appliedUrl: string | null; message: string } | null;
 }
 
 /** 任务 3.1：页面打开失败的可重试状态（启动恢复 / 项目切换共用）。 */
@@ -218,6 +220,8 @@ interface ConfigStateView {
   error: { code: string; message: string } | null;
   /** 任务 3.1：活动项目已提交但页面打开失败时非空；可点「重试打开当前项目」。 */
   restoreFailure: RestoreFailureInfo | null;
+  /** 任务 3.3：已应用但未保存的状态；配置写入失败时非空，可点「重试保存」。 */
+  unsaved: { projectId: string; appliedUrl: string | null; message: string } | null;
 }
 
 // 新增 DOM 一律可选获取：旧窗口 HTML 与 Vite HMR 不同步时降级，不让整个脚本崩掉。
@@ -226,6 +230,7 @@ const settingsState = document.getElementById("settings-state");
 const settingsList = document.getElementById("settings-list");
 const btnRebuild = document.getElementById("settings-rebuild") as HTMLButtonElement | null;
 const btnRetry = document.getElementById("settings-retry") as HTMLButtonElement | null;
+const btnRetrySave = document.getElementById("settings-retry-save") as HTMLButtonElement | null;
 const settingsName = document.getElementById("settings-name") as HTMLInputElement | null;
 const settingsUrl = document.getElementById("settings-url") as HTMLInputElement | null;
 const settingsPreset = document.getElementById("settings-preset") as HTMLSelectElement | null;
@@ -302,9 +307,18 @@ function renderConfig(view: ConfigStateView): void {
       : `项目：${active ? active.name : "无"}`;
   }
   if (settingsState) {
-    settingsState.textContent = view.error
-      ? `配置不可用（${view.error.code}）：${view.error.message}`
-      : `已保存 ${view.projects.length} 个项目 · revision ${view.revision} · ${view.writable ? "可写" : "只读"}`;
+    // 任务 3.3：未保存状态优先于普通摘要展示——「已应用未保存」必须可见，
+    // 不能被「已保存 N 个项目」的成功摘要盖掉（design §4 / I15）。
+    if (view.unsaved) {
+      settingsState.textContent = `⚠ ${view.unsaved.message}`;
+    } else {
+      settingsState.textContent = view.error
+        ? `配置不可用（${view.error.code}）：${view.error.message}`
+        : `已保存 ${view.projects.length} 个项目 · revision ${view.revision} · ${view.writable ? "可写" : "只读"}`;
+    }
+  }
+  if (btnRetrySave) {
+    btnRetrySave.hidden = view.unsaved == null;
   }
   if (settingsList) {
     if (!view.projects.length) {
@@ -483,6 +497,22 @@ async function activateProject(id: string): Promise<void> {
   }
 }
 
+/** 任务 3.3：重试「已应用但未保存」的最近地址写入，不导航、不改运行条件。 */
+async function retrySave(): Promise<void> {
+  showStatusBar("正在重试保存未写盘的配置 …", "pending");
+  try {
+    const view = await invoke<ConfigStateView>("config_retry_unsaved");
+    renderConfig(view);
+    // 成功路径 Rust 已写状态栏绿条；view.unsaved 为空证明已销账
+    if (!view.unsaved) {
+      showStatusBar("✓ 未保存的配置已写入；重启后按新值恢复", "ok");
+    }
+  } catch (e) {
+    showStatusBar(`✗ 重试保存失败：${commandErrorText(e)}；运行条件不变，可再次重试`, "error");
+    await refreshConfig();
+  }
+}
+
 /** 重试打开当前活动项目（启动恢复 / 切换后页面打开失败的显式重试）。 */
 async function retryRestore(): Promise<void> {
   if (!lastConfigView?.activeProjectId) {
@@ -589,6 +619,11 @@ async function openSettings(): Promise<void> {
   try {
     const view = await invoke<ConfigStateView>("settings_enter");
     renderConfig(view);
+    // 任务 3.4：从静态预览进入时暂隐预览 DOM，但不清空 currentMeta / mode / scale /
+    // 标记——关闭设置后按 Rust 的返回判定恢复同一预览（会话与采集现场不动）。
+    if (preview.classList.contains("show")) {
+      preview.classList.remove("show");
+    }
     settingsPanel?.classList.add("show");
   } catch (e) {
     showStatusBar(`✗ 已拒绝：${commandErrorText(e)}`, "error");
@@ -599,8 +634,20 @@ async function closeSettings(): Promise<void> {
   disarmRebuild();
   disarmSwitch();
   try {
-    await invoke("settings_exit");
+    // 任务 3.4：Rust 按进入时的上下文判定恢复实时页还是同一静态预览；
+    // 返回上下文由前端保存展示比例 / 标记，Rust 只管布局与会话不重建。
+    const result = await invoke<{ restorePreview: boolean; sceneInvalidated: boolean }>("settings_exit");
     settingsPanel?.classList.remove("show");
+    if (result.restorePreview) {
+      // 同一预览：重新触发尺寸计算回到保存的展示比例（图片数据未清）
+      window.setTimeout(() => {
+        if (currentMeta) computeScaleAndRender();
+      }, 0);
+      showStatusBar("✓ 已返回原静态预览：会话与标记保持，未重建页面", "ok");
+    } else if (!result.sceneInvalidated) {
+      showStatusBar("已关闭项目设置，回到实时页面", "info");
+    }
+    // sceneInvalidated 时 Rust 已写「原预览失效」红条，不在此覆盖
     await refreshConfig();
   } catch (e) {
     showStatusBar(`✗ 关闭设置失败：${commandErrorText(e)}`, "error");
@@ -943,6 +990,11 @@ async function loadInitialState(): Promise<void> {
         "error",
       );
     }
+    // 任务 3.3：上次运行留下的「已应用未保存」状态在重启后补红条，
+    // 提示运行条件可能与配置不一致；打开项目设置点「重试保存」补齐。
+    if (state.unsaved) {
+      showStatusBar(`⚠ ${state.unsaved.message}；打开项目设置点「重试保存」`, "error");
+    }
   } catch (e) {
     showStatusBar(`✗ 状态读取失败：${String(e)}`, "error");
   }
@@ -960,6 +1012,7 @@ function bindUi(): void {
   document.getElementById("settings-cancel")?.addEventListener("click", () => void closeSettings());
   btnRebuild?.addEventListener("click", () => void rebuildProject());
   btnRetry?.addEventListener("click", () => void retryRestore());
+  btnRetrySave?.addEventListener("click", () => void retrySave());
   // 任务 2.1：列表条目点选进编辑模式；「新建」退出编辑回到空表单（取消不提交）
   // 任务 3.1：点「切换 / 重开」按钮走显式切换（两段确认），点文字仍是编辑入口
   settingsList?.addEventListener("click", (ev) => {

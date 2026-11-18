@@ -99,3 +99,20 @@ JSON 单文件适合当前小规模项目配置，原子替换比分散文件减
 机器验证包括模型拒绝坏输入、往返恢复、两项目隔离、失败写入保留字节、锁占用、未知版本保护、显式重建失败、过期预检 / 回调 / revision 拒绝，以及相对数据根拒绝；用已有公共门禁统一运行。GUI 验证实际视口、工具层布局、状态栏层级、切换提示和真实重启，机器结果不代替人工。
 现有公共链仅执行 `cargo test --lib`；新增真实子进程 / 文件锁 / 中断测试必须确实被公共命令覆盖：可放其覆盖的测试入口，若实现为 integration test / 独立探针，则同轮扩展 `check-build.mjs` 的明确命令，并验证失败传播。不能只把测试文件写好而未接入。GUI 依赖的实机测试另列人工，不假称 CI 已跑；E10 记录实际命令、用例数、成功 / 失败 / 未执行。
 规格与任务到 E01–E10 的映射见[证据计划](evidence-index.md)。D30 的打包产物与 WebView 系统写盘观测、Gitee 修复回显及 Windows / Linux 仍单列；规划轮没有执行任何新运行验证。0.1 布局可行性的实机验证见[证据计划](evidence-index.md)「0.1 r3 回显与勾选」，其余运行验证仍未执行。
+
+> 2026-11-18 实施（任务 3.2）：被测页身份从单一 `page_gen` 升级为 **`projectId + activationGeneration + pageGen` 三元绑定**，创建页面时绑进 `on_page_load` / title 哨兵两个回调闭包，回调到达时三项全等才认领（纯函数 `binding_matches` + 2 项单测覆盖同 URL 重试 / 重定向 / A→B 迟到隔离）。封住「先持久提交目标项目、后销毁旧页」之间旧回调借新项目身份写入最近地址的窗口。以下 label / capability 清单为 3.2 要求的事先登记，逐项标注源码落点，机器核对与 GUI 实测分列。
+
+### 任务 3.2 实施前影响清单（唯一标签 `PAGE_LABEL = "page"`）
+
+| 类别 | 落点（源码 / 配置） | 身份核对现状 |
+|---|---|---|
+| label 查询 | `lib.rs` 所有 `get_webview(PAGE_LABEL)`：`emit_viewport`、`current_viewport`、`apply_layout`、`sync_page_frame`、`current_binding` 调用链、`capture_start`、`page_state`、`destroy_page_webview` | 采集绑定 `CapturePage.generation`（`invalidate_capture` 换代）；本次新增 `page_binding` |
+| 创建 / 销毁 / 导航 | `ensure_and_navigate`（已存在则原地 `navigate`，保留会话）、`destroy_page_webview`、`page_navigate`、`page_refresh` | 创建即 `page_gen+1` 且写 `page_binding`；销毁 `page_gen+1` 并清绑定；编排额外 `activation_gen+1` |
+| 布局 / 平移 | `apply_layout`、`relayout`、`settle_layout`（预览态平移出视口、尺寸不变） | 不涉及身份，E07 由实测核对 |
+| 实测回调 | `on_document_title_changed` 的 `TITLE_PREFIX` 哨兵 → `MeasuredViewport` | 由「只认 `gen`」升级为 `binding_is_current` 三项全等 |
+| 快照身份 | `capture_start` 的 `captures.begin()` → `ActiveCapture{id, generation}`；`fail_capture` | E06 已有单测，未被本次绑定改动影响 |
+| 退出清理 | `on_window_event(Destroyed)` → `invalidate_capture` + 探针残留清理；本次 3.4 加 `quitting` | 见任务 3.4 |
+| status reparent | `bring_status_to_front`（macOS `reparent` 提到最上层） | 新动态标签 `add_child` 后立即调用，I17 由 GUI 核对 |
+| capability | `capabilities/default.json`：`windows: ["main"]`、`core:default`；被测页标签 `page` 不在列表 | 零 capability 由配置保证；新动态标签复用同一 label，不新增通配权限（GUI 核对 E09） |
+
+### 2026-11-18 实施口径（用户确认）：任务 **3.2 / 3.3 / 3.4 合并为一轮 GUI 人工复验**。理由：3.2 的代号接通是 3.3 / 3.4 的地基，实施仍按 3.2→3.3→3.4 推进；但 E07 / E08 / E09 的状态栏四类反馈、迟到隔离、capability、退出顺序、模式仲裁落在同一个被测窗口流程里，拆三轮会重复执行同一批场景；3.2 的 label / capability 清单属文档产出，不单独占 GUI 轮次。合并的硬约束：① evidence-index 逐 checkbox 登记判据与证据，不写一句「3.2–3.4 通过」；② 本轮前端每有改动仍递增 `BUILD_TAG` 并同步 `index.html`，复验认实施后的新徽标值；③ 未执行项仍单列归 4.2，不因合轮吞掉；④ 复验步骤贴对话，不写 app README（2026-11-16 流程）。

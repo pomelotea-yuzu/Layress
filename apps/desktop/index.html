@@ -112,7 +112,7 @@
         <span id="slow-wrap" title="开发期复验用：勾选后采集在拿到截图后额外等待 5 秒，期间点「刷新」/「取消」/ 再次「采集」可验证本次结果失效且不写盘。仅开发构建生效">
           <input id="slow-capture" type="checkbox" /><label for="slow-capture">慢采 5s</label>
         </span>
-        <span id="build-tag" class="stale" data-build="v20261116-8"
+        <span id="build-tag" class="stale" data-build="v20261118-2"
           title="工具层脚本版本：显示 v... 才说明窗口加载的是当前代码；红色「加载中」或不出现 ⇒ 旧窗口，复验作废">加载中…</span>
       </div>
       <div class="row">
@@ -189,6 +189,8 @@
         <button id="settings-cancel" type="button">关闭</button>
         <button id="settings-retry" type="button" hidden
           title="重新打开当前活动项目的页面：先应用视口再导航（最近地址优先，为空回退起始地址）。用于启动恢复 / 切换后页面打开失败的显式重试">重试打开当前项目</button>
+        <button id="settings-retry-save" type="button" hidden
+          title="配置已应用但未保存时，按当前 revision 重新提交未写盘的最近地址；不导航、不改运行条件">重试保存</button>
         <button id="settings-rebuild" type="button" hidden
           title="备份原始配置文件后清空项目记忆；截图不受影响">备份并重建空配置</button>
       </div>

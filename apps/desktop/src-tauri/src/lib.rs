@@ -24,10 +24,8 @@ use config_store::ConfigStore;
 use project_config::{ConfigError, PresetId, ProjectConfig};
 use serde::Serialize;
 use std::net::TcpStream;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
-#[cfg(debug_assertions)]
-use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent, PermissionResponse};
 use tauri::{
@@ -128,6 +126,24 @@ struct PageHost {
     /// 刚创建的被测页、抢占同一标签（2026-11-16 实机日志：两条步骤行并行、
     /// 4/4 缺失）⇒ 进行中直接拒绝第二次点击，明确提示稍后再试
     page_open_busy: Mutex<bool>,
+    /// 激活代号（任务 3.2）：每次项目切换 / 启动恢复递增，绑定进被测页回调。
+    /// 与 page_gen 分工：page_gen 管「页面重建」，activation_gen 管「归属哪个项目」——
+    /// 覆盖「先持久提交目标项目、后销毁旧页」之间旧回调写错项目的窗口。
+    activation_gen: AtomicU64,
+    /// 当前被测页的身份绑定（任务 3.2）；None = 尚无被测页或身份未确定
+    page_binding: Mutex<Option<PageBinding>>,
+    /// 退出中标志（任务 3.4）：置位后拒绝一切新配置意图 / 导航 / 采集入队，
+    /// 只等待已开始的单个事务完成，迟到回调不得再提交（design §5 退出顺序）
+    quitting: AtomicBool,
+    /// 任务 3.3：「已应用但未保存」的状态；导航 / 视口生效但配置写失败时非空，
+    /// 提供显式重试，不冒充已记忆（design §4）
+    unsaved: Mutex<Option<UnsavedState>>,
+    /// 任务 3.4：从静态预览进入设置的返回上下文；Some = 关闭设置后应恢复同一预览
+    /// （采集 ID + 页面代号 + 展示比例由前端保存），None = 从实时页进入
+    settings_return: Mutex<Option<SettingsReturn>>,
+    /// 场景代号：视口应用 / 导航 / 项目切换等改变「当前现场」的操作递增，
+    /// 用于判定编辑返回时原预览是否已失效（design §1）
+    scene_gen: AtomicU64,
 }
 
 /// 页面打开失败的可重试状态。设计 §4：目标页面不可达时活动项目及其已存配置
@@ -139,6 +155,97 @@ struct RestoreFailure {
     project_name: String,
     target_url: String,
     message: String,
+}
+
+/// 被测页身份（任务 3.2 / design §4）：创建页面时把 `projectId + 激活代号 + 页面代号`
+/// 一起绑定进回调闭包。回调到达时**三者全部核对**，不只读「当前项目」决定归属——
+/// 否则 `config_activate_project` 先持久提交 activeProjectId、再销毁旧页之间有一个
+/// 窗口：旧页的迟到完成事件会借「当前已是新项目」写进新项目的最近地址。
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PageBinding {
+    project_id: String,
+    activation_gen: u64,
+    page_gen: u64,
+}
+
+/// 任务 3.4 / design §1：从静态预览进入设置时的返回上下文。
+/// 暂隐预览但不销毁采集现场；关闭设置时据此恢复同一预览，或现场变化时回实时页。
+#[derive(Debug, Clone)]
+struct SettingsReturn {
+    from_preview: bool,
+    capture_id: Option<String>,
+    page_gen: u64,
+    /// 进入设置时的场景代号；视口应用 / 导航 / 页面重建会递增它，
+    /// 退出时不等 ⇒ 编辑导致现场变化，旧预览失效，回实时页（design §1）
+    scene_gen: u64,
+}
+
+/// 任务 3.4：关闭设置的结果，前端据此恢复预览 DOM / 提示原现场失效。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SettingsExitResult {
+    restore_preview: bool,
+    scene_invalidated: bool,
+}
+
+/// 任务 3.3 / design §4：已应用但未保存的状态。导航 / 视口已在当前项目生效，
+/// 但配置写入失败时记录此状态：明确「当前已应用，未保存；重启后可能恢复旧配置」，
+/// 允许显式重试，禁止伪报已记忆。消息经底部独立状态栏（I15）。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UnsavedState {
+    project_id: String,
+    /// 已应用但未写盘的最近地址；重试时按当前 revision 重新提交
+    applied_url: Option<String>,
+    message: String,
+}
+
+/// 纯逻辑：当前配置里该项目的最近地址是否已等于待重试值。
+/// 相等则无需再写（不推进 revision）；不等才值得重试。
+fn unsaved_retry_needed(config: &ProjectConfig, unsaved: &UnsavedState) -> bool {
+    let Some(url) = unsaved.applied_url.as_deref() else {
+        return false;
+    };
+    let Some(project) = config.project(&unsaved.project_id) else {
+        return false; // 项目已不存在：无可重试目标，命令另行报明确错误
+    };
+    project.last_loaded_url.as_deref() != Some(url)
+}
+
+/// 核对一条页面回调是否仍属于当前身份。三个字段全等才认领；纯函数便于单测
+/// 覆盖「同 URL 重试」「重定向」「A→B 迟到隔离」而不依赖实机时序。
+fn binding_matches(binding: &PageBinding, active_id: &str, activation_gen: u64, page_gen: u64) -> bool {
+    binding.project_id == active_id
+        && binding.activation_gen == activation_gen
+        && binding.page_gen == page_gen
+}
+
+/// 当前已提交的活动项目 ID（不读 UI 草稿）；无项目或存储未就绪时为空串。
+fn active_project_id(app: &AppHandle<tauri::Wry>) -> String {
+    app.state::<PageHost>()
+        .config_store
+        .get()
+        .and_then(|s| s.config().active_project_id.clone())
+        .unwrap_or_default()
+}
+
+/// 被测页创建时应绑定的身份：项目 ID 取已提交配置，激活 / 页面代号取当前计数值。
+fn fresh_binding(app: &AppHandle<tauri::Wry>, page_gen: u64) -> PageBinding {
+    let host = app.state::<PageHost>();
+    PageBinding {
+        project_id: active_project_id(app),
+        activation_gen: host.activation_gen.load(Ordering::Relaxed),
+        page_gen,
+    }
+}
+
+/// 一条页面回调是否仍属于当前身份。三项全等才认领——
+/// 覆盖「先提交目标项目、后销毁旧页」之间旧回调借新项目身份写入的窗口（3.2）。
+fn binding_is_current(app: &AppHandle<tauri::Wry>, binding: &PageBinding) -> bool {
+    let host = app.state::<PageHost>();
+    let cur_page = host.page_gen.load(Ordering::Relaxed);
+    let cur_act = host.activation_gen.load(Ordering::Relaxed);
+    binding_matches(binding, &active_project_id(app), cur_act, cur_page)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -460,6 +567,19 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
         let state = app.state::<PageHost>();
         state.page_gen.fetch_add(1, Ordering::Relaxed) + 1
     };
+    // 任务 3.2：把项目 ID + 激活代号 + 页面代号一起绑进回调闭包。
+    // 项目 ID 取「创建这一刻」已提交的活动项目；之后即使配置被改成别的项目，
+    // 本页回调也不会借新身份写入（design §4「不能只读当前项目决定归属」）。
+    let binding = fresh_binding(app, gen);
+    if let Ok(mut slot) = app.state::<PageHost>().page_binding.lock() {
+        *slot = Some(binding.clone());
+    }
+    eprintln!(
+        "[layress] 被测页身份绑定：项目 {} / 激活 {} / 页面 gen {gen}",
+        binding.project_id, binding.activation_gen
+    );
+    // 两个回调闭包各持一份绑定：on_page_load 与 title 哨兵都要独立核对身份。
+    let load_binding = binding.clone();
 
     let builder = tauri::webview::WebviewBuilder::new(PAGE_LABEL, WebviewUrl::External(url))
         .incognito(true)
@@ -501,17 +621,20 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
                 sync_page_frame(&app);
                 emit_viewport(&app);
                 // 任务 2.3：可归属当前项目的主文档完成加载 → 记忆最近地址。
-                // 任务 3.1：先核对页面代号——只有当前代页面的完成加载才可归属；
-                // 已销毁旧页的迟到完成事件不得写进新活动项目的最近地址。
-                let current_gen = app
-                    .state::<PageHost>()
-                    .page_gen
-                    .load(Ordering::Relaxed);
-                if gen == current_gen {
+                // 任务 3.1/3.2：三项身份全等才认领。除页面代号外，还核对「创建时的
+                // 项目 ID + 激活代号」——封住「先提交目标项目、后销毁旧页」之间
+                // 旧页完成事件借新项目身份写入最近地址的窗口（design §4）。
+                if binding_is_current(&app, &load_binding) {
                     remember_last_loaded_url(&app, &payload.url().to_string());
                 } else {
+                    let cur = app.state::<PageHost>();
                     eprintln!(
-                        "[layress] 过期页面（gen {gen} ≠ 当前 {current_gen}）的完成加载事件，不记忆地址：{}",
+                        "[layress] 过期页面身份（绑定 {} / 激活 {} / gen {gen}；当前 {} / 激活 {} / gen {}）的完成加载事件，不记忆地址：{}",
+                        load_binding.project_id,
+                        load_binding.activation_gen,
+                        active_project_id(&app),
+                        cur.activation_gen.load(Ordering::Relaxed),
+                        cur.page_gen.load(Ordering::Relaxed),
                         payload.url()
                     );
                 }
@@ -523,9 +646,9 @@ fn ensure_and_navigate(app: &AppHandle<tauri::Wry>, url: Url) -> Result<(), Stri
             };
             if let Ok(m) = serde_json::from_str::<MeasuredViewport>(rest) {
                 let app = webview.app_handle().clone();
-                // 过期页面的测量不采信：旧页哨兵不得污染当前项目的视口数据
-                let current_gen = app.state::<PageHost>().page_gen.load(Ordering::Relaxed);
-                if gen != current_gen {
+                // 任务 3.2：过期页面的测量不采信——除页面代号外还核对项目与激活代号，
+                // 旧页哨兵既不得污染当前视口数据，也不得借新项目身份上报。
+                if !binding_is_current(&app, &binding) {
                     return;
                 }
                 if let Ok(mut slot) = app.state::<PageHost>().measured.lock() {
@@ -611,6 +734,10 @@ fn destroy_page_webview(app: &AppHandle<tauri::Wry>) {
     if let Ok(mut slot) = state.measured.lock() {
         *slot = None;
     }
+    // 任务 3.2：销毁即清绑定，旧页回调不再能凭残留身份认领
+    if let Ok(mut slot) = state.page_binding.lock() {
+        *slot = None;
+    }
     if let Err(e) = page.close() {
         eprintln!("[layress] 销毁旧被测页失败（后续创建可能因标签占用而失败）：{e}");
     }
@@ -682,6 +809,12 @@ async fn open_project_page_inner(
     app: &AppHandle<tauri::Wry>,
     project: &project_config::Project,
 ) -> Result<String, String> {
+    // 任务 3.2：每次编排递增激活代号。旧页回调绑定的是旧激活代，即使目标项目
+    // 与旧项目同名（A→B→A），也不会借新一次激活认领——与 page_gen 双重保险。
+    {
+        let host = app.state::<PageHost>();
+        host.activation_gen.fetch_add(1, Ordering::Relaxed);
+    }
     let target_raw = restore_target(project);
     let url = validate_url(&target_raw)
         .map_err(|e| format!("恢复目标地址无效（{target_raw}）：{e}"))?;
@@ -906,10 +1039,17 @@ fn sample_url(state: State<'_, PageHost>) -> Result<String, String> {
 
 #[tauri::command]
 async fn page_navigate(app: AppHandle<tauri::Wry>, raw: String) -> Result<(), String> {
+    if app.state::<PageHost>().quitting.load(Ordering::Relaxed) {
+        return Err("应用正在退出，不能发起导航".to_string());
+    }
     let url = validate_url(&raw)?;
     check_reachable(&url).await?;
     invalidate_capture(&app, "导航前已作废在途采集");
     ensure_and_navigate(&app, url)?;
+    // 任务 3.4：导航改变现场——设置返回时据此判原预览失效
+    app.state::<PageHost>()
+        .scene_gen
+        .fetch_add(1, Ordering::Relaxed);
     emit(&app, PageEvent::Url(raw.trim().to_string()));
     Ok(())
 }
@@ -950,9 +1090,36 @@ fn remember_last_loaded_url(app: &AppHandle<tauri::Wry>, url: &str) {
         return;
     }
     match store.commit(config, expected) {
-        Ok(_) => eprintln!("[layress] 最近地址已记忆：{url} → 项目 {active_id}"),
-        // 记忆失败不阻塞页面，也不冒充已保存
-        Err(e) => eprintln!("[layress] 最近地址记忆失败（不阻塞页面）：{e}"),
+        Ok(_) => {
+            // 3.3：写入成功即销掉同一项目此前的「未保存」状态（若仍指向同一地址）
+            if let Ok(mut slot) = host.unsaved.lock() {
+                let clear = slot
+                    .as_ref()
+                    .map(|u| u.project_id == active_id && u.applied_url.as_deref() == Some(url))
+                    .unwrap_or(false);
+                if clear {
+                    *slot = None;
+                }
+            }
+            eprintln!("[layress] 最近地址已记忆：{url} → 项目 {active_id}");
+        }
+        // 任务 3.3 / design §4：页面已应用（导航已完成）但配置写入失败 ⇒
+        // 明确「当前已应用，未保存」，记录可重试状态并经状态栏红条告知，
+        // 不阻塞页面、也不冒充已记忆。禁止仅 stderr 静默失败。
+        Err(e) => {
+            let message = format!(
+                "当前已应用，未保存：最近地址 {url} 写入配置失败（{e}）；重启后可能恢复旧配置，可重试"
+            );
+            if let Ok(mut slot) = host.unsaved.lock() {
+                *slot = Some(UnsavedState {
+                    project_id: active_id.clone(),
+                    applied_url: Some(url.to_string()),
+                    message: message.clone(),
+                });
+            }
+            set_status_bar(app, &message, "error");
+            eprintln!("[layress] {message}");
+        }
     }
 }
 
@@ -974,6 +1141,8 @@ fn apply_configured_size_internal(
             .lock()
             .map_err(|_| "视口状态锁不可用".to_string())?;
         *cfg = Some((width, height));
+        // 任务 3.4：视口是现场的一部分，变化即换代——设置返回时据此判原预览失效
+        state.scene_gen.fetch_add(1, Ordering::Relaxed);
     }
     let preview = app
         .state::<PageHost>()
@@ -1023,6 +1192,7 @@ fn page_state(app: AppHandle<tauri::Wry>) -> Result<serde_json::Value, String> {
         "inPreview": in_preview,
         "lastCapture": last,
         "restoreFailure": state.restore_failure.lock().ok().and_then(|f| f.clone()),
+        "unsaved": state.unsaved.lock().ok().and_then(|u| u.clone()),
     }))
 }
 
@@ -1033,8 +1203,12 @@ async fn capture_start(
     app: AppHandle<tauri::Wry>,
     delay_ms: Option<u64>,
 ) -> Result<CaptureOutcome, String> {
-    // 任务 1.1 的最小模式仲裁：项目设置（编辑）中禁止采集。
-    // 完整仲裁表（预览→设置→返回、迟到结果隔离等）仍归任务 3.4，不在此假称已实现。
+    // 任务 3.4 / design §5：退出中禁止发起新采集
+    if app.state::<PageHost>().quitting.load(Ordering::Relaxed) {
+        return Err("应用正在退出，不能开始采集".to_string());
+    }
+    // 模式仲裁（任务 3.4 / design §1）：项目设置（编辑）中禁止采集，
+    // 入口与可信命令一致拒绝，不暗中关闭编辑、不改原预览。
     if app
         .state::<PageHost>()
         .settings
@@ -1404,6 +1578,18 @@ fn cmd_err(code: project_config::ConfigErrorCode, message: impl Into<String>) ->
     CommandError::from(ConfigError::new(code, message))
 }
 
+/// 任务 3.4 / design §5：退出中拒绝一切新配置意图（命令被绕过按钮直接调用时也拦住）。
+fn reject_if_quitting(app: &AppHandle<tauri::Wry>) -> Result<(), CommandError> {
+    if app.state::<PageHost>().quitting.load(Ordering::Relaxed) {
+        Err(cmd_err(
+            project_config::ConfigErrorCode::WriteFailed,
+            "应用正在退出，配置写入已禁用",
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn preset_name(preset: PresetId) -> &'static str {
     match preset {
         PresetId::Desktop => "desktop",
@@ -1431,9 +1617,32 @@ fn new_project_id(now_ms: u128, seq: u64) -> String {
     format!("p-{now_ms}-{seq}")
 }
 
-/// 模式仲裁的最小判据：设置不与静态预览 / 采集中叠加（完整仲裁表归任务 3.4）。
-fn can_enter_settings(preview: bool, capturing: bool) -> bool {
-    !preview && !capturing
+/// 任务 3.4 / design §5 退出顺序第①步：置 `quitting` 并作废旧意图。
+/// 置位后所有新配置意图 / 导航 / 采集入口一律拒绝；采集在途作废；激活 / 场景
+/// 代号各递增一代，使任何迟到的页面回调失去认领资格（binding_is_current 三项核对）。
+/// 注意：Rust 侧配置提交是同步单事务（commit 落 Mutex + 文件），不存在异步写队列，
+/// 「只等待已开始事务」由命令同步语义保证——退出不新增后台写。
+fn begin_shutdown(app: &AppHandle<tauri::Wry>) {
+    let host = app.state::<PageHost>();
+    if host.quitting.swap(true, Ordering::AcqRel) {
+        return; // 已处理过，避免重复作废
+    }
+    host.activation_gen.fetch_add(1, Ordering::Relaxed);
+    host.scene_gen.fetch_add(1, Ordering::Relaxed);
+    if let Ok(mut slot) = host.page_binding.lock() {
+        *slot = None;
+    }
+    drop(host);
+    invalidate_capture(app, "应用退出：在途采集已作废，迟到结果不写盘");
+    eprintln!("[layress] 退出：已拒绝新意图并作废在途采集 / 页面身份");
+}
+
+/// 模式仲裁判据（任务 3.4 / design §1）：
+/// - 采集中一律拒绝进入设置（不叠第三种状态）；
+/// - 静态预览中**允许**进入设置：暂隐预览、关闭后恢复同一预览（返回上下文由
+///   `settings_return` 记录），不改变采集现场与会话。
+fn can_enter_settings(_preview: bool, capturing: bool) -> bool {
+    !capturing
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1459,6 +1668,8 @@ struct ConfigStateView {
     error: Option<CommandError>,
     /// 页面打开失败的可重试状态（任务 3.1）：活动项目已提交但页面未打开时非空
     restore_failure: Option<RestoreFailure>,
+    /// 任务 3.3：已应用但未保存的状态；配置写入失败时非空，可显式重试
+    unsaved: Option<UnsavedState>,
 }
 
 fn project_view(p: &project_config::Project) -> ProjectView {
@@ -1487,6 +1698,7 @@ fn view_from_config(
         data_root,
         error,
         restore_failure: None,
+        unsaved: None,
     }
 }
 
@@ -1520,6 +1732,7 @@ fn current_view(app: &AppHandle<tauri::Wry>) -> ConfigStateView {
         ),
     };
     view.restore_failure = restore_failure;
+    view.unsaved = host.unsaved.lock().ok().and_then(|u| u.clone());
     view
 }
 
@@ -1535,6 +1748,7 @@ fn config_create_project(
     start_url: String,
     preset_id: String,
 ) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     let store = host.config_store.get().ok_or_else(|| {
         cmd_err(
@@ -1560,6 +1774,7 @@ fn config_rename_project(
     id: String,
     name: String,
 ) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     let store = host.config_store.get().ok_or_else(|| {
         cmd_err(
@@ -1594,6 +1809,7 @@ fn config_update_project(
     name: String,
     start_url: String,
 ) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     let store = host.config_store.get().ok_or_else(|| {
         cmd_err(
@@ -1632,6 +1848,7 @@ fn config_set_viewport(
     width: Option<u32>,
     height: Option<u32>,
 ) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     let store = host.config_store.get().ok_or_else(|| {
         cmd_err(
@@ -1682,6 +1899,7 @@ fn config_set_viewport(
 /// 旋转项目视口（任务 2.2 / E02）：交换宽高但保留预设身份；方形尺寸交换后不变。
 #[tauri::command]
 fn config_rotate_viewport(app: AppHandle<tauri::Wry>, id: String) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     let store = host.config_store.get().ok_or_else(|| {
         cmd_err(
@@ -1713,6 +1931,7 @@ fn config_rotate_viewport(app: AppHandle<tauri::Wry>, id: String) -> Result<Conf
 /// 前端必须先做两段确认（会清空项目记忆、保留截图），本命令不做二次弹窗。
 #[tauri::command]
 fn config_rebuild(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     if host.config_store.get().is_some() {
         return Err(cmd_err(
@@ -1779,6 +1998,7 @@ async fn config_activate_project(
     app: AppHandle<tauri::Wry>,
     id: String,
 ) -> Result<ConfigStateView, CommandError> {
+    reject_if_quitting(&app)?;
     let host = app.state::<PageHost>();
     let store = host.config_store.get().ok_or_else(|| {
         cmd_err(
@@ -1835,6 +2055,9 @@ async fn config_activate_project(
 /// 阶段失败后由用户显式重试；无活动项目则明确拒绝，不猜目标。
 #[tauri::command]
 async fn config_retry_restore(app: AppHandle<tauri::Wry>) -> Result<(), String> {
+    if app.state::<PageHost>().quitting.load(Ordering::Relaxed) {
+        return Err("应用正在退出，不能重试恢复".to_string());
+    }
     let host = app.state::<PageHost>();
     let store = host
         .config_store
@@ -1864,6 +2087,70 @@ async fn config_retry_restore(app: AppHandle<tauri::Wry>) -> Result<(), String> 
             Err(e)
         }
     }
+}
+
+/// 重试「已应用但未保存」的配置意图（任务 3.3 / design §4 / E05）。
+/// 只重提交记录中的最近地址，按当前 revision 核对；不导航、不改运行条件。
+/// 已保存（同地址）则空操作不推进 revision；无未保存状态则明确拒绝。
+#[tauri::command]
+fn config_retry_unsaved(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, CommandError> {
+    if app.state::<PageHost>().quitting.load(Ordering::Relaxed) {
+        return Err(cmd_err(
+            project_config::ConfigErrorCode::WriteFailed,
+            "应用正在退出，不能再提交配置写入",
+        ));
+    }
+    let unsaved = app
+        .state::<PageHost>()
+        .unsaved
+        .lock()
+        .ok()
+        .and_then(|u| u.clone())
+        .ok_or_else(|| cmd_err(project_config::ConfigErrorCode::InvalidInput, "当前没有未保存的配置意图"))?;
+    let host = app.state::<PageHost>();
+    let store = host.config_store.get().ok_or_else(|| {
+        cmd_err(
+            project_config::ConfigErrorCode::ReadFailed,
+            "配置存储未就绪，不能重试保存",
+        )
+    })?;
+    if !store.is_writable() {
+        return Err(cmd_err(
+            project_config::ConfigErrorCode::WriteFailed,
+            "配置存储只读（另一实例占用或不可写），不能重试保存",
+        ));
+    }
+    let mut config = store.config();
+    // 先确认目标项目仍在；否则不能把它当成「已被追平」销账（会掩盖真实错误）
+    if !config.projects.iter().any(|p| p.id == unsaved.project_id) {
+        return Err(cmd_err(
+            project_config::ConfigErrorCode::InvalidInput,
+            "未保存记录指向的项目已不存在",
+        ));
+    }
+    if !unsaved_retry_needed(&config, &unsaved) {
+        // 已被别的成功写入追平：销状态、不重复提交
+        if let Ok(mut slot) = host.unsaved.lock() {
+            *slot = None;
+        }
+        return Ok(current_view(&app));
+    }
+    let expected = config.revision;
+    let url = unsaved.applied_url.clone().unwrap_or_default();
+    let project = config
+        .projects
+        .iter_mut()
+        .find(|p| p.id == unsaved.project_id)
+        .unwrap(); // 上一步已确认存在
+    project
+        .set_last_loaded_url(&url)
+        .map_err(CommandError::from)?;
+    store.commit(config, expected).map_err(CommandError::from)?;
+    if let Ok(mut slot) = host.unsaved.lock() {
+        *slot = None;
+    }
+    set_status_bar(&app, "✓ 已重试保存：未保存的最近地址已写入配置", "ok");
+    Ok(current_view(&app))
 }
 
 /// 任一开发期探针环境变量生效时跳过启动恢复：探针自动打开样例页 / 布局测量，
@@ -1921,14 +2208,36 @@ async fn startup_restore(app: &AppHandle<tauri::Wry>) {
 }
 
 /// 进入项目设置：工具层铺满工作区、被测层等尺寸平移（0.1 已实机验证的布局）。
-/// 与静态预览 / 采集互斥；进入失败不改变布局，也不写配置。
+/// 任务 3.4 / design §1：从静态预览进入时记录返回上下文（暂隐预览而非销毁现场），
+/// 采集中一律拒绝；进入失败不改变布局，也不写配置。
 #[tauri::command]
 fn settings_enter(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, String> {
     let host = app.state::<PageHost>();
-    let preview = host.captures.lock().map(|s| s.preview).unwrap_or(false);
+    if host.quitting.load(Ordering::Relaxed) {
+        return Err("应用正在退出，不能进入项目设置".to_string());
+    }
+    let (preview, capture_id) = host
+        .captures
+        .lock()
+        .map(|s| (s.preview, s.last.as_ref().map(|m| m.id.clone())))
+        .unwrap_or((false, None));
     let capturing = host.capturing.lock().map(|c| *c).unwrap_or(false);
     if !can_enter_settings(preview, capturing) {
-        return Err("静态预览或采集进行中，不能打开项目设置；请先返回页面 / 完成采集".to_string());
+        return Err("采集进行中，不能打开项目设置；请先完成或取消采集".to_string());
+    }
+    // 记录是否从预览进入；关闭设置时据此恢复同一预览（E09「返回原预览及会话」）
+    let ret = if preview {
+        Some(SettingsReturn {
+            from_preview: true,
+            capture_id,
+            page_gen: host.page_gen.load(Ordering::Relaxed),
+            scene_gen: host.scene_gen.load(Ordering::Relaxed),
+        })
+    } else {
+        None
+    };
+    if let Ok(mut slot) = host.settings_return.lock() {
+        *slot = ret;
     }
     if let Ok(mut flag) = host.settings.lock() {
         *flag = true;
@@ -1937,18 +2246,138 @@ fn settings_enter(app: AppHandle<tauri::Wry>) -> Result<ConfigStateView, String>
     Ok(current_view(&app))
 }
 
+/// 关闭项目设置：按进入时的上下文决定恢复实时页还是原静态预览。
+/// design §1：无现场变化的编辑关闭后恢复同一预览，不重建页面会话（E08/E09）。
 #[tauri::command]
-fn settings_exit(app: AppHandle<tauri::Wry>) {
-    if let Ok(mut flag) = app.state::<PageHost>().settings.lock() {
+fn settings_exit(app: AppHandle<tauri::Wry>) -> SettingsExitResult {
+    let host = app.state::<PageHost>();
+    let ret = host.settings_return.lock().ok().and_then(|r| r.clone());
+    if let Ok(mut slot) = host.settings_return.lock() {
+        *slot = None;
+    }
+    if let Ok(mut flag) = host.settings.lock() {
         *flag = false;
     }
+    // 从预览进入：仅当场景未变（视口 / 导航 / 项目 / 采集代号均不变）才恢复同一预览；
+    // 场景已变则旧预览失效，回新实时页并提示，不把旧现场挂回新项目（design §1）。
+    if let Some(r) = &ret {
+        if r.from_preview {
+            let scene_now = host.scene_gen.load(Ordering::Relaxed);
+            let page_now = host.page_gen.load(Ordering::Relaxed);
+            // 采集现场也要一致：若期间采了新图，旧预览不再是「同一现场」
+            let capture_now = host
+                .captures
+                .lock()
+                .ok()
+                .and_then(|s| s.last.as_ref().map(|m| m.id.clone()));
+            let scene_same = r.scene_gen == scene_now
+                && r.page_gen == page_now
+                && r.capture_id == capture_now;
+            if scene_same {
+                apply_layout(&app, true);
+                emit(&app, PageEvent::Preview { active: true });
+                return SettingsExitResult {
+                    restore_preview: true,
+                    scene_invalidated: false,
+                };
+            }
+            set_status_bar(
+                &app,
+                "⚠ 编辑导致项目 / 地址 / 视口变化，原静态预览已失效；已回到实时页面，不恢复旧现场",
+                "error",
+            );
+            return SettingsExitResult {
+                restore_preview: false,
+                scene_invalidated: true,
+            };
+        }
+    }
+    // 从实时页进入：恢复工具条带 + 被测层原位，触发一次哨兵回报供 E08 核对
     apply_layout(&app, false);
     sync_page_frame(&app);
+    if let Some(page) = app.get_webview(PAGE_LABEL) {
+        let _ = page.eval("window.__layressReport && window.__layressReport();".to_string());
+    }
+    SettingsExitResult {
+        restore_preview: false,
+        scene_invalidated: false,
+    }
 }
 
 #[cfg(test)]
 mod config_command_tests {
     use super::*;
+
+    #[test]
+    fn 页面身份三项全等才认领() {
+        let binding = PageBinding {
+            project_id: "p-a".to_string(),
+            activation_gen: 3,
+            page_gen: 7,
+        };
+        // 同 URL 重试：身份不变 → 认领（URL 相同不单独作判据，靠身份）
+        assert!(binding_matches(&binding, "p-a", 3, 7));
+        // 项目换了：activeProjectId 已提交为新项目，旧页回调不得认领
+        assert!(!binding_matches(&binding, "p-b", 3, 7));
+        // 激活代号换了：同一项目 A→B→A 的迟到回调不得借新激活认领
+        assert!(!binding_matches(&binding, "p-a", 4, 7));
+        // 页面代号换了：旧页已销毁重建
+        assert!(!binding_matches(&binding, "p-a", 3, 8));
+        // 三项同时错（典型 A→B 迟到）
+        assert!(!binding_matches(&binding, "p-b", 4, 9));
+    }
+
+    #[test]
+    fn 未保存重试判据按项目与地址比对() {
+        let mut config = ProjectConfig::empty();
+        config
+            .create_project("p-a", "项目 A", "https://example.com", PresetId::Desktop)
+            .unwrap();
+        let pending = UnsavedState {
+            project_id: "p-a".to_string(),
+            applied_url: Some("https://example.com/target".to_string()),
+            message: "当前已应用，未保存".to_string(),
+        };
+        // 配置里最近地址为空（尚未写盘）⇒ 需要重试
+        assert!(unsaved_retry_needed(&config, &pending));
+        // 项目不存在 ⇒ 无的放矢，不重试
+        let missing = UnsavedState {
+            project_id: "p-z".to_string(),
+            applied_url: pending.applied_url.clone(),
+            message: String::new(),
+        };
+        assert!(!unsaved_retry_needed(&config, &missing));
+        // 模拟已由其他成功写入追平 ⇒ 不再重试，不推进 revision
+        config
+            .projects
+            .iter_mut()
+            .find(|p| p.id == "p-a")
+            .unwrap()
+            .set_last_loaded_url("https://example.com/target")
+            .unwrap();
+        assert!(!unsaved_retry_needed(&config, &pending));
+        // 无应用地址的记录不触发写入
+        let no_url = UnsavedState {
+            project_id: "p-a".to_string(),
+            applied_url: None,
+            message: String::new(),
+        };
+        assert!(!unsaved_retry_needed(&config, &no_url));
+    }
+
+    #[test]
+    fn 重定向只换地址不换身份() {
+        // E03/E04：重定向从 /redirect 到最终端点，是同一次导航的身份延续；
+        // 判据在身份而非 URL——URL 变化不应使本次完成事件失去归属。
+        let binding = PageBinding {
+            project_id: "p-a".to_string(),
+            activation_gen: 1,
+            page_gen: 2,
+        };
+        assert!(binding_matches(&binding, "p-a", 1, 2));
+        // 同一身份下不同 URL（重定向后最终端点）仍认领，交给 2.3 记最终地址
+        assert_eq!(binding.page_gen, 2);
+    }
 
     #[test]
     fn 视口预设名正反映射() {
@@ -2023,11 +2452,30 @@ mod config_command_tests {
     }
 
     #[test]
-    fn 设置模式不与预览或采集叠加() {
+    fn 设置可暂隐预览但拒绝采集中进入() {
+        // 任务 3.4 / design §1：实时页与静态预览均可打开设置；
+        // 预览进入记录返回上下文，关闭后恢复同一预览（不叠加第三种状态）。
         assert!(can_enter_settings(false, false));
-        assert!(!can_enter_settings(true, false));
+        assert!(can_enter_settings(true, false));
+        // 采集中一律拒绝，避免快照与编辑叠加
         assert!(!can_enter_settings(false, true));
         assert!(!can_enter_settings(true, true));
+    }
+
+    #[test]
+    fn 预览返回上下文判定场景是否变化() {
+        // 任务 3.4：进入设置时记下场景 / 页面代号，未变才恢复预览。
+        let ret = SettingsReturn {
+            from_preview: true,
+            capture_id: Some("cap-1".to_string()),
+            page_gen: 4,
+            scene_gen: 9,
+        };
+        let same = ret.scene_gen == 9 && ret.page_gen == 4;
+        assert!(same, "场景与页面代号均未变 ⇒ 恢复同一预览");
+        // 视口应用 / 导航 / 项目切换任一换代即为场景变化 ⇒ 旧预览失效
+        assert!(!(ret.scene_gen == 10 && ret.page_gen == 4));
+        assert!(!(ret.scene_gen == 9 && ret.page_gen == 5));
     }
 
     /// 任务 2.1 / E01：编辑起始地址与重命名共用一条更新路径——ID 不变、
@@ -2426,6 +2874,7 @@ pub fn run() {
             config_rebuild,
             config_activate_project,
             config_retry_restore,
+            config_retry_unsaved,
             settings_enter,
             settings_exit
         ])
@@ -2581,9 +3030,14 @@ pub fn run() {
                     sync_page_frame(&handle);
                     emit_viewport(&handle);
                 }
+                // 任务 3.4 / design §5：窗口收到关闭请求即置 quitting、作废在途意图，
+                // 之后的迟到回调 / 命令一律不再提交；不拦截关闭（首版不引入确认弹窗）。
+                WindowEvent::CloseRequested { .. } => {
+                    begin_shutdown(&handle);
+                }
                 WindowEvent::Destroyed => {
-                    // 退出取消待完成采集，不让失效结果冒充成功（任务 3.2 / 4.4）。
-                    invalidate_capture(&handle, "窗口关闭，在途采集已取消");
+                    // 兜底：某些平台关闭不经 CloseRequested，这里再作废一次（幂等）。
+                    begin_shutdown(&handle);
                     // 4.4：只清理本次启动的可写探针残留；持久截图 / 元数据按记录策略留在数据根。
                     // 明确不删除数据根以外任何文件，重启后仍能读取上次现场。
                     if let Some(root) = handle.state::<PageHost>().data_root.get() {
