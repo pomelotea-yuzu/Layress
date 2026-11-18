@@ -142,3 +142,7 @@
 - [2026-11-18][P1] 静态预览中打开设置再关闭，回到空白页而非预览图 ⇒ 前端进入设置时 `preview.classList.remove("show")` 暂隐预览层，关闭时 Rust 正确返回 `restorePreview=true`，但前端只调 `computeScaleAndRender()` 重算尺寸、**漏了把 `show` 加回**，DOM 隐藏 + 工具层铺满即白屏 ⇒ 恢复分支必须先 `preview.classList.add("show")` 再 `computeScaleAndRender`（顺序反了 canvas 尺寸基于隐藏元素算）；凡「暂隐再恢复」的模式切换，进入时摘掉的显示类必须在恢复分支对称加回，机器检查不出这种 DOM 状态不对称，只有实机看得见 ⇒ 证据：`main.ts::closeSettings`、`evidence-index.md`「预览返回白屏」、用户 12:48 实机截图。
 
 - [2026-11-18][P1] 预览中改视口后关闭设置，红条正确但工作区白屏（只在边缘漏出被测页字迹）⇒ Rust `settings_exit` 的现场失效分支写完红条直接 `return`，漏掉 `apply_layout(false)` 与 `exit_preview`，被测层仍在 offscreen、工具层仍铺满，且 `captures.preview` 残留使 Resize 再次铺满 ⇒ 失效分支必须真正退出预览态（`exit_preview` 清标志 + 复位布局 + 发事件），前端同步 `hidePreview()` 清旧图数据；「判失效」不只是写红条，还要把模式状态机复位到实时页 ⇒ 证据：`lib.rs::settings_exit`、`main.ts::closeSettings`、`evidence-index.md`「现场失效分支白屏」、用户 12:54 实机截图。
+
+## 项目与设备记忆 · 4.1 版本门禁（2026-11-18）
+
+- [2026-11-18][P1] `check-build.mjs` 的徽标断言只比 `index.html[data-build]` 与 `main.ts[BUILD_TAG]` 是否**相等**，改了业务源码忘递增徽标时两个旧值仍相等、门禁全绿，人工复验又跑在旧 DOM 上（I16 已命中三次）⇒ 升级为**内容指纹绑定**：确定清单（index.html / status.html / main.ts / coords.ts / vite.config.ts）按路径+规范化内容算 sha256 登记为 `EXPECTED_TOOL_SOURCE{tag,sha256}`，指纹不符或 tag 与源码 BUILD_TAG 不一致均判红，改源码必须同步更新徽标与指纹才放行；`--print-fingerprint` 供回填，`--selftest` 加 5 条纯内存反例（含「仅改徽标不污染指纹」「新增未纳入清单模块判红」）⇒ 指纹常量与清单**必须放在门禁脚本内、不在被计算清单里**，否则改指纹本身触发指纹变化形成自引用死锁；徽标两处在规范化时替换为占位符，避免「改徽标→指纹变→要改指纹」的循环；检测 `src/` 下清单外模块保证新增文件不绕过门禁 ⇒ 证据：`check-build.mjs::evaluateToolSource`、临时篡改 `coords.ts` 后 `--all` 退出码 1 并逐字节还原、`check-repo.mjs --all`/`--staged` 退出码 0、strict change/specs 各 1 通过、I16。
