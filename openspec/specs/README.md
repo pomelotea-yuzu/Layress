@@ -1,8 +1,9 @@
 # openspec/specs/ · 主规格
 
 > 归属说明。这里放**已合入的能力口径**：一条需求配它的判据场景，长期有效。
-> 当前已有 1 条能力：[`desktop-page-host/`](desktop-page-host/spec.md)，由 2026-11-14 归档的
-> [add-tauri-page-host](../changes/archive/2026-11-14-add-tauri-page-host/proposal.md) 的 7 条 requirement 合入。
+> 当前已有 2 条能力：
+> - [`desktop-page-host/`](desktop-page-host/spec.md)，由 2026-11-14 归档的 [add-tauri-page-host](../changes/archive/2026-11-14-add-tauri-page-host/proposal.md) 的 7 条 requirement 合入，2026-11-18 按 [add-project-device-profiles](../changes/archive/2026-11-18-add-project-device-profiles/proposal.md) 的 MODIFIED 修订「便携数据根与可写检查」（相对根解析层拒绝、命令行覆盖环境变量、无根红条可见）；
+> - [`project-device-profiles/`](project-device-profiles/spec.md)，由 2026-11-18 归档的 add-project-device-profiles 的 9 条 requirement 合入（项目身份 / 地址记忆 / 视口 / 切换恢复 / 迟到隔离 / 版本化持久化 / 并发保护 / 损坏恢复）。
 > 主 spec 与归档 change 的差集核对（`pnpm check:spec`）仍是待建门禁（见工作流质量门禁表）。
 
 ## 命名与结构

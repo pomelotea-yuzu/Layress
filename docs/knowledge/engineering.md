@@ -28,7 +28,7 @@
 
 ## 测试
 
-- [2026-11-14][P2] 未改产品代码的规划轮两个可达性单测在特定临时端口绑定时偶发失败，审阅轮沙箱内同链 13/13 通过 ⇒ 失败与当轮环境 / 端口条件相关，不能推出所有沙箱稳定禁止监听或直接判地址校验回归 ⇒ 保留原始回显并复跑同一条链，确有沙箱拒绝时按环境要求申请外部复跑，不删测试或加跳过；编写轮沙箱外与审阅轮沙箱内均 13/13 通过 ⇒ 证据：[项目与设备记忆建档校验](../../openspec/changes/add-project-device-profiles/evidence-index.md)。
+- [2026-11-14][P2] 未改产品代码的规划轮两个可达性单测在特定临时端口绑定时偶发失败，审阅轮沙箱内同链 13/13 通过 ⇒ 失败与当轮环境 / 端口条件相关，不能推出所有沙箱稳定禁止监听或直接判地址校验回归 ⇒ 保留原始回显并复跑同一条链，确有沙箱拒绝时按环境要求申请外部复跑，不删测试或加跳过；编写轮沙箱外与审阅轮沙箱内均 13/13 通过 ⇒ 证据：[项目与设备记忆建档校验](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md)。
 - [2026-11-16][P1] Gitee Go CI 只有 `备份失败原文件不变` 一项红（49 passed / 1 failed），GitHub 同提交绿；`unwrap_err()` 拿到 `Ok(RebuildOutcome)` 说明备份竟然创建成功了 ⇒ 测试用「目录 chmod 去写权限」模拟备份失败，而 Gitee Go 容器以 **root** 运行（工作目录 `/root/workspace/…`），root 无视权限位，`create_new` 照样成功；GitHub runner 是普通用户 `runner` 所以掩盖了问题 ⇒ 依赖 OS 权限的故障模拟一律换成 `WriteFault` 注入（新增 `Backup` 变体，确定性失败、与平台和执行者无关）；root / Windows 管理员等特权环境下任何「去权限再验证失败」的用例都不可靠，GitHub 绿不能证明测试在所有 CI 上有效 ⇒ 证据：2026-11-16 11:07 Gitee 日志（失败路径含 `/root/workspace/`）、修复后本机 `cargo test --lib` 50/50。
 
 - [2026-11-03][P0] 并行跑测试出现一片红，逐包复跑全绿 ⇒ 并行争用端口/临时目录/单例服务 ⇒ 判回归只认单包复跑与串行全链，并行结果不作证据 ⇒ 来源：前置项目；**Layress 建测试链前先按此约定**。
@@ -121,7 +121,7 @@
 
 ## 工具层布局与 0.1 探针（2026-11-15）
 
-- [2026-11-15][P1] 工具层 CSS 高度长期被记成「根因未定位的 64px」 ⇒ 9 组实机数据表明 `cssH = WKWebView bounds 逻辑高 − 32`（96→64、800→768、400→368；dpr=2 下 `cssW` 与 bounds 宽 1:1），是**固定 32px 偏移**而非随机缺失，成因（WKWebView inset / 安全区）仍未定位 ⇒ 布局可行性按「实测 cssH + 控件 rect」判，铺满后可用工作区 = 窗口逻辑高 − 32 − 状态栏；不把 64px 当不可解释的黑箱，也不宣称偏移已修 ⇒ 证据：[0.1 首轮回显](../../openspec/changes/add-project-device-profiles/evidence-index.md) 的 9 行 `[layress][toolprobe] LAYOUT`。
+- [2026-11-15][P1] 工具层 CSS 高度长期被记成「根因未定位的 64px」 ⇒ 9 组实机数据表明 `cssH = WKWebView bounds 逻辑高 − 32`（96→64、800→768、400→368；dpr=2 下 `cssW` 与 bounds 宽 1:1），是**固定 32px 偏移**而非随机缺失，成因（WKWebView inset / 安全区）仍未定位 ⇒ 布局可行性按「实测 cssH + 控件 rect」判，铺满后可用工作区 = 窗口逻辑高 − 32 − 状态栏；不把 64px 当不可解释的黑箱，也不宣称偏移已修 ⇒ 证据：[0.1 首轮回显](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md) 的 9 行 `[layress][toolprobe] LAYOUT`。
 - [2026-11-15][P2] 0.1 探针铺满期间缩窗，`full3` 量到 tool 595×96 / cssH 64 / 6 控件全裁 ⇒ 窗口 Resized → `relayout` 按 `captures.preview=false` 把工具层复位成 96px，探针每轮重排抗不住异步事件；**这不是布局能力失败，是临时状态没进模式状态机** ⇒ 探针期间用 debug-only 标志让 `relayout` 保持铺满；正式实现必须由显式编辑 / 预览模式状态承担，不能靠反复 `set_bounds` 抢事件 ⇒ 证据：首轮 full3 回显、`lib.rs` 的 `layout_probe_holds_full()`。
 - [2026-11-15][P2] 控件全落在视口外时 `focusable` 仍是 6（full3 / restore） ⇒ `el.focus()` 对 `position:fixed` 但位于 64px 视口之外的元素照样生效，焦点自测不能单独证明可见性 ⇒ 可见性判据必须同时取 `getBoundingClientRect` 是否在视口内、`elementFromPoint` 是否命中自身、`activeElement` 三项；恢复阶段先移除临时 DOM 再报告，避免把清理前瞬时状态记成「被裁」 ⇒ 证据：首轮 full3 / restore 的 `clipped` 与 `focusable`、`LAYOUT_PROBE_JS`。
 - [2026-11-15][P1] 连续两次贴回的 0.1 探针日志逐字一致（编译耗时 9.15s、`full3` 595×96、`restore` `controls=6`），改过的探针逻辑一点没体现 ⇒ 与 I16「窗口跑的是旧 JS」同类的第 4 次：改了 Rust / 探针但没重新编译，或把旧日志重贴一遍，回显里没有任何可分辨版本的字段，人工复验结论会被整轮作废 ⇒ 探针输出强制带 `probe=r2`、启动即打印白话步骤、README 写明「没有 r2 字样别贴」；同时让探针自己打开样例页，减少人工步骤 ⇒ 凡多轮人工复验，回显必须含随代码递增的标记，没有标记一律判旧程序、不采信 ⇒ 证据：两份逐字相同的回显、`LAYOUT_PROBE_JS` 的 `probe:'r2'`、`maybe_run_layout_probe` 自动导航。
@@ -142,6 +142,11 @@
 - [2026-11-18][P1] 静态预览中打开设置再关闭，回到空白页而非预览图 ⇒ 前端进入设置时 `preview.classList.remove("show")` 暂隐预览层，关闭时 Rust 正确返回 `restorePreview=true`，但前端只调 `computeScaleAndRender()` 重算尺寸、**漏了把 `show` 加回**，DOM 隐藏 + 工具层铺满即白屏 ⇒ 恢复分支必须先 `preview.classList.add("show")` 再 `computeScaleAndRender`（顺序反了 canvas 尺寸基于隐藏元素算）；凡「暂隐再恢复」的模式切换，进入时摘掉的显示类必须在恢复分支对称加回，机器检查不出这种 DOM 状态不对称，只有实机看得见 ⇒ 证据：`main.ts::closeSettings`、`evidence-index.md`「预览返回白屏」、用户 12:48 实机截图。
 
 - [2026-11-18][P1] 预览中改视口后关闭设置，红条正确但工作区白屏（只在边缘漏出被测页字迹）⇒ Rust `settings_exit` 的现场失效分支写完红条直接 `return`，漏掉 `apply_layout(false)` 与 `exit_preview`，被测层仍在 offscreen、工具层仍铺满，且 `captures.preview` 残留使 Resize 再次铺满 ⇒ 失效分支必须真正退出预览态（`exit_preview` 清标志 + 复位布局 + 发事件），前端同步 `hidePreview()` 清旧图数据；「判失效」不只是写红条，还要把模式状态机复位到实时页 ⇒ 证据：`lib.rs::settings_exit`、`main.ts::closeSettings`、`evidence-index.md`「现场失效分支白屏」、用户 12:54 实机截图。
+
+## 项目与设备记忆 · 4.2 复验方法（2026-11-18）
+
+- [2026-11-18][P2] 3.3「导航成功瞬间写盘失败」的 GUI 触发在本机反复被前置挡住：内嵌样例服务用 `TcpListener::bind(端口 0)` 随机端口，重启即变，项目记忆的旧地址必然可达预检先失败，走不到写盘；而「保存项目」路径的 `CONFIG_WRITE_FAILED` 与「已应用未保存」是两条不同代码路径，chmod 法打在保存上验不到 3.3 ⇒ 组合两招：①**固定端口夹具** `python3 -m http.server 8901 --directory <夹具目录>` 提供跨重启稳定的导航端点（并准备多个不同 URL 绕开「同地址不推进 revision」短路）；②**chmod 555 数据根 config 目录**（去目录写权限而非文件权限，`atomic_write` 的 `create_new` 临时文件才真正失败）且必须**先 chmod 后导航**——顺序反了写盘已成功就不触发。该组合可直接复用于未来任何「导航成功 + 持久化失败」类场景的 GUI 验证 ⇒ 证据：`evidence-index.md`「任务 3.3 复验收口」、红条与重试保存销账的用户确认。
+- [2026-11-18][P2] 门禁脚本自身（`scripts/check-build.mjs`）**不能**放进源码指纹清单：清单与指纹常量必须都在门禁脚本内、在被计算集合之外，否则改指纹值本身触发指纹变化形成自引用死锁；同理徽标两处（`BUILD_TAG` / `data-build`）在规范化时替换为占位符，让指纹只反映业务源码、「版本 ↔ 指纹」绑定交给 `EXPECTED_TOOL_SOURCE.tag` 字段承担 ⇒ 证据：`check-build.mjs` 注释与 5 条 selftest 反例。
 
 ## 项目与设备记忆 · 4.1 版本门禁（2026-11-18）
 

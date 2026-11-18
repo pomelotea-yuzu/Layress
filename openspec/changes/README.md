@@ -1,9 +1,9 @@
 # openspec/changes/ · 活动变更
 
 > 归属说明。这里放**正在进行**的 change，一个目录一个 change，动词开头的 kebab-case 命名。
-> 当前活动 change：[add-project-device-profiles](add-project-device-profiles/proposal.md)，2026-11-14 用户授权建档，
-> 仅规划项目 / 地址与视口配置记忆及共享数据根修订，已独立审阅并修订规划；2026-11-15 起进入实施轮：
-> 0.1 布局可行性与 1.1 接入已实机验证并勾选、1.2 / 1.3 模块已落地，2.x 完整 UI 与 3.4 仲裁未实施。
+> **当前无活动 change**。最新归档：[add-project-device-profiles](archive/2026-11-18-add-project-device-profiles/proposal.md)
+> （项目 / 地址与视口配置记忆及共享数据根修订，2026-11-18 十六项全部收官，
+> 新能力已合入主规格 [`project-device-profiles`](../specs/project-device-profiles/spec.md)）。
 > 首增量 [add-tauri-page-host](archive/2026-11-14-add-tauri-page-host/proposal.md) 已归档，
 > 主规格见 [`desktop-page-host`](../specs/desktop-page-host/spec.md)；其他阶段范围不自动获批。
 
@@ -11,7 +11,7 @@
 
 | change | 范围与入口 |
 |---|---|
-| [add-project-device-profiles](add-project-device-profiles/proposal.md) | 项目与地址记录、视口预设 / 自定义 / 横竖屏、按项目恢复、配置安全持久化；[设计](add-project-device-profiles/design.md)、[任务](add-project-device-profiles/tasks.md)、[证据计划](add-project-device-profiles/evidence-index.md)。已独立审阅并修订规划；0.1 布局可行性与 1.1 接入已实机验证并勾选，1.2 / 1.3 模块已落地，2.x 完整 UI / 3.4 仲裁未实施 |
+| （无） | 下一增量未立项。已归档 change 见 [archive/](archive/README.md)；新 change 按下方结构与纪律建档 |
 
 ## 结构
 

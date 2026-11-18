@@ -4,7 +4,7 @@
 
 本页是日常操作的权威说明。口径变了必须同时改 [`/AGENTS.md`](../../AGENTS.md) 与本文件；两者均默认只维护中文。
 
-当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 完成并归档（1.x–4.x 人工复验，4.2 按 D30 移出范围，5.1–5.4 完成；应用层权限回调路径等未执行项单列于 evidence-index），其规格增量已合入主规格 `openspec/specs/desktop-page-host/`。当前活动 change 为 [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)（2026-11-14 用户授权建档，项目 / 地址与视口配置记忆），经另一 Agent 审阅并修订规划；2026-11-15 起 0.1 布局可行性已实机验证并勾选、配置模型层已落地，完整 UI 未实施。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)其他范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
+当前产品与阶段以[产品依据](../product/product.md)和[正式路线图索引](../product/roadmap.md)为准；首个 [add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)已于 2026-11-14 完成并归档（1.x–4.x 人工复验，4.2 按 D30 移出范围，5.1–5.4 完成；应用层权限回调路径等未执行项单列于 evidence-index），其规格增量已合入主规格 `openspec/specs/desktop-page-host/`。当前活动 change 为 [add-project-device-profiles](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/proposal.md)（2026-11-14 用户授权建档，项目 / 地址与视口配置记忆），经另一 Agent 审阅并修订规划；2026-11-15 起 0.1 布局可行性已实机验证并勾选、配置模型层已落地，完整 UI 未实施。[第一阶段计划](../product/2026-11-10-stage-one-plan.md)其他范围不自动获批，不恢复旧验证方案的批准闸门或包划分。
 
 ## 环境与日常命令
 

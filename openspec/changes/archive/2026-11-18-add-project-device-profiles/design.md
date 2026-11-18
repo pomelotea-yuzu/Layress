@@ -2,7 +2,7 @@
 
 > 日期：2026-11-14。状态：**已按另一 Agent 的 review 修订设计**；规划轮未编码、未做新能力运行验证。
 > 2026-11-15 实施轮补记：0.1 布局可行性已由 r3 实机探针 + 人工三句验证并勾选（见[证据计划](evidence-index.md)），1.2 配置模型层已落地；产品命令 / 文件存储 / 完整 UI 仍未开始。
-> 范围以[提案](proposal.md)为准；沿用 [desktop-page-host 主规格](../../specs/desktop-page-host/spec.md)及 I12–I17，不重新设计桌面载体或底部状态栏。
+> 范围以[提案](proposal.md)为准；沿用 [desktop-page-host 主规格](../../../specs/desktop-page-host/spec.md)及 I12–I17，不重新设计桌面载体或底部状态栏。
 
 ## 1. 使用路径与界面
 

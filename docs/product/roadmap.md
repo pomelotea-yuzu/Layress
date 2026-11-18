@@ -17,7 +17,7 @@
 
 ## 当前停点与规划精度
 
-- 当前进入**项目与设备记忆实施**（建档 2026-11-14，实施轮 2026-11-15）：[add-project-device-profiles](../../openspec/changes/add-project-device-profiles/proposal.md)承接第二个增量，经另一 Agent 审阅并修订规划；0.1 布局可行性已实机验证并勾选、1.2 配置模型层已落地，其余任务未实施；具体范围、任务与验收留在 change。
+- 当前进入**项目与设备记忆实施**（建档 2026-11-14，实施轮 2026-11-15）：[add-project-device-profiles](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/proposal.md)承接第二个增量，经另一 Agent 审阅并修订规划；0.1 布局可行性已实机验证并勾选、1.2 配置模型层已落地，其余任务未实施；具体范围、任务与验收留在 change。
 - 首个“窗口与页面承载”增量的已验证事实见[归档 change](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)。持久反馈 / 补拍等其他阶段 1 范围仍须另行确定，阶段 2 后续讨论。
 - 阶段 1–2 近期细化；阶段 3–4 只确定能力目标；阶段 5–6 暂不固定发布日期、平台数量或完整功能表。
 - 每阶段交付一个可体验增量；工程基础围绕该增量建设，任务清单与完成状态留在对应 change，不在此处展开。

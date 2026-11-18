@@ -91,7 +91,7 @@
 | `node scripts/check-repo.mjs --all` | 沿用 app README 显式工具链 PATH；获授权在沙箱外实跑，退出码 0；前端类型 / 构建、Rust 编译、既有 13 项 lib 单测、门禁自测全部通过。普通 `--all` 不含尚未暂存的新文件，新增文件覆盖由上一行隔离索引检查补足 |
 | 初跑环境失败 | 默认 PATH 无 pnpm；沿用已有工具链后，当轮环境下两个既有可达性测试的特定临时端口绑定被拦（`PermissionDenied / Operation not permitted`），11 通过 / 2 失败；获授权沙箱外重跑 13/13 通过，不改测试、不增加跳过开关 |
 
-工具链 PATH 口径见 [app README](../../../apps/desktop/README.md)，本轮未安装依赖。GUI、项目持久化和重启恢复均未实现 / 执行，仍按下节单列。
+工具链 PATH 口径见 [app README](../../../../apps/desktop/README.md)，本轮未安装依赖。GUI、项目持久化和重启恢复均未实现 / 执行，仍按下节单列。
 
 ## 审阅与修订轮校验
 
@@ -129,7 +129,7 @@
 - 新增 debug-only `LAYRESS_PROBE_LAYOUT=1`（`lib.rs`）：复用既有 `[layress-probe]` 标题通道，自动记录常态 / 铺满 6 轮 / 恢复三组数据——工具层 CSS 视口与 `#bar` 高、临时诊断表单 6 个控件的可见 / `elementFromPoint` 命中 / 可聚焦数、三块视图 bounds、`configured` 与被测页 title 哨兵回报；铺满由 `run_on_main_thread` 执行 `apply_layout(app, true)`，每轮重排以适配窗口缩放。
 - 不改前端源码 ⇒ 徽标仍 `v20261114-2`，不触发任务 1.1 的递增要求；不进入采集状态机、不写产品数据、release 为空实现。探针注入的诊断表单是临时 DOM，不代表项目 UI 已实现。
 - 实跑：`cargo test --lib` 27/27、`check-repo.mjs --all` 与 `--staged` 退出码 0（本机 macOS arm64）。**GUI 启动、小窗口、控件肉眼可见、状态栏层级、焦点手感、预览→设置→返回、编辑中拒绝采集全部未执行**；机器 PASS 不替代人工（I11），release 构建未实跑。
-- 操作清单与判据见 [复验清单归档「任务 0.1」](../../../docs/reviews/checklists/README.md)；通过前 0.1 不勾选、1.1 之后完整 UI 不扩展；失败退路按 design §1 同窗口 bounds / CSS 修正，仍失败如实标阻塞。
+- 操作清单与判据见 [复验清单归档「任务 0.1」](../../../../docs/reviews/checklists/README.md)；通过前 0.1 不勾选、1.1 之后完整 UI 不扩展；失败退路按 design §1 同窗口 bounds / CSS 修正，仍失败如实标阻塞。
 
 ### 0.1 首轮回显（2026-11-15，用户实机提供；判定：布局可行 / 任务未通过）
 
@@ -211,7 +211,7 @@
 
 - 用户重跑后**新建项目成功两次**（「我在你发之前做过一遍，之后又做了一遍」）⇒ `startUrl` / `presetId` 修复生效，`config_create_project` → `ConfigStore::commit` → 原子替换落盘链路通；状态栏 / 按钮 / 列表反馈按用户「其他没有问题」通过。
 - 应用户要求实读 `<data-root>/config/projects.json`（618 B，14:43:37）：`revision: 2`，`projects` 两条同名「本地后台」，ID 分别 `p-1794724693549-1` / `p-1794725017893-2`，`activeProjectId` 指向后建的第二个；URL 规范化为 `https://example.com/`，视口 `phone 390×844`。同目录 `projects.lock` 为 0 字节锁文件（进程持有，不是残留）。
-- 两条不是重复脏数据：[design](design.md) §2 明确「同名允许，以 ID 区分」；项目删除在 [proposal](proposal.md) Scope 留后续。列表当前不显示 ID ⇒ 已登记 [debt](../../../docs/knowledge/debt.md) 欠账，归 2.1 列表细化，本轮不改前端（徽标保持 `v20261115-2`）。
+- 两条不是重复脏数据：[design](design.md) §2 明确「同名允许，以 ID 区分」；项目删除在 [proposal](proposal.md) Scope 留后续。列表当前不显示 ID ⇒ 已登记 [debt](../../../../docs/knowledge/debt.md) 欠账，归 2.1 列表细化，本轮不改前端（徽标保持 `v20261115-2`）。
 - **用户明确更正：负例还没做** ⇒ 1.1 不勾选；三条负例红条、关闭返回后页面尺寸、窗口徽标 `v20261115-2` 也未单独留回显。机器门禁 41/41 与三条参数断言不替代人工（I11 / I16）。
 - 若要从空配置重来：删除数据根下 `config/projects.json` 后重启即为空项目集（文件缺失不是损坏）；**本轮未代用户删除或改写任何运行数据**。
 
@@ -236,11 +236,11 @@
 - **启动接线**（`lib.rs` setup）：解析失败时按错误类型设稳定码——相对路径 ⇒ `DATA_ROOT_RELATIVE_UNSUPPORTED`（本错误码首次有实现路径抛出，模块内对应 `allow(dead_code)` 已删），其他解析错误维持既有 `CONFIG_WRITE_FAILED` 口径；`config_error` / `data_root_error` / `PageEvent::DataRoot` 三通道同轮更新，采集仍由「无根拒绝写盘」与 `data_root_error` 挡住。
 - **前端**（徽标 `v20261115-2` → `v20261116-1`，`index.html` 同步）：`loadInitialState` 的数据根红条改为「有根或有无根错误都点亮」——相对根拒绝时 `dataRoot` 为空但 `dataRootError` 非空，此前不显示红条，正是 spec「解析失败无根时状态栏就绪后红条可见」的缺口；红条仍排在开场提示之后不被冲掉。相对根时 `config_store` 不打开，设置面板显示「配置不可用（DATA_ROOT_RELATIVE_UNSUPPORTED）」、保存命令失败、采集被拒 ⇒ 两类失败均禁用持久化与采集，不创建替代根。
 - **实跑**（macOS arm64）：`cargo test --lib` **43 通过 / 0 失败**（41 + 新增 2：显式相对根两来源分别解析层拒绝、CLI 绝对覆盖 env 相对不误拒），`node scripts/check-repo.mjs --all` 退出码 0（徽标一致 `v20261116-1`、tsc / vite、Rust check、洁净度 / 链接 / 双语、失败传播自测）。
-- **单列不勾 1.4**：红条实际可见性（三档：相对 CLI 根 / 相对 env 根 / CLI 绝对覆盖）待用户按 [复验清单归档](../../../docs/reviews/checklists/README.md)「任务 1.4 人工复验」三句确认；Windows 盘符路径在 Unix 解析层的表现属平台差异，随 Windows 实测单列；debt「相对路径解析基准」解析层部分已销账、红条部分待复验。
+- **单列不勾 1.4**：红条实际可见性（三档：相对 CLI 根 / 相对 env 根 / CLI 绝对覆盖）待用户按 [复验清单归档](../../../../docs/reviews/checklists/README.md)「任务 1.4 人工复验」三句确认；Windows 盘符路径在 Unix 解析层的表现属平台差异，随 Windows 实测单列；debt「相对路径解析基准」解析层部分已销账、红条部分待复验。
 
 ### 1.4 复验收口：勾选（2026-11-16 09:21，用户实机三档）
 
-- 数据源：用户按 [复验清单归档](../../../docs/reviews/checklists/README.md)「任务 1.4 人工复验」三档实机操作后确认「都没问题」：① 相对 CLI 根红条可见且判据齐备（`DATA_ROOT_RELATIVE_UNSUPPORTED` + 原始值 + 绝对路径提示，不被开场提示冲掉）；② 相对 env 根来源正确；③ CLI 绝对覆盖 env 相对不误拒。窗口徽标按清单为 `v20261116-1`。
+- 数据源：用户按 [复验清单归档](../../../../docs/reviews/checklists/README.md)「任务 1.4 人工复验」三档实机操作后确认「都没问题」：① 相对 CLI 根红条可见且判据齐备（`DATA_ROOT_RELATIVE_UNSUPPORTED` + 原始值 + 绝对路径提示，不被开场提示冲掉）；② 相对 env 根来源正确；③ CLI 绝对覆盖 env 相对不误拒。窗口徽标按清单为 `v20261116-1`。
 - 结论：**任务 1.4 勾选**（范围：解析层相对根拒绝、优先级、无根红条可见、app README / I13 同步、debt 解析层销账）。E05 标「相对根解析层 + 红条可见性通过」，E07 标「无根红条启动可见通过」。
 - **仍不覆盖**：1.5 备份重建与 10 份上限、2.x 视口 / 地址 / 项目切换 UI、3.x 编排与 3.4 仲裁、4.1 徽标内容指纹、4.2 全量人工复验、4.3 归档合入；不可写有根路径沿归档 change 4.1 已人工复验的证据，不在本项重复执行；Windows 盘符路径表现随 Windows 实测单列；D30 与云端 CI 状态不变。机器门禁与单测不替代人工（I11），本轮人工结论依据用户回显。
 
@@ -250,7 +250,7 @@
 - **命令接线**（`lib.rs`）：`config_rebuild` 仅当配置存储未就绪且错误属于 `READ_FAILED` / `CORRUPT` / `VERSION_UNSUPPORTED` 三类时允许；`LOCKED` / `DATA_ROOT_RELATIVE_UNSUPPORTED` 等一律拒绝。成功后重新 `ConfigStore::open` 并清除 `config_error`。
 - **前端**（徽标 `v20261115-2` → `v20261116-1` → `v20261116-2`，`index.html` 同步）：设置面板新增「备份并重建空配置」按钮，仅在三类错误时显示；**两段确认**——第一次点击只进入红色待确认态（6 秒自动复位），再点才调用；关闭面板自动复位。成功 / 失败均经底部状态栏（I15）。
 - **实跑**（macOS arm64）：`cargo test --lib` **48 通过 / 0 失败**（43 + 新增 5：备份重建成功且原字节保留截图不动、备份达上限拒绝且原文件与既有备份不变、备份失败原文件不变、提交失败备份保留并计入上限、双实例持锁时重建被拒——含真实子进程锁），`node scripts/check-repo.mjs --all` 退出码 0。调试期间以探针证实跨进程 `flock` 互斥正常（子进程持锁时 `ConfigStore::open` 只读、直接 `try_lock` WouldBlock、rebuild 首次调用返回 `CONFIG_LOCKED`），调试输出已全部移除。
-- **单列不勾 1.5**：错误态红条 / 设置面板表达、两段确认交互、备份文件 GUI 核对（清单见 [复验清单归档](../../../docs/reviews/checklists/README.md)「任务 1.5 人工复验」）待用户确认；「取消恢复」路径由前端两段确认承载（不点第二次即无任何写入），其 GUI 行为随人工复验核对；断电耐久性、Windows / Linux 权限语义、真实写盘观测（D30）单列。机器 PASS 不替代人工（I11）。
+- **单列不勾 1.5**：错误态红条 / 设置面板表达、两段确认交互、备份文件 GUI 核对（清单见 [复验清单归档](../../../../docs/reviews/checklists/README.md)「任务 1.5 人工复验」）待用户确认；「取消恢复」路径由前端两段确认承载（不点第二次即无任何写入），其 GUI 行为随人工复验核对；断电耐久性、Windows / Linux 权限语义、真实写盘观测（D30）单列。机器 PASS 不替代人工（I11）。
 
 ### 1.5 复验收口：勾选（2026-11-16 09:46，用户实机）
 
@@ -309,7 +309,7 @@
 
 ### 2026-11-16 补记：复验清单归档与新流程（用户定）
 
-- 用户决定：app README 只留结构与口径，历次复验清单（3.2 / 2.2 / 4.x / 5.2 / 0.1 / 1.1 / 1.4 / 1.5）迁入 [`docs/reviews/checklists/README.md`](../../../docs/reviews/checklists/README.md)，章节标题未改（旧文锚点仍可跳转），相对链接按新深度修正；本 README 中指向 app README 清单的引用同步改指归档。**此后复验步骤直接在对话中提供，不再写入 app README**；结论仍记入本文件。app README 保留「本地命令」「口径」与归档指针。
+- 用户决定：app README 只留结构与口径，历次复验清单（3.2 / 2.2 / 4.x / 5.2 / 0.1 / 1.1 / 1.4 / 1.5）迁入 [`docs/reviews/checklists/README.md`](../../../../docs/reviews/checklists/README.md)，章节标题未改（旧文锚点仍可跳转），相对链接按新深度修正；本 README 中指向 app README 清单的引用同步改指归档。**此后复验步骤直接在对话中提供，不再写入 app README**；结论仍记入本文件。app README 保留「本地命令」「口径」与归档指针。
 
 ### 实施轮：任务 3.1 跨项目切换 / 启动恢复 / 离线重试（2026-11-16，机器层齐备 / GUI 人工复验未执行）
 
@@ -438,8 +438,37 @@
   - `../../tools/openspec/openspec validate add-project-device-profiles --strict --no-interactive --json` ⇒ 1 change 通过 / 0 issues；`--specs --strict` ⇒ 1 spec 通过 / 0 issues。
 - **结论**：**任务 4.1 勾选**（机器层）。E08 / E10 机器层判据标通过。**单列不随勾选**：归档合入主规格与逐场景结果核对（4.3 / 4.2）、D30 打包产物与 WebView 全进程写盘观测、Windows / Linux 退出与锁语义、3.3 写盘失败 GUI 路径、其他 4.2 人工场景。机器 PASS 不替代人工（I11）。
 
-### 任务 4.3 预处理：文档同步（2026-11-18，未勾完成——归档待 4.2 结果）
+### 任务 4.3 收口：文档同步与归档合入主规格（2026-11-18，随 4.2 结果完成并勾选）
 
-- **已做（不依赖 GUI 结果）**：`apps/desktop/README.md` 顶部改双 change 口径、本地命令补 55 项与 `--print-fingerprint`、配置段改为「已落地」并删过时的「仍属后续任务」、口径段补 `layress.project-config/v1` 数据格式 / SPA 限制 / 数据根两来源相对路径拒绝（1.4）/ 工具层版本自证（I16）/ 两 change 复验状态；`docs/knowledge/invariants.md` 的 I16 升级为「徽标相等 + 源码内容指纹」；`docs/knowledge/engineering.md` 追加 4.1 指纹门禁经验；`AGENTS.md` §二状态卡四行推进到「已勾 13 / 剩 3」。`check-repo.mjs --all` 退出码 0（链接 75 篇 0 问题、双语 5 对、洁净度 123 文件 0 失败）。
-- **未做（依赖 4.2 全量场景结果，不提前勾 4.3）**：将新能力与 `desktop-page-host` MODIFIED 数据根 requirement 合入 `openspec/specs/` 主规格、change 整体归档到 `openspec/changes/archive/`、逐场景结果核对与未执行项最终分列、debt 最终销账复核。这些必须在 4.2 人工复验得出结论后执行，否则按 TBD 结果归档会写假结论。
-- I13 / debt 相对路径项已在任务 1.4 复验勾选时销账（见「1.4 复验收口」），本轮只核对状态、不重复改写。
+- **已做（不依赖 GUI 结果的同步，15:30 预处理）**：`apps/desktop/README.md` 顶部改双 change 口径、本地命令补 55 项与 `--print-fingerprint`、配置段改为「已落地」并删过时的「仍属后续任务」、口径段补 `layress.project-config/v1` 数据格式 / SPA 限制 / 数据根两来源相对路径拒绝（1.4）/ 工具层版本自证（I16）/ 两 change 复验状态；`docs/knowledge/invariants.md` 的 I16 升级为「徽标相等 + 源码内容指纹」；`docs/knowledge/engineering.md` 追加 4.1 指纹门禁经验；`AGENTS.md` §二状态卡同步。`check-repo.mjs --all` 退出码 0。
+- **归档（4.2 通过后执行）**：两份 delta 合入 `openspec/specs/`——新建 `project-device-profiles/spec.md`（9 条 requirement）、`desktop-page-host` 主规格「便携数据根与可写检查」按 MODIFIED 替换（新增相对根拒绝与命令行覆盖环境变量两场景）；change 整体移入 `openspec/changes/archive/2026-11-18-add-project-device-profiles/`；`openspec/specs/README.md` 更新为 2 条能力；strict 校验重跑。
+- I13 / debt 相对路径项已在任务 1.4 复验勾选时销账（见「1.4 复验收口」）。
+- **单列不宣称**：D30 打包产物与 WebView 全进程写盘观测归发行轮；Windows / Linux 未实测（锁语义、退出、路径解析）；弹窗会话单独触发未执行；SPA history / hash 追踪为首版明示限制；两个 4.2 实机 bug 修复归后续。不宣称便携或跨平台通过。
+
+### 任务 3.3 复验收口（2026-11-18 16:0x，4.2 轮内完成并勾选）
+
+- **方法**：固定端口夹具（`python3 -m http.server 8901 --bind 127.0.0.1`，页面含 `/`、`/index.html`、`/sub/`）消除「样例端口随重启漂移」的前置阻塞；`chmod 555` 数据根 `config/` 目录使配置可读不可写，再导航一个与当前最近地址不同的新地址（`/sub/`）——主文档完成加载 → `remember_last_loaded_url` commit 创建临时文件失败 → `UnsavedState` 路径。
+- **GUI 判据**：红条「⚠ 当前已应用，未保存：最近地址 …/sub/ 写入配置失败（CONFIG_WRITE_FAILED：配置临时文件不可创建…）；重启后可能恢复旧配置，可重试」；`chmod 755` 恢复后设置面板出现「重试保存」按钮；点击后红条销账、最近地址更新（用户确认两项均出现）。
+- **文件证据**：`projects.json` revision 推进、`lastLoadedUrl` 更新为重试地址；首轮误判（chmod 未先生效时写成功、无红条）已按「先 chmod → 后导航」顺序修正。
+- **结论**：**任务 3.3 勾选**。跨项目提交失败不切换沿用 3.1 已验实现。
+
+### 任务 4.2 复验收口（2026-11-18 15:27–16:10，全部场景通过并勾选，E01–E09）
+
+| # | 场景（E 映射） | 结果与证据 |
+|---|---|---|
+| 1 | 两项目 + 真实重启恢复（E01/E04） | 项目 A desktop 1280×800 / 项目 B phone 390×844，各自起始地址与最近地址独立；Ctrl+C 重启后恢复最近活动项目与视口 |
+| 2 | 离线失败（E04） | 起始地址 `127.0.0.1:1` → 红条目标不可达，可重试，最近地址不变 |
+| 3 | 「已应用未保存」+ 重试（E05/E07） | 见「任务 3.3 复验收口」，3.3 同轮勾选 |
+| 4 | 损坏配置 + 备份重建（E06） | 截断 JSON → 「项目：配置错误」+ `CONFIG_CORRUPT` → 两段确认重建；执行两次，备份 `projects.backup.<unix-ms>.<随机>.json` 原始字节保留（50B 半截 JSON 可 cat 核对）、空配置 rev 1、截图不删、2 份 < 10 上限 |
+| 5 | 小窗口视口不变（E07） | 1280×800 视口 > 窗口时状态栏明示「⚠ 窗口容纳不下（视口保持不变）· 页面实测 1280×800 @DPR 2」，拉伸恢复后正常 |
+| 6 | 权限拒绝红条（E09） | 样例页「请求位置」→ 「geolocation 被拒绝：1 User denied Geolocation」红条可见，页面不卡死 |
+| 7 | 重选当前项目不重载（E04 单列） | 对活动项目再点「切换」：无两段确认、页面不重载 |
+| 8 | 无项目不记忆（E03 单列） | 重建空配置后临时浏览 `/sub/`：`projects.json` 保持 `{"projects":[],"activeProjectId":null,"revision":1}` 零污染 |
+| 9 | 退出顺序（E08 单列） | 导航进行中 Cmd+Q：无报错、无残留进程，重启后配置完整 |
+| 10 | 徽标自证（I16） | `v20261118-4` 全程可见（多轮截图），与源码指纹登记一致 |
+
+- **实机发现 2 个真 bug（不回退本勾选，已挂账 [debt](../../../../docs/knowledge/debt.md) 收口后修）**：
+  ①【P2】视口大于窗口 + 设置面板保存后打开页面：工具条第一行不可见、#bar 第三行状态文本反而可见，拉伸触发 relayout 自愈——`apply_layout` set_bounds 静默失败或漏显式重排；
+  ②【P1】设置面板打开期间执行导航（如「打开样例页」）：命令真实完成（56355 已记忆）但面板不关、页面不显示——design §1 仲裁表未定「编辑中导航」，落进空隙；规避为先关闭面板再导航。
+  另确认已知挂账（3.1 记债）：fixture 随机端口 56355 被记忆为最近地址，重启恢复必失败——规避为重试打开时改地址，归债修复。
+- **复验环境**：固定端口夹具 `/tmp/layress-fixture`（python3 http.server 8901）；数据根 `target/debug/.layress/`（15:33 重建）；徽标 `v20261118-4`；macOS arm64。

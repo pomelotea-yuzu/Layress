@@ -361,8 +361,8 @@ A / B / C / D 四组全部经用户人工复验通过，[tasks 5.2](../../../ope
 ## 任务 0.1 布局可行性复验（当前 change，2026-11-15 已实机验证并勾选）
 
 > 目的：在扩展完整项目 UI **之前**，验证「工具层铺满工作区 + 被测层等尺寸平移出可视区」真能容纳表单。
-> 依据：[design §1](../../../openspec/changes/add-project-device-profiles/design.md)、
-> [tasks 0.1](../../../openspec/changes/add-project-device-profiles/tasks.md)、E07 / E09。
+> 依据：[design §1](../../../openspec/changes/archive/2026-11-18-add-project-device-profiles/design.md)、
+> [tasks 0.1](../../../openspec/changes/archive/2026-11-18-add-project-device-profiles/tasks.md)、E07 / E09。
 > 现有 `apply_layout(app, true)`（静态预览已用）就是铺满机制；本轮新增 `LAYRESS_PROBE_LAYOUT=1` 探针把它量化。
 > **探针只改 Rust debug 分支，不改 `index.html` / `main.ts` ⇒ 徽标仍应是 `v20261114-2`。**
 > 探针注入的「0.1 布局诊断表单」是临时 DOM，不代表项目 UI 已实现；退出时自动移除。
@@ -441,7 +441,7 @@ cd ~/Developer/project/layress/apps/desktop \
 `cssH = tool bounds 逻辑高 − 32`（96→64、800→768、400→368，9 组一致）⇒ **布局可行性通过**。
 但 `full3` 因 Resized 触发 `relayout` 复位成 96px（探针竞态，已修），全程 `page=None`，
 且未收到三句人工观察 ⇒ **0.1 仍未通过、未勾选**。逐轮数据与未执行项见
-[evidence-index](../../../openspec/changes/add-project-device-profiles/evidence-index.md)。
+[evidence-index](../../../openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md)。
 
 第二轮回显（12:53）与首轮**逐字一致**（含 `Finished dev profile … in 9.15s`、`full3` 595×96、
 `restore` 仍 `controls=6`），且不含 `probe=r2` ⇒ 跑的是修复前二进制或旧日志，**不采信、0.1 状态不变**。
@@ -466,12 +466,12 @@ cd ~/Developer/project/layress/apps/desktop \
 `restore` 工具层回 96、窗口还原、page 归位、`controls=0`；人工三句「和刚刚一样能，没挡，能」。
 `configured=None`（跟随窗口模式）下缩窗时 page bounds 1280×662→520×262 属既有行为，不是布局偷改视口；
 「设定固定视口后缩窗不变」反例未在 0.1 执行，单列到 3.4 回归。逐轮数据与未执行项见
-[evidence-index](../../../openspec/changes/add-project-device-profiles/evidence-index.md)「0.1 r3 回显与勾选」。
+[evidence-index](../../../openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md)「0.1 r3 回显与勾选」。
 
 ### 6. 回填
 
-结果写进 [evidence-index](../../../openspec/changes/add-project-device-profiles/evidence-index.md) 的 E07 / E09 行与逐场景表；
-0.1 已勾选**仅布局可行性**（口径见 [tasks 0.1](../../../openspec/changes/add-project-device-profiles/tasks.md)），
+结果写进 [evidence-index](../../../openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md) 的 E07 / E09 行与逐场景表；
+0.1 已勾选**仅布局可行性**（口径见 [tasks 0.1](../../../openspec/changes/archive/2026-11-18-add-project-device-profiles/tasks.md)），
 1.1 之后完整 UI 可开始，预览→设置→返回 / 编辑中拒绝采集等业务仲裁仍归 3.4、未执行。
 探针是 debug-only：不设 `LAYRESS_PROBE_LAYOUT` 时产品路径零影响；
 release 构建未实跑（空实现分支），发行轮单列。

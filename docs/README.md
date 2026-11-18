@@ -52,7 +52,7 @@
 当前产品依据：[产品方向与使用方式](product/product.md)——本地界面验收助手；2026-11-10 用户确定 Tauri 桌面工作台，保留单窗口体验、共用任务事实与 Agent 非交互调用要求，尚未实现。
 正式阶段索引：[开发路线图](product/roadmap.md)——六阶段规划已敲定；[第一阶段计划](product/2026-11-10-stage-one-plan.md)已转 Tauri，首增量已实施并归档，其余范围待审阅，近期具体、远期留白。
 首个 change：[add-tauri-page-host](../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)——已于 2026-11-14 实施完成并归档（任务 1.x–5.4，4.2 按 D30 移出），其 7 条 requirement 已合入主规格 [`openspec/specs/desktop-page-host/`](../openspec/specs/desktop-page-host/spec.md)；归属见[活动 change 索引](../openspec/changes/README.md)。
-当前 change：[add-project-device-profiles](../openspec/changes/add-project-device-profiles/proposal.md)——项目 / 地址与视口配置记忆，2026-11-14 用户授权建档并经另一 Agent 审阅，编写者已修订意见；目录内包含设计、`specs/project-device-profiles/` 新能力、`specs/desktop-page-host/` 既有数据根修订、任务 / review / 证据计划，归属见[活动 change 索引](../openspec/changes/README.md)。2026-11-15 起 0.1 布局可行性已实机验证并勾选、1.2 配置模型层已落地，完整 UI / 文件存储未实施。
+当前 change：[add-project-device-profiles](../openspec/changes/archive/2026-11-18-add-project-device-profiles/proposal.md)——项目 / 地址与视口配置记忆，2026-11-14 用户授权建档并经另一 Agent 审阅，编写者已修订意见；目录内包含设计、`specs/project-device-profiles/` 新能力、`specs/desktop-page-host/` 既有数据根修订、任务 / review / 证据计划，归属见[活动 change 索引](../openspec/changes/README.md)。2026-11-15 起 0.1 布局可行性已实机验证并勾选、1.2 配置模型层已落地，完整 UI / 文件存储未实施。
 调研背景：[受众与常用界面检查流程](research/2026-11-09-audience-and-workflow-research.md)——核查开发者调查、直接使用反馈与已有替代，保留竞品实跑、中文近期需求等未验证项；文中“形态未定”为当时讨论状态。
 平台分布背景：[开发者操作系统分布](research/2026-11-10-developer-os-distribution.md)——三类外圈数据的来源分级、题目口径冲突与未定稿的适配顺序建议；不是目标用户统计，也不恢复旧三端发行承诺。
 新阶段目标与候选建议：[面向 Agent 开发流程的界面检查](product/2026-11-09-agent-ui-review-direction.md)——一年内就业作品集与开源影响力目标保持，前一轮切片仅作候选，不按实现方便自动锁定技术与受众。
@@ -85,7 +85,7 @@ node scripts/check-i18n.mjs --links  # 检查全部已跟踪 Markdown 的本地�
 
 ## 路径变更记录
 
-- **2026-11-14 项目与设备记忆立项**：新增 `openspec/changes/add-project-device-profiles/` 与其 `specs/project-device-profiles/`，承接阶段 1 第二个增量；同步活动索引、产品 / 阶段入口、config、工作流、中英 README、经验库和接手状态。编写轮只建档且未预建 review 占位；审阅轮由另一 Agent 产出 `review.md`，编写者现已处理意见并补 `specs/desktop-page-host/` 数据根修订、16 项任务和逐场景映射。无既有路径迁移，未改产品代码；按 D26 检查后本地提交。
+- **2026-11-14 项目与设备记忆立项**：新增 `openspec/changes/archive/2026-11-18-add-project-device-profiles/` 与其 `specs/project-device-profiles/`，承接阶段 1 第二个增量；同步活动索引、产品 / 阶段入口、config、工作流、中英 README、经验库和接手状态。编写轮只建档且未预建 review 占位；审阅轮由另一 Agent 产出 `review.md`，编写者现已处理意见并补 `specs/desktop-page-host/` 数据根修订、16 项任务和逐场景映射。无既有路径迁移，未改产品代码；按 D26 检查后本地提交。
 
 - **2026-11-14 首增量归档（任务 5.4）**：`openspec/changes/add-tauri-page-host/` 整体移入
   [`openspec/changes/archive/2026-11-14-add-tauri-page-host/`](../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)，

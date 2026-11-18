@@ -5,7 +5,7 @@
 > 单窗口体验继续保留；具体 WebView 承载、采集与模拟能力待实现验证。圈画加快捷反馈不视为已成立竞争优势。
 > 本文为当前产品依据，替代前期讨论中的候选定位；具体交互与接入方式仍需实现验证。
 > 背景：[新阶段讨论](2026-11-09-agent-ui-review-direction.md) · [受众与常用流程调研](../research/2026-11-09-audience-and-workflow-research.md) · 决策 D22 / D25。
-> 开发阶段与设计入口见[开发路线图](roadmap.md)；阶段 1 首增量已实施并归档；[项目与设备记忆](../../openspec/changes/add-project-device-profiles/proposal.md)于 2026-11-14 授权建档，经另一 Agent 审阅并修订规划；2026-11-15 起进入实施轮，0.1 布局可行性已验证、配置模型层已落地，其余未实施。
+> 开发阶段与设计入口见[开发路线图](roadmap.md)；阶段 1 首增量已实施并归档；[项目与设备记忆](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/proposal.md)于 2026-11-14 授权建档，经另一 Agent 审阅并修订规划；2026-11-15 起进入实施轮，0.1 布局可行性已验证、配置模型层已落地，其余未实施。
 > 第一阶段具体范围、实施顺序与完成标准见[计划提案](2026-11-10-stage-one-plan.md)；载体已确定为 Tauri，其余范围尚未逐项确认。
 > 首个 change：[add-tauri-page-host](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/proposal.md)，2026-11-10 按用户指令建立，覆盖页面承载首增量，**2026-11-14 实施完成并归档**，规格已合入主规格 [`openspec/specs/desktop-page-host/`](../../openspec/specs/desktop-page-host/spec.md)。
 

@@ -1,11 +1,13 @@
 # apps/desktop/ · Tauri 桌面工作台
 
-> 当前状态：**首个 change 已于 2026-11-14 归档**（1.x–4.x 经人工复验，4.2 按 D30 移出归发行轮；
-> 5.1 门禁接入；5.2 经四轮人工复验闭环；5.3 首次本机 release 构建登记限制；5.4 合入主规格）。
-> **第二个 change [add-project-device-profiles](../../openspec/changes/add-project-device-profiles/tasks.md) 实施中**：
-> 0.1 / 1.x / 2.x / 3.1 / 3.2 / 3.4 / 4.1 已勾选，剩 3.3 / 4.2 / 4.3 共 3 项；活动规格见该 change 两份 delta，
-> 勾选与证据以其 [tasks](../../openspec/changes/add-project-device-profiles/tasks.md) /
-> [evidence-index](../../openspec/changes/add-project-device-profiles/evidence-index.md) 为准（归档后以 `openspec/specs/` 为准）。
+> 当前状态：**两个 change 均已归档**。首个 add-tauri-page-host 于 2026-11-14 归档（4.2 按 D30 移出归发行轮）；
+> 第二个 [add-project-device-profiles](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/tasks.md) 于 2026-11-18 归档
+> （0.1–4.3 十六项全部经机器层 + 人工复验收官，配置记忆 / 视口 / 切换恢复 / 损坏重建落地，
+> 新能力已合入主规格 [`openspec/specs/project-device-profiles/`](../../openspec/specs/project-device-profiles/spec.md)）。
+> 归档后勾选与证据以 [tasks](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/tasks.md) /
+> [evidence-index](../../openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md) 与
+> 主规格为准。已知挂账：真实双实例配置锁未互斥（另立 change）、设置态导航仲裁遗漏（P1）、
+> 视口大于窗口的布局错位（P2）——见 `docs/knowledge/debt.md`。
 > 结果条为**窗口最底部的独立状态栏 WebView**；工具层反馈全收敛到它（I15）。
 > 首个 change 的勾选与证据以[归档 change](../../openspec/changes/archive/2026-11-14-add-tauri-page-host/tasks.md) 为准。
 
@@ -46,7 +48,7 @@ LAYRESS_PROBE_CAPTURE=1 pnpm tauri dev
 node scripts/check-build.mjs --print-fingerprint   # 在仓库根执行
 ```
 
-**配置记忆（第二个 change，1.x / 2.x / 3.x / 4.1 已落地）**：`src/project_config.rs` 提供配置模型 / 校验 /
+**配置记忆（add-project-device-profiles，2026-11-18 归档）**：`src/project_config.rs` 提供配置模型 / 校验 /
 8 个稳定错误码；`src/config_store.rs` 提供 `<data-root>/config/projects.json` 的
 独占写锁（`std::fs::File::try_lock`，MSRV 1.89，见 D33）、进程内串行写队列、同目录临时文件 + fsync + 原子替换、
 revision 过期拒绝、备份重建（10 份上限）与分层错误码；真实子进程双实例 / 中断测试在 `cargo test --lib` 覆盖内。
@@ -54,7 +56,7 @@ revision 过期拒绝、备份重建（10 份上限）与分层错误码；真�
 工具层设置面板支持创建 / 改名 / 视口 / 起始地址 / 最近地址 / 切换 / 重建。
 **版本自证（I16）**：`check-build.mjs --all` 除比徽标相等外，还按确定源码清单计算内容指纹，
 改业务源码忘更新徽标 / 指纹、`src/` 新增模块未纳入清单均判红；`--selftest` 含 5 条指纹反例。
-**仍属本 change 未勾项**：3.3 写盘失败的「已应用未保存」GUI 路径、4.2 全量人工复验、4.3 归档合入主规格。
+**已知挂账**（见 `docs/knowledge/debt.md`）：双实例锁未互斥、设置态导航仲裁遗漏、布局错位；修复归后续。
 
 **真终端启动（重要）**：WorkBuddy 会话用内置 Node 运行时（`pnpm` 是 corepack shim），
 真终端的 PATH 通常既没有 `pnpm` 也没有 `~/.cargo/bin`；系统自带 node / npm 不够用。
@@ -98,6 +100,6 @@ cd ~/Developer/project/layress/apps/desktop \
   `index.html[data-build]` 并同步 `check-build.mjs` 的指纹登记；徽标为「加载中」或缺省时 GUI 结论作废。
 - 构建缓存 `src-tauri/target/`、前端 `dist/`、运行数据根 `.layress/` 均不入库；`Cargo.lock` 入库。
 - 机器 PASS 不等于人工验收：首个 change 的 3.x 截图内容 / 两种比例坐标落点 / 返回后输入与竞态、2.2 与
-  4.1 / 4.3 / 4.4 GUI 负例已复验；第二个 change 的 0.1 / 1.x / 2.x / 3.1 / 3.2 / 3.4 已由用户实机勾选，
-  **3.3 写盘失败路径与 4.2 全量复验待用户验收**；弹窗会话单独触发、D30 打包与跨平台仍未执行 / 单列。
+  4.1 / 4.3 / 4.4 GUI 负例已复验；第二个 change 的全部 16 项（含 3.3 写盘失败路径与 4.2 全量场景）已于
+  2026-11-18 经用户实机验收勾选；弹窗会话单独触发、D30 打包与跨平台仍未执行 / 单列。
 
