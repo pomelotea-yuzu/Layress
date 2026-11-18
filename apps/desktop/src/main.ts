@@ -24,7 +24,7 @@ import {
  * `check-build.mjs` 会断言两处一致。用途是在 GUI 上自证「窗口加载的是当前代码」——
  * CSP 挡掉 Vite HMR、旧窗口未重载时，人工复验会跑在旧 DOM 上（本仓已踩三次）。
  */
-const BUILD_TAG = "v20261118-2";
+const BUILD_TAG = "v20261118-3";
 
 interface MeasuredViewport {
   w: number;
@@ -639,7 +639,9 @@ async function closeSettings(): Promise<void> {
     const result = await invoke<{ restorePreview: boolean; sceneInvalidated: boolean }>("settings_exit");
     settingsPanel?.classList.remove("show");
     if (result.restorePreview) {
-      // 同一预览：重新触发尺寸计算回到保存的展示比例（图片数据未清）
+      // 同一预览：必须先把进入设置时摘掉的 show 加回来，再重算尺寸。
+      // 只调 computeScaleAndRender 不恢复显示 ⇒ 工具层铺满、预览层隐藏的白屏。
+      preview.classList.add("show");
       window.setTimeout(() => {
         if (currentMeta) computeScaleAndRender();
       }, 0);
