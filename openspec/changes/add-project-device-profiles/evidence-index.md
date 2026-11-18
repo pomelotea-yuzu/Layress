@@ -437,3 +437,9 @@
   - `node scripts/check-repo.mjs --all` ⇒ 退出码 0（洁净度 / 链接 / 双语、tsc + vite build、`cargo check`、55/55、指纹断言、失败传播自测全过）；`node scripts/check-repo.mjs --staged`（索引含门禁脚本快照）⇒ 退出码 0。
   - `../../tools/openspec/openspec validate add-project-device-profiles --strict --no-interactive --json` ⇒ 1 change 通过 / 0 issues；`--specs --strict` ⇒ 1 spec 通过 / 0 issues。
 - **结论**：**任务 4.1 勾选**（机器层）。E08 / E10 机器层判据标通过。**单列不随勾选**：归档合入主规格与逐场景结果核对（4.3 / 4.2）、D30 打包产物与 WebView 全进程写盘观测、Windows / Linux 退出与锁语义、3.3 写盘失败 GUI 路径、其他 4.2 人工场景。机器 PASS 不替代人工（I11）。
+
+### 任务 4.3 预处理：文档同步（2026-11-18，未勾完成——归档待 4.2 结果）
+
+- **已做（不依赖 GUI 结果）**：`apps/desktop/README.md` 顶部改双 change 口径、本地命令补 55 项与 `--print-fingerprint`、配置段改为「已落地」并删过时的「仍属后续任务」、口径段补 `layress.project-config/v1` 数据格式 / SPA 限制 / 数据根两来源相对路径拒绝（1.4）/ 工具层版本自证（I16）/ 两 change 复验状态；`docs/knowledge/invariants.md` 的 I16 升级为「徽标相等 + 源码内容指纹」；`docs/knowledge/engineering.md` 追加 4.1 指纹门禁经验；`AGENTS.md` §二状态卡四行推进到「已勾 13 / 剩 3」。`check-repo.mjs --all` 退出码 0（链接 75 篇 0 问题、双语 5 对、洁净度 123 文件 0 失败）。
+- **未做（依赖 4.2 全量场景结果，不提前勾 4.3）**：将新能力与 `desktop-page-host` MODIFIED 数据根 requirement 合入 `openspec/specs/` 主规格、change 整体归档到 `openspec/changes/archive/`、逐场景结果核对与未执行项最终分列、debt 最终销账复核。这些必须在 4.2 人工复验得出结论后执行，否则按 TBD 结果归档会写假结论。
+- I13 / debt 相对路径项已在任务 1.4 复验勾选时销账（见「1.4 复验收口」），本轮只核对状态、不重复改写。
