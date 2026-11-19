@@ -31,10 +31,10 @@
 
 | 字段 | 当前值 |
 |---|---|
-| 阶段 | **add-project-device-profiles 已全部收官并于 2026-11-18 归档**：规划审阅闭环（11-14）→ 0.1 / 1.x（11-15/16）→ 2.x（11-16）→ 3.1（11-16）→ 3.2 / 3.4（11-18，合并复验修 2 白屏 bug）→ 3.3 / 4.2 经固定端口夹具 + chmod 法实机触发并勾选 → 4.1 指纹门禁 → 4.3 归档合入主规格。**16 项全部勾选**；新能力 `project-device-profiles` 9 条 requirement 合入 `openspec/specs/`，`desktop-page-host` 数据根 requirement 按 MODIFIED 修订；strict 校验 2 specs 全过。实机发现 2 个 bug 挂账 debt 收口后修（设置态导航仲裁遗漏 P1 / 布局错位 P2），另有双实例锁挂账待另立 change；D30 归发行轮 |
-| 活动 change | 无。最新归档：[2026-11-18-add-project-device-profiles](openspec/changes/archive/2026-11-18-add-project-device-profiles/proposal.md)（16 任务全勾，逐项判据见其 [evidence-index](openspec/changes/archive/2026-11-18-add-project-device-profiles/evidence-index.md)）；主规格权威口径见 [`openspec/specs/project-device-profiles/`](openspec/specs/project-device-profiles/spec.md) 与修订后的 [`desktop-page-host`](openspec/specs/desktop-page-host/spec.md) |
-| 代码 | `src/project_config.rs` 配置模型 / 校验 / 8 错误码 + 14 单测；`src/config_store.rs` 落盘 / 独占锁 / 串行写 / 原子替换 / 备份重建 + 9 单测（含真实子进程双实例与中断）；`lib.rs` 接启动恢复 / 切换 / 三元绑定 / 未保存重试 / 仲裁 / 退出顺序；工具层设置面板，徽标 `v20261118-4`；`scripts/check-build.mjs` 含源码内容指纹门禁（`TOOL_SOURCE_FILES` + `EXPECTED_TOOL_SOURCE{tag,sha256}`、`--print-fingerprint` / `--selftest` 5 反例）；窄范围 `allow(dead_code)` 尚存待销（`expect_revision` 等），`cargo check` 0 警告；`check-repo.mjs --all` 55/55 全绿。详见 [app README](apps/desktop/README.md) |
-| 发行 | 无产品发行；已有首次本机 `Layress.app` 构建，打包产物运行与真实写盘观测归发行轮（D30）。`origin/main` 停在 `a69e20c`，本地提交以实时 `git log origin/main..HEAD` 查；push 归用户 |
+| 阶段 | 第一阶段「项目与设备」已完成。`add-project-device-profiles` 于 2026-11-18 在 `b16de64` 归档，16/16 项完成，9 条新要求与共享数据根修订已合入主规格。下一产品增量为原地批注。 |
+| 活动 change | [fix-config-single-writer](openspec/changes/fix-config-single-writer/proposal.md) 于 2026-11-19 建档，独立审阅意见已处理，实施未开始。范围为双实例写锁、显式重取和重建交接。设置态导航与布局问题仍在[欠账](docs/knowledge/debt.md)。 |
+| 代码 | 已实现项目配置校验、原子提交、项目与视口恢复、导航归属及未保存重试。工具层徽标 `v20261118-4`，公共门禁含工具层源文件指纹断言。归档基线为 `check-repo.mjs --all` 通过、Rust lib 单测 55/55。详见 [app README](apps/desktop/README.md)。 |
+| 发行 | 无产品发行。已有首次本机 `Layress.app` 构建，打包产物运行与真实写盘观测归发行轮（D30）。本地提交用 `git log origin/main..HEAD` 查，远端实时状态用 `git ls-remote` 查。 |
 
 判定真相的地方：进度 ⇒ `git log --oneline` 与 `openspec/changes/archive/`；
 门禁基线 ⇒ 实跑 `node scripts/check-repo.mjs --all` 的回显；仓库体积 ⇒ `git count-objects -v`；

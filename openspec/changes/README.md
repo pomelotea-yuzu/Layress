@@ -1,7 +1,7 @@
 # openspec/changes/ · 活动变更
 
 > 归属说明。这里放**正在进行**的 change，一个目录一个 change，动词开头的 kebab-case 命名。
-> **当前无活动 change**。最新归档：[add-project-device-profiles](archive/2026-11-18-add-project-device-profiles/proposal.md)
+> **当前活动 change 为 `fix-config-single-writer`**。最新归档：[add-project-device-profiles](archive/2026-11-18-add-project-device-profiles/proposal.md)
 > （项目 / 地址与视口配置记忆及共享数据根修订，2026-11-18 十六项全部收官，
 > 新能力已合入主规格 [`project-device-profiles`](../specs/project-device-profiles/spec.md)）。
 > 首增量 [add-tauri-page-host](archive/2026-11-14-add-tauri-page-host/proposal.md) 已归档，
@@ -11,7 +11,7 @@
 
 | change | 范围与入口 |
 |---|---|
-| （无） | 下一增量未立项。已归档 change 见 [archive/](archive/README.md)；新 change 按下方结构与纪律建档 |
+| [fix-config-single-writer](fix-config-single-writer/proposal.md) | 同一数据根的配置写锁、只读回退、显式重取与备份重建交接；2026-11-19 建档，独立审阅意见已处理，实施未开始 |
 
 ## 结构
 
